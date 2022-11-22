@@ -21,13 +21,15 @@ use testcontainers::{images::generic::GenericImage, Container};
 
 use cosmrs::bip32::{self, Error};
 
+use crate::chain::ChainConfig;
+
 pub const DEFAULT_PROJECTS_FOLDER: &str = "cloned_repos";
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct TestConfig {
     pub contracts: HashMap<String, Contract>,
     pub container: ContainerInfo,
-    pub chain_cfg: ChainCfg,
+    pub chain_config: ChainConfig,
     pub folder: String,
 }
 
@@ -53,36 +55,12 @@ pub struct ImportedAccount {
     pub pubkey: String,
 }
 
-#[allow(clippy::module_name_repetitions)]
-#[derive(Clone, Debug, Deserialize)]
-pub struct ChainCfg {
-    pub name: String,
-    denom: String,
-    prefix: String,
-    pub chain_id: String,
-    pub gas_price: u64,
-    pub gas_adjustment: f64,
-    pub derivation_path: String,
-    pub rpc_endpoint: String,
-    pub grpc_endpoint: String,
-}
-
 #[derive(Error, Debug)]
 pub enum ConfigError {
     #[error("query error: {}", .msg)]
     QueryError { msg: String },
     #[error("invalid mnemonic: {}", .msg)]
     InvalidMnemonic { msg: String },
-}
-
-impl ChainCfg {
-    pub fn denom(&self) -> &str {
-        &self.denom
-    }
-
-    pub fn prefix(&self) -> &str {
-        &self.prefix
-    }
 }
 
 impl TestConfig {
@@ -187,9 +165,9 @@ impl TestConfig {
 
     pub fn bind_chain_to_container(&mut self, container: &Container<GenericImage>) {
         // We inject here the endpoint since containers have a life time
-        self.chain_cfg.rpc_endpoint =
+        self.chain_config.rpc_endpoint =
             format!("http://localhost:{}/", container.get_host_port_ipv4(26657));
-        self.chain_cfg.grpc_endpoint =
+        self.chain_config.grpc_endpoint =
             format!("http://localhost:{}/", container.get_host_port_ipv4(9090));
     }
 
@@ -199,7 +177,7 @@ impl TestConfig {
 
     pub fn import_account(&self, name: &str) -> Result<SigningAccount, ConfigError> {
         //println!("get_account [{}]", name);
-        let path = format!("{}/{}/accounts.json", self.folder, self.chain_cfg.name);
+        let path = format!("{}/{}/accounts.json", self.folder, self.chain_config.name);
         let bytes = fs::read(path).unwrap();
         let accounts: Vec<ImportedAccount> = serde_json::from_slice(&bytes).unwrap();
         let imported_account = accounts.iter().find(|e| e.name.contains(name));
@@ -211,16 +189,16 @@ impl TestConfig {
             },
             |ia| {
                 let signing_key =
-                    Self::mnemonic_to_signing_key(&ia.mnemonic, &self.chain_cfg).unwrap();
+                    Self::mnemonic_to_signing_key(&ia.mnemonic, &self.chain_config).unwrap();
                 //println!("Generated key [{:?}]", signging_key.public_key());
                 Ok(SigningAccount::new(
                     signing_key,
                     FeeSetting::Auto {
                         gas_price: Coin::new(
-                            self.chain_cfg.gas_price.into(),
-                            self.chain_cfg.denom(),
+                            self.chain_config.gas_price.into(),
+                            self.chain_config.denom(),
                         ),
-                        gas_adjustment: self.chain_cfg.gas_adjustment,
+                        gas_adjustment: self.chain_config.gas_adjustment,
                     },
                 ))
             },
@@ -268,7 +246,7 @@ impl TestConfig {
 
     fn mnemonic_to_signing_key(
         mnemonic: &str,
-        chain_cfg: &ChainCfg,
+        chain_cfg: &ChainConfig,
     ) -> Result<cosmrs::crypto::secp256k1::SigningKey, Error> {
         let seed = bip32::Mnemonic::new(mnemonic, bip32::Language::English)?.to_seed("");
         cosmrs::crypto::secp256k1::SigningKey::derive_from_path(
