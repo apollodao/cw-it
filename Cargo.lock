@@ -471,9 +471,9 @@ dependencies = [
 
 [[package]]
 name = "cosmwasm-crypto"
-version = "1.1.6"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1fc6d95cc171e56882d3e90689be1b38fecd31a4e6981129fc4973409de18b9"
+checksum = "532d2ba11b7157e3b67114389925568af29ce3e452b582d6bdfe751cb2dadfb1"
 dependencies = [
  "digest 0.10.6",
  "ed25519-zebra",
@@ -484,18 +484,18 @@ dependencies = [
 
 [[package]]
 name = "cosmwasm-derive"
-version = "1.1.6"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a552716cf87ad173cd6b593fd72bf24fab490e0e5420aa75a227d6817d06b5df"
+checksum = "8568b289cc366981319ab39edd85d666456456f7c126433ef065ebe5257f27b2"
 dependencies = [
  "syn",
 ]
 
 [[package]]
 name = "cosmwasm-std"
-version = "1.1.6"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1240e76655f4b858b3fb94befbf48e253e92c6640d9d674a1491d15f10bc4d72"
+checksum = "2d1ceebd520a10167e35080e4f55f6b0284bb8ea364dec0f22197da96acd9e64"
 dependencies = [
  "base64",
  "cosmwasm-crypto",
@@ -1770,7 +1770,7 @@ checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 [[package]]
 name = "osmosis-std"
 version = "0.12.0"
-source = "git+https://github.com/apollodao/osmosis-rust.git#1d3e9833302ab82debcf2b3e72b7ef1dd558fc3e"
+source = "git+https://github.com/apollodao/osmosis-rust.git#44014587e7eac6ef277263cfcaa594198ea712e2"
 dependencies = [
  "chrono",
  "cosmwasm-std",
@@ -1785,7 +1785,7 @@ dependencies = [
 [[package]]
 name = "osmosis-std-derive"
 version = "0.12.0"
-source = "git+https://github.com/apollodao/osmosis-rust.git#1d3e9833302ab82debcf2b3e72b7ef1dd558fc3e"
+source = "git+https://github.com/apollodao/osmosis-rust.git#44014587e7eac6ef277263cfcaa594198ea712e2"
 dependencies = [
  "itertools",
  "proc-macro2",
@@ -1796,7 +1796,7 @@ dependencies = [
 [[package]]
 name = "osmosis-testing"
 version = "0.12.0"
-source = "git+https://github.com/apollodao/osmosis-rust.git#1d3e9833302ab82debcf2b3e72b7ef1dd558fc3e"
+source = "git+https://github.com/apollodao/osmosis-rust.git#44014587e7eac6ef277263cfcaa594198ea712e2"
 dependencies = [
  "base64",
  "bindgen",

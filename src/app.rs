@@ -254,8 +254,19 @@ impl<'a> Runner<'a> for App {
             })
             .collect::<Result<Vec<cosmrs::Any>, RunnerError>>()?;
 
+        self.execute_multiple_raw(encoded_msgs, signer)
+    }
+
+    fn execute_multiple_raw<R>(
+        &self,
+        msgs: Vec<cosmrs::Any>,
+        signer: &SigningAccount,
+    ) -> RunnerExecuteResult<R>
+    where
+        R: prost::Message + Default,
+    {
         let _fee = match &signer.fee_setting() {
-            FeeSetting::Auto { .. } => self.estimate_fee(encoded_msgs.clone(), signer).unwrap(),
+            FeeSetting::Auto { .. } => self.estimate_fee(msgs.clone(), signer).unwrap(),
             FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
                 cosmrs::Coin {
                     denom: amount.denom.parse().unwrap(),
@@ -276,7 +287,7 @@ impl<'a> Runner<'a> for App {
         );
         println!("Fix this: Custom Fee [{:?}]", fee);
 
-        let tx_raw = self.create_signed_tx(encoded_msgs, signer, fee).unwrap();
+        let tx_raw = self.create_signed_tx(msgs, signer, fee).unwrap();
 
         let tx_commit_response: TxCommitResponse =
             tokio_block(async { self.chain.client().broadcast_tx_commit(tx_raw.into()).await })
