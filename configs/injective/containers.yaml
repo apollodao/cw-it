@@ -1,0 +1,9 @@
+container:
+  name: "apollodao/injective-local"
+  tag: "latest"
+
+# contracts list to download
+contracts:
+  cw20_base: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw20_base.wasm"
+  cw3_fixed_multisig: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw3_fixed_multisig.wasm"
+  cw1_whitelist: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw1_whitelist.wasm"

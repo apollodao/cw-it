@@ -1,0 +1,12 @@
+name: "injective"
+chain_id: "injective-1"
+prefix: ""
+denom: ""
+gas_price: 1000000
+gas_adjustment: 1.2
+# https://github.com/confio/cosmos-hd-key-derivation-spec#the-cosmos-hub-path
+derivation_path: "m/44'/118'/0'/0/0"
+
+# leave this empty if using test_containers
+rpc_endpoint: ""
+grpc_endpoint: ""
