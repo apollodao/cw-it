@@ -15,12 +15,12 @@ use config::Config;
 pub struct Chain {
     http_client: HttpClient,
     grpc_client: ServiceClient<Channel>,
-    chain_cfg: ChainCfg,
+    chain_cfg: ChainConfig,
 }
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Clone, Debug, Deserialize)]
-pub struct ChainCfg {
+pub struct ChainConfig {
     pub name: String,
     denom: String,
     prefix: String,
@@ -32,7 +32,7 @@ pub struct ChainCfg {
     pub grpc_endpoint: String,
 }
 
-impl ChainCfg {
+impl ChainConfig {
     pub fn from_yaml(file: &str) -> Self {
         let settings = Config::builder()
             .add_source(config::File::with_name(file))
@@ -53,7 +53,7 @@ impl ChainCfg {
 #[allow(clippy::missing_const_for_fn)]
 #[allow(clippy::similar_names)]
 impl Chain {
-    pub fn new(chain_cfg: ChainCfg) -> Self {
+    pub fn new(chain_cfg: ChainConfig) -> Self {
         // To run with docker-compose externally
         //let rpc_endpoint="http://localhost:26657".to_string();
         let http_client = HttpClient::new(chain_cfg.rpc_endpoint.as_str()).unwrap();
@@ -77,7 +77,7 @@ impl Chain {
         &self.grpc_client
     }
 
-    pub fn chain_cfg(&self) -> &ChainCfg {
+    pub fn chain_cfg(&self) -> &ChainConfig {
         &self.chain_cfg
     }
 
