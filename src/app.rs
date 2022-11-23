@@ -19,11 +19,8 @@ use cosmrs::tx::{Fee, SignerInfo};
 use cosmrs::AccountId;
 use prost::Message;
 
-use dotenv::dotenv;
-use testcontainers::core::WaitFor;
-use testcontainers::images::generic::GenericImage;
 
-pub const DEFAULT_WAIT: u64 = 10;
+
 
 #[derive(Debug)]
 pub struct App {
@@ -33,17 +30,6 @@ pub struct App {
 impl App {
     pub const fn new(chain: Chain) -> Self {
         Self { chain }
-    }
-
-    pub fn get_image(name: &str, tag: &str) -> GenericImage {
-        dotenv().ok();
-        GenericImage::new(name, tag)
-            //        .with_wait_for(WaitFor::message_on_stderr(STARTUP_MESSAGE))
-            .with_wait_for(WaitFor::seconds(DEFAULT_WAIT))
-            .with_exposed_port(26657)
-            .with_exposed_port(1317)
-            .with_exposed_port(9090)
-            .with_exposed_port(9091)
     }
 }
 

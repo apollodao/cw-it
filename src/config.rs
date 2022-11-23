@@ -17,13 +17,14 @@ use thiserror::Error;
 
 use cosmwasm_std::Coin;
 
-use testcontainers::{images::generic::GenericImage, Container};
+use testcontainers::{core::WaitFor, images::generic::GenericImage, Container};
 
 use cosmrs::bip32::{self, Error};
 
 use crate::chain::ChainConfig;
 
 pub const DEFAULT_PROJECTS_FOLDER: &str = "cloned_repos";
+pub const DEFAULT_WAIT: u64 = 10;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct TestConfig {
@@ -72,6 +73,15 @@ impl TestConfig {
             .build()
             .unwrap();
         settings.try_deserialize::<Self>().unwrap()
+    }
+
+    pub fn get_container_image(&self) -> GenericImage {
+        GenericImage::new(self.container.name.clone(), self.container.tag.clone())
+            .with_wait_for(WaitFor::seconds(DEFAULT_WAIT))
+            .with_exposed_port(26657)
+            .with_exposed_port(1317)
+            .with_exposed_port(9090)
+            .with_exposed_port(9091)
     }
 
     pub fn build(&self, artifact_folder: &str) {
