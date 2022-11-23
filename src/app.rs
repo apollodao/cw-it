@@ -5,9 +5,13 @@ use osmosis_testing::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult,
     RunnerResult, SigningAccount,
 };
+use testcontainers::Container;
+use testcontainers::clients::Cli;
+use testcontainers::images::generic::GenericImage;
 
 use crate::application::Application;
 use crate::chain::{tokio_block, Chain};
+use crate::config::TestConfig;
 
 use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
 use cosmos_sdk_proto::cosmos::tx::v1beta1::SimulateRequest;
@@ -23,17 +27,29 @@ use prost::Message;
 
 
 #[derive(Debug)]
-pub struct App {
+pub struct App<'a> {
     chain: Chain,
+    _container: Container::<'a, GenericImage>,
+    pub test_config: TestConfig,
 }
 
-impl App {
-    pub const fn new(chain: Chain) -> Self {
-        Self { chain }
+impl<'a> App<'a> {
+    pub fn new(test_config_path: &str, docker: &'a Cli) -> Self {
+        let mut test_config = TestConfig::from_yaml(test_config_path);
+        test_config.build();
+
+        // Setup test containers
+        let container: Container<GenericImage> = docker.run(test_config.get_container_image());
+        test_config.bind_chain_to_container(&container);
+
+        // Setup chain and app
+        let chain = Chain::new(test_config.chain_config.clone());
+        
+        Self { chain, _container: container, test_config }
     }
 }
 
-impl Application for App {
+impl<'a> Application for App<'a> {
     fn create_signed_tx<I>(
         &self,
         msgs: I,
@@ -220,7 +236,7 @@ impl Application for App {
     }
 }
 
-impl<'a> Runner<'a> for App {
+impl<'a> Runner<'a> for App<'a> {
     fn execute_multiple<M, R>(
         &self,
         msgs: &[(M, &str)],
