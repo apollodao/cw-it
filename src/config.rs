@@ -178,6 +178,7 @@ impl TestConfig {
     pub fn import_account(&self, name: &str) -> Result<SigningAccount, ConfigError> {
         //println!("get_account [{}]", name);
         let path = format!("{}/{}/accounts.json", self.folder, self.chain_config.name);
+        println!("Reading accounts from [{}]", path);
         let bytes = fs::read(path).unwrap();
         let accounts: Vec<ImportedAccount> = serde_json::from_slice(&bytes).unwrap();
         let imported_account = accounts.iter().find(|e| e.name.contains(name));

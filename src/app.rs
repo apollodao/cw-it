@@ -114,13 +114,16 @@ impl Application for App {
         );
 
         let tx_raw = self.create_signed_tx(msgs, signer, zero_fee).unwrap();
+        println!("tx_raw size = {:?}", tx_raw.len());
 
         let simulate_msg = SimulateRequest {
             tx: None,
             tx_bytes: tx_raw,
         };
 
+
         // println!("Init GRpc ServiceClient (port 9090)");
+
 
         let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo = tokio_block(async {
             let mut service = ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
@@ -241,6 +244,7 @@ impl<'a> Runner<'a> for App {
         M: ::prost::Message,
         R: ::prost::Message + Default,
     {
+        println!("execute_multiple called");
         let encoded_msgs = msgs
             .iter()
             .map(|(msg, type_url)| {
@@ -351,6 +355,7 @@ impl<'a> Runner<'a> for App {
         M: prost::Message,
         R: prost::Message + Default,
     {
+        println!("execute called");
         self.execute_multiple(&[(msg, type_url)], signer)
     }
 }
