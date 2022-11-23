@@ -32,6 +32,7 @@ pub struct TestConfig {
     pub container: ContainerInfo,
     pub chain_config: ChainConfig,
     pub folder: String,
+    pub artifacts_folder: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -84,7 +85,7 @@ impl TestConfig {
             .with_exposed_port(9091)
     }
 
-    pub fn build(&self, artifact_folder: &str) {
+    pub fn build(&self) {
         // TODO: There a race here, we should use tokio async an block the threads.
         // Lets download all contracts
         println!("Working dir [{}]", get_current_working_dir());
@@ -96,7 +97,7 @@ impl TestConfig {
             .into_iter()
             .flat_map(|i| {
                 match i.1.artifacts.iter().find(|&contract_name| {
-                    let fp = format!("{}/{}", artifact_folder, contract_name);
+                    let fp = format!("{}/{}", self.artifacts_folder, contract_name);
                     !Path::new(&fp).exists()
                 }) {
                     Some(_) => {
@@ -145,14 +146,14 @@ impl TestConfig {
         //println!("compile_list [{:#?}]", compile_list);
 
         for contract in download_list {
-            self.download_contract(&contract, artifact_folder);
+            self.download_contract(&contract, &self.artifacts_folder);
         }
 
         for contract in clone_list {
-            self.clone_repo(&contract, artifact_folder)
+            self.clone_repo(&contract, &self.artifacts_folder)
                 .expect("Error cloning artifact");
             if !contract.artifacts.is_empty() {
-                self.wasm_compile(&contract, artifact_folder)
+                self.wasm_compile(&contract, &self.artifacts_folder)
                     .expect("Error compiling artifact");
             }
         }
@@ -165,10 +166,10 @@ impl TestConfig {
             let in_dir = PathBuf::from(&contract.url);
             let out_dir = PathBuf::from(format!(
                 "{}/{}/{}",
-                artifact_folder, DEFAULT_PROJECTS_FOLDER, repo_name
+                self.artifacts_folder, DEFAULT_PROJECTS_FOLDER, repo_name
             ));
             let _ = Self::copy_dir_all(in_dir, out_dir);
-            self.wasm_compile(&contract, artifact_folder)
+            self.wasm_compile(&contract, &self.artifacts_folder)
                 .expect("Error compiling artifact");
         }
     }
