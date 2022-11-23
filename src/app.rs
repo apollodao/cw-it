@@ -35,7 +35,7 @@ impl App {
         Self { chain }
     }
 
-    pub fn get_image(&self, name: &str, tag: &str) -> GenericImage {
+    pub fn get_image(name: &str, tag: &str) -> GenericImage {
         dotenv().ok();
         GenericImage::new(name, tag)
             //        .with_wait_for(WaitFor::message_on_stderr(STARTUP_MESSAGE))
