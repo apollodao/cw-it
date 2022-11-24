@@ -1,6 +1,13 @@
 use cosmos_sdk_proto::cosmos::auth::v1beta1::{
     BaseAccount, QueryAccountRequest, QueryAccountResponse,
 };
+use cosmrs::proto::cosmwasm::wasm::v1::{
+    QuerySmartContractStateRequest, QuerySmartContractStateResponse,
+};
+use cosmwasm_std::{
+    from_binary, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
+    WasmQuery,
+};
 use osmosis_testing::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult,
     RunnerResult, SigningAccount,
@@ -53,6 +60,32 @@ impl<'a> App<'a> {
             _container: container,
             test_config,
         }
+    }
+}
+
+impl Querier for App<'_> {
+    fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
+        let x = match from_binary::<QueryRequest<Empty>>(&bin_request.into()).unwrap() {
+            QueryRequest::Wasm(wasm_query) => match wasm_query {
+                WasmQuery::Smart { contract_addr, msg } => self
+                    .query::<_, QuerySmartContractStateResponse>(
+                        "/cosmwasm.wasm.v1.Query/SmartContractState",
+                        &QuerySmartContractStateRequest {
+                            address: contract_addr.to_owned(),
+                            query_data: serde_json::to_vec(&msg)
+                                .map_err(EncodeError::JsonEncodeError)
+                                .unwrap(),
+                        },
+                    )
+                    .unwrap()
+                    .data
+                    .into(),
+                _ => todo!("unsupported WasmQuery variant"),
+            },
+            _ => todo!("unsupported QueryRequest variant"),
+        };
+
+        SystemResult::Ok(ContractResult::Ok(x))
     }
 }
 
@@ -350,19 +383,5 @@ impl<'a> Runner<'_> for App<'a> {
         R::decode(res.value.as_slice())
             .map_err(DecodeError::ProtoDecodeError)
             .map_err(RunnerError::DecodeError)
-    }
-
-    fn execute<M, R>(
-        &self,
-        msg: M,
-        type_url: &str,
-        signer: &SigningAccount,
-    ) -> RunnerExecuteResult<R>
-    where
-        M: prost::Message,
-        R: prost::Message + Default,
-    {
-        println!("execute called");
-        self.execute_multiple(&[(msg, type_url)], signer)
     }
 }
