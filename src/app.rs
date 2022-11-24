@@ -123,9 +123,7 @@ impl<'a> Application for App<'a> {
             tx_bytes: tx_raw,
         };
 
-
         // println!("Init GRpc ServiceClient (port 9090)");
-
 
         let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo = tokio_block(async {
             let mut service = ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
