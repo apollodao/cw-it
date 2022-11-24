@@ -1,5 +1,6 @@
-folder: "./osmosis"
-chain_cfg:
+folder: "./tests/configs"
+artifacts_folder: "./artifacts"
+chain_config:
   name: "osmosis"
   chain_id: "localosmosis"
   prefix: "osmo"
@@ -10,80 +11,22 @@ chain_cfg:
   derivation_path: "m/44'/118'/0'/0/0"
 
   # leave this empty if using test_containers
+  # rpc_endpoint: "http://localhost:26657"
+  # grpc_endpoint: "http://localhost:9090"
   rpc_endpoint: ""
   grpc_endpoint: ""
 container:
-  name: "apollodao/osmosis-local"
-  tag: "latest"
+  name: "apollosturdy/localosmosis"
+  tag: "v13.0.0-rc4"
+  entrypoint: "/osmosis/setup.sh"
+  volumes: [["tests/configs/osmosis/setup.sh", "/osmosis/setup.sh"]]
+  ports: [26657, 1317, 9090, 9091]
 # contracts list to download
 # Do not repeat names
 contracts:
-  cw20_base: 
-    url: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw20_base.wasm"
-    branch: ""
-    cargo_path: ""
-    artifacts:
-      - cw20_base.wasm
-  cw3_fixed_multisig: 
-    url: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw3_fixed_multisig.wasm"
-    branch: ""
-    cargo_path: ""
-    artifacts:
-      - cw3_fixed_multisig.wasm
-  cw1_whitelist:
-    url: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw1_whitelist.wasm"
-    branch: ""
-    cargo_path: ""
-    artifacts:
-      - cw1_whitelist.wasm
-  apollo_safe:
-    url: "https://github.com/apollodao/apollo-safe-contracts.git"
+  osmosis_liquidity_helper:
+    url: "https://github.com/apollodao/osmosis_liquidity_helper.git"
     branch: "master"
     cargo_path: ""
     artifacts:
-      - apollo_pay.wasm
-      - apollo_safe_factory.wasm
-  steak_contracts:
-    url: "https://github.com/apollodao/steak-contracts.git"
-    branch: "dev/vault-token-abstraction"
-    cargo_path: ""
-    artifacts:
-      - cw20_steak_hub.wasm
-      - osmosis_steak_hub.wasm
-  astroport_vault:
-    url: "https://github.com/apollodao/apollo-vaults.git"
-    branch: "develop"
-    cargo_path: "contracts/astroport-vault"
-    artifacts:
-      - astroport_vault.wasm
-  junoswap_vault:
-    url: "https://github.com/apollodao/apollo-vaults.git"
-    branch: "develop"
-    cargo_path: "contracts/junoswap-vault"
-    artifacts:
-      - junoswap_vault.wasm
-  osmosis_vault:
-    url: "https://github.com/apollodao/apollo-vaults.git"
-    branch: "develop"
-    cargo_path: "contracts/osmosis-vault"
-    artifacts:
-      - osmosis_vault.wasm
-
-  # NOTE: LEAVING ARTIFACTS EMPTY, IT WILL NOT COMPILE BUT DOWNLOAD THE REPO. THIS IS WANTED.
-  cw_token:
-    url: "https://github.com/apollodao/cw-token.git"
-    branch: "master"
-    cargo_path: ""
-    artifacts: []
-  cw_asset:
-    url: "https://github.com/apollodao/cw-asset.git"
-    branch: "main"
-    cargo_path: ""
-    artifacts: []
-  address_book:
-    url: "../../contracts/address-book"
-    branch: "master"
-    cargo_path: ""
-    artifacts:
-      - address_book.wasm
-
+      - osmosis_liquidity_helper.wasm

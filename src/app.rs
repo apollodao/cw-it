@@ -5,9 +5,9 @@ use osmosis_testing::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult,
     RunnerResult, SigningAccount,
 };
-use testcontainers::Container;
 use testcontainers::clients::Cli;
 use testcontainers::images::generic::GenericImage;
+use testcontainers::Container;
 
 use crate::application::Application;
 use crate::chain::{tokio_block, Chain};
@@ -23,13 +23,10 @@ use cosmrs::tx::{Fee, SignerInfo};
 use cosmrs::AccountId;
 use prost::Message;
 
-
-
-
 #[derive(Debug)]
 pub struct App<'a> {
     chain: Chain,
-    _container: Container::<'a, GenericImage>,
+    _container: Option<Container<'a, GenericImage>>,
     pub test_config: TestConfig,
 }
 
@@ -38,14 +35,24 @@ impl<'a> App<'a> {
         let mut test_config = TestConfig::from_yaml(test_config_path);
         test_config.build();
 
-        // Setup test containers
-        let container: Container<GenericImage> = docker.run(test_config.get_container_image());
-        test_config.bind_chain_to_container(&container);
+        // Setup test container
+        let container = if let Some(container_info) = &test_config.container {
+            let container: Container<GenericImage> =
+                docker.run(container_info.get_container_image());
+            test_config.bind_chain_to_container(&container);
+            Some(container)
+        } else {
+            None
+        };
 
         // Setup chain and app
         let chain = Chain::new(test_config.chain_config.clone());
-        
-        Self { chain, _container: container, test_config }
+
+        Self {
+            chain,
+            _container: container,
+            test_config,
+        }
     }
 }
 
@@ -123,9 +130,7 @@ impl<'a> Application for App<'a> {
             tx_bytes: tx_raw,
         };
 
-
         // println!("Init GRpc ServiceClient (port 9090)");
-
 
         let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo = tokio_block(async {
             let mut service = ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
@@ -236,7 +241,7 @@ impl<'a> Application for App<'a> {
     }
 }
 
-impl<'a> Runner<'a> for App<'a> {
+impl<'a> Runner<'_> for App<'a> {
     fn execute_multiple<M, R>(
         &self,
         msgs: &[(M, &str)],

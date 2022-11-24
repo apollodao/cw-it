@@ -24,12 +24,12 @@ use cosmrs::bip32::{self, Error};
 use crate::chain::ChainConfig;
 
 pub const DEFAULT_PROJECTS_FOLDER: &str = "cloned_repos";
-pub const DEFAULT_WAIT: u64 = 10;
+pub const DEFAULT_WAIT: u64 = 30;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct TestConfig {
     pub contracts: HashMap<String, Contract>,
-    pub container: ContainerInfo,
+    pub container: Option<ContainerInfo>,
     pub chain_config: ChainConfig,
     pub folder: String,
     pub artifacts_folder: String,
@@ -47,6 +47,31 @@ pub struct Contract {
 pub struct ContainerInfo {
     pub name: String,
     pub tag: String,
+    pub volumes: Vec<(String, String)>,
+    pub entrypoint: Option<String>,
+    pub ports: Vec<u16>,
+}
+
+impl ContainerInfo {
+    pub fn get_container_image(&self) -> GenericImage {
+        let mut image = GenericImage::new(self.name.clone(), self.tag.clone())
+            .with_wait_for(WaitFor::seconds(DEFAULT_WAIT));
+
+        for port in self.ports.iter() {
+            image = image.with_exposed_port(*port);
+        }
+        if let Some(entrypoint) = &self.entrypoint {
+            image = image.with_entrypoint(entrypoint);
+        }
+        let working_dir = get_current_working_dir();
+        for (from, dest) in &self.volumes {
+            // TODO: Merge paths in better way? Should allow leading dot in `from`...
+            let from = format!("{}/{}", working_dir, from);
+            image = image.with_volume(from, dest);
+        }
+
+        image
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -74,15 +99,6 @@ impl TestConfig {
             .build()
             .unwrap();
         settings.try_deserialize::<Self>().unwrap()
-    }
-
-    pub fn get_container_image(&self) -> GenericImage {
-        GenericImage::new(self.container.name.clone(), self.container.tag.clone())
-            .with_wait_for(WaitFor::seconds(DEFAULT_WAIT))
-            .with_exposed_port(26657)
-            .with_exposed_port(1317)
-            .with_exposed_port(9090)
-            .with_exposed_port(9091)
     }
 
     pub fn build(&self) {
@@ -225,10 +241,10 @@ impl TestConfig {
             accounts.insert(name, signing_account);
         });
 
-        accounts.insert(
-            "validator".to_string(),
-            self.import_account("validator").unwrap(),
-        );
+        // accounts.insert(
+        //     "validator".to_string(),
+        //     self.import_account("validator").unwrap(),
+        // );
         accounts
     }
 
