@@ -220,6 +220,7 @@ impl TestConfig {
                     Self::mnemonic_to_signing_key(&ia.mnemonic, &self.chain_config).unwrap();
                 //println!("Generated key [{:?}]", signging_key.public_key());
                 Ok(SigningAccount::new(
+                    self.chain_config.prefix().to_string(),
                     signing_key,
                     FeeSetting::Auto {
                         gas_price: Coin::new(
