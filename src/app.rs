@@ -346,18 +346,4 @@ impl<'a> Runner<'a> for App<'a> {
             .map_err(DecodeError::ProtoDecodeError)
             .map_err(RunnerError::DecodeError)
     }
-
-    fn execute<M, R>(
-        &self,
-        msg: M,
-        type_url: &str,
-        signer: &SigningAccount,
-    ) -> RunnerExecuteResult<R>
-    where
-        M: prost::Message,
-        R: prost::Message + Default,
-    {
-        println!("execute called");
-        self.execute_multiple(&[(msg, type_url)], signer)
-    }
 }
