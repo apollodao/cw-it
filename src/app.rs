@@ -1,13 +1,20 @@
 use cosmos_sdk_proto::cosmos::auth::v1beta1::{
     BaseAccount, QueryAccountRequest, QueryAccountResponse,
 };
+use cosmrs::proto::cosmwasm::wasm::v1::{
+    QuerySmartContractStateRequest, QuerySmartContractStateResponse,
+};
+use cosmwasm_std::{
+    from_binary, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
+    WasmQuery,
+};
 use osmosis_testing::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult,
     RunnerResult, SigningAccount,
 };
-use testcontainers::Container;
 use testcontainers::clients::Cli;
 use testcontainers::images::generic::GenericImage;
+use testcontainers::Container;
 
 use crate::application::Application;
 use crate::chain::{tokio_block, Chain};
@@ -23,13 +30,10 @@ use cosmrs::tx::{Fee, SignerInfo};
 use cosmrs::AccountId;
 use prost::Message;
 
-
-
-
 #[derive(Debug)]
 pub struct App<'a> {
     chain: Chain,
-    _container: Container::<'a, GenericImage>,
+    _container: Container<'a, GenericImage>,
     pub test_config: TestConfig,
 }
 
@@ -44,8 +48,38 @@ impl<'a> App<'a> {
 
         // Setup chain and app
         let chain = Chain::new(test_config.chain_config.clone());
-        
-        Self { chain, _container: container, test_config }
+
+        Self {
+            chain,
+            _container: container,
+            test_config,
+        }
+    }
+}
+
+impl Querier for App<'_> {
+    fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
+        let x = match from_binary::<QueryRequest<Empty>>(&bin_request.into()).unwrap() {
+            QueryRequest::Wasm(wasm_query) => match wasm_query {
+                WasmQuery::Smart { contract_addr, msg } => self
+                    .query::<_, QuerySmartContractStateResponse>(
+                        "/cosmwasm.wasm.v1.Query/SmartContractState",
+                        &QuerySmartContractStateRequest {
+                            address: contract_addr.to_owned(),
+                            query_data: serde_json::to_vec(&msg)
+                                .map_err(EncodeError::JsonEncodeError)
+                                .unwrap(),
+                        },
+                    )
+                    .unwrap()
+                    .data
+                    .into(),
+                _ => todo!("unsupported WasmQuery variant"),
+            },
+            _ => todo!("unsupported QueryRequest variant"),
+        };
+
+        SystemResult::Ok(ContractResult::Ok(x))
     }
 }
 
