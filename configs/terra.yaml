@@ -9,10 +9,10 @@ chain_config:
   gas_adjustment: 1.2
   # https://github.com/confio/cosmos-hd-key-derivation-spec#the-cosmos-hub-path
   derivation_path: "m/44'/330'/0'/0/0"
-
   # leave this empty if using test_containers
   rpc_endpoint: ""
   grpc_endpoint: ""
+
 container:
   name: "terramoney/localterra-core"
   tag: "2.0.1"
@@ -23,15 +23,33 @@ container:
       ["tests/configs/terra/entrypoint.sh", "/entrypoint.sh"],
     ]
   ports: [26657, 1317, 9090, 9091]
+
+# Chain to download contracts from
+contract_chain_download_rpc: "https://terra-rpc.polkachu.com"
+
 # contracts list to download
 # Do not repeat names
 contracts:
-  astroport_liquidity_helper:
-    url: "https://github.com/apollodao/astroport-liquidity-helper.git"
-    branch: "master"
+  # astroport_liquidity_helper:
+  # url: "https://github.com/apollodao/astroport-liquidity-helper.git"
+  # branch: "master"
+  # cargo_path: ""
+  # artifact: "astroport_liquidity_helper_unoptimized.wasm"
+  # # Where to prefer getting contract, can be either "chain" or "url".
+  # preferred_source: "url"
+  # always_fetch: true # Whether to fetch even if contract exists in `artifacts folder`
+  # chain_address: ""
+
+  astro_token:
+    url: "https://github.com/astroport-fi/astroport-core.git"
+    branch: "c216ecd4f350113316be44d06a95569f451ac681"
     cargo_path: ""
-    artifacts:
-      - astroport_liquidity_helper_unoptimized.wasm
+    artifact: "astro_token.wasm"
+    # Where to prefer getting contract, can be either "chain" or "url".
+    preferred_source: "chain"
+    always_fetch: true # Whether to fetch even if contract exists in `artifacts folder`
+    chain_address: "terra1nsuqsk6kh58ulczatwev87ttq2z6r3pusulg9r24mfj2fvtzd4uq3exn26"
+
   # cw20_base:
   #   url: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw20_base.wasm"
   #   branch: ""
