@@ -51,13 +51,20 @@ pub enum PreferredSource {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Contract {
-    pub url: String,
-    pub branch: String,
-    pub cargo_path: String,
     pub artifact: String,
     pub preferred_source: PreferredSource,
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub branch: String,
+    #[serde(default)]
+    pub cargo_path: String,
+    #[serde(default)]
     pub always_fetch: bool,
+    #[serde(default)]
     pub chain_address: String,
+    #[serde(default)]
+    pub chain_code_id: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -161,7 +168,9 @@ impl TestConfig {
         for (_, contract) in missing_artifacts {
             match contract.preferred_source {
                 PreferredSource::Url => {
-                    if contract.url == "" && contract.chain_address != "" {
+                    if contract.url == ""
+                        && (contract.chain_address != "" || contract.chain_code_id != 0)
+                    {
                         // Preferred URL, but no URL available. Use chain instead.
                         chain_download_list.push(contract);
                     } else if contract.url != "" {
@@ -169,10 +178,12 @@ impl TestConfig {
                     }
                 }
                 PreferredSource::Chain => {
-                    if contract.chain_address == "" && contract.url != "" {
+                    if (contract.chain_address == "" && contract.chain_code_id == 0)
+                        && contract.url != ""
+                    {
                         // Preferred chain, but no chain address available. Use URL instead.
                         parse_contract_url(contract);
-                    } else if contract.chain_address != "" {
+                    } else if contract.chain_address != "" || contract.chain_code_id != 0 {
                         chain_download_list.push(contract);
                     }
                 }
@@ -349,21 +360,25 @@ impl TestConfig {
         println!("Downloading {} from chain", contract.artifact);
 
         // Query contract info
-        let contract_info_res = QueryContractInfoResponse::decode(
-            abci_query(
-                http_client,
-                QueryContractInfoRequest {
-                    address: contract.chain_address.clone(),
-                },
-                "/cosmwasm.wasm.v1.Query/ContractInfo",
+        let code_id = if contract.chain_code_id == 0 {
+            let contract_info_res = QueryContractInfoResponse::decode(
+                abci_query(
+                    http_client,
+                    QueryContractInfoRequest {
+                        address: contract.chain_address.clone(),
+                    },
+                    "/cosmwasm.wasm.v1.Query/ContractInfo",
+                )
+                .unwrap()
+                .value
+                .as_slice(),
             )
-            .unwrap()
-            .value
-            .as_slice(),
-        )
-        .unwrap();
-        println!("Contract info: {:?}", contract_info_res);
-        let code_id = contract_info_res.contract_info.unwrap().code_id;
+            .unwrap();
+            println!("Contract info: {:?}", contract_info_res);
+            contract_info_res.contract_info.unwrap().code_id
+        } else {
+            contract.chain_code_id
+        };
 
         // Query wasm file
         let code_res = QueryCodeResponse::decode(
