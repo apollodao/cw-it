@@ -6,7 +6,7 @@ use cosmrs::proto::cosmwasm::wasm::v1::{
 };
 use cosmwasm_std::{
     from_binary, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
-    WasmQuery,
+    WasmQuery, Coin,
 };
 use osmosis_testing::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult,
@@ -60,6 +60,20 @@ impl<'a> App<'a> {
             _container: container,
             test_config,
         }
+    }
+
+    pub fn init_accounts(&self, _coins: &[Coin], count: u64) -> Vec<SigningAccount> {
+        if count > 10 {
+            panic!("cannot create more than 10 accounts");
+        }
+
+        let mut accounts = vec![];
+        for i in 0..count {
+            let account = self.test_config.import_account(&format!("test{}", i)).unwrap();
+            accounts.push(account);
+        }
+
+        accounts
     }
 }
 
