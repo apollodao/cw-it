@@ -81,14 +81,6 @@ contracts:
     preferred_source: "chain"
     chain_code_id: 70
 
-  # astroport_oracle:
-  #   url: ""
-  #   branch: ""
-  #   cargo_path: ""
-  #   artifact: "astroport_oracle.wasm"
-  #   preferred_source: "chain"
-  #   chain_address: "??????"
-
   astroport_staking:
     artifact: "astroport_staking.wasm"
     preferred_source: "chain"

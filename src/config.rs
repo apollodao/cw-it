@@ -40,6 +40,7 @@ pub struct TestConfig {
     pub chain_config: ChainConfig,
     pub folder: String,
     pub artifacts_folder: String,
+    #[serde(default)]
     pub contract_chain_download_rpc: String,
 }
 
@@ -49,9 +50,16 @@ pub enum PreferredSource {
     Chain,
 }
 
+impl Default for PreferredSource {
+    fn default() -> Self {
+        Self::Chain
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct Contract {
     pub artifact: String,
+    #[serde(default)]
     pub preferred_source: PreferredSource,
     #[serde(default)]
     pub url: String,
