@@ -1,17 +1,19 @@
 use std::{
     collections::HashMap,
     env,
-    fs::{self, rename},
-    io,
+    fs::{self, rename, File},
+    io::{self, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
 use config::Config;
+use cosmwasm_schema::cw_serde;
 use downloader::Downloader;
 use git2::Repository;
 use git2_credentials::CredentialHandler;
-use osmosis_testing::{FeeSetting, SigningAccount};
+use osmosis_testing::{FeeSetting, RunnerResult, SigningAccount};
+use prost::Message;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -19,13 +21,18 @@ use cosmwasm_std::Coin;
 
 use testcontainers::{core::WaitFor, images::generic::GenericImage, Container};
 
-use cosmrs::bip32::{self, Error};
+use cosmrs::{
+    bip32::{self, Error},
+    proto::cosmwasm::wasm::v1::{
+        QueryCodeRequest, QueryCodeResponse, QueryContractInfoRequest, QueryContractInfoResponse,
+    },
+    rpc::{endpoint::abci_query::AbciQuery, Client, HttpClient},
+};
 
-use crate::chain::ChainConfig;
+use crate::chain::{tokio_block, ChainConfig};
 
 pub const DEFAULT_PROJECTS_FOLDER: &str = "cloned_repos";
 pub const DEFAULT_WAIT: u64 = 30;
-
 #[derive(Clone, Debug, Deserialize)]
 pub struct TestConfig {
     pub contracts: HashMap<String, Contract>,
@@ -33,14 +40,39 @@ pub struct TestConfig {
     pub chain_config: ChainConfig,
     pub folder: String,
     pub artifacts_folder: String,
+    #[serde(default)]
+    pub contract_chain_download_rpc: String,
+}
+
+#[cw_serde]
+pub enum PreferredSource {
+    Url,
+    Chain,
+}
+
+impl Default for PreferredSource {
+    fn default() -> Self {
+        Self::Chain
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Contract {
+    pub artifact: String,
+    #[serde(default)]
+    pub preferred_source: PreferredSource,
+    #[serde(default)]
     pub url: String,
+    #[serde(default)]
     pub branch: String,
+    #[serde(default)]
     pub cargo_path: String,
-    pub artifacts: Vec<String>,
+    #[serde(default)]
+    pub always_fetch: bool,
+    #[serde(default)]
+    pub chain_address: String,
+    #[serde(default)]
+    pub chain_code_id: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -106,69 +138,85 @@ impl TestConfig {
         // Lets download all contracts
         println!("Working dir [{}]", get_current_working_dir());
 
-        // Check if artifacts already has been compiled
-        let artifacts: HashMap<String, Contract> = self
+        // Get all contracts for which we don't already have the wasm file
+        let missing_artifacts: HashMap<String, Contract> = self
             .contracts
             .clone()
             .into_iter()
-            .flat_map(|i| {
-                match i.1.artifacts.iter().find(|&contract_name| {
-                    let fp = format!("{}/{}", self.artifacts_folder, contract_name);
-                    !Path::new(&fp).exists()
-                }) {
-                    Some(_) => {
-                        println!("Processing [{}]", i.0);
-                        Some(i)
-                    }
-                    None => {
-                        println!("Files already exist, skipping [{}]", i.0);
-                        None
+            .filter(|(_, contract)| {
+                let fp = format!("{}/{}", self.artifacts_folder, contract.artifact);
+                let already_exists = Path::new(&fp).exists();
+                return !already_exists || contract.always_fetch; // Also re-download if always_fetch is true
+            })
+            .collect();
+
+        let mut chain_download_list: Vec<Contract> = vec![];
+        let mut url_download_list: Vec<Contract> = vec![];
+        let mut clone_list: Vec<Contract> = vec![];
+        let mut compile_list: Vec<Contract> = vec![];
+
+        let mut parse_contract_url = |contract: Contract| {
+            let extension = contract
+                .url
+                .split('.')
+                .collect::<Vec<&str>>()
+                .pop()
+                .unwrap();
+            if extension == "wasm" {
+                // URL is a wasm file, so we can just download it
+                url_download_list.push(contract);
+            } else if extension == "git" {
+                // URL is a git repo, so we need to clone it
+                clone_list.push(contract);
+            } else {
+                compile_list.push(contract); // TODO: Not sure what behavior Pablo wanted here.
+            }
+        };
+
+        for (_, contract) in missing_artifacts {
+            match contract.preferred_source {
+                PreferredSource::Url => {
+                    if contract.url == ""
+                        && (contract.chain_address != "" || contract.chain_code_id != 0)
+                    {
+                        // Preferred URL, but no URL available. Use chain instead.
+                        chain_download_list.push(contract);
+                    } else if contract.url != "" {
+                        parse_contract_url(contract);
                     }
                 }
-            })
-            .collect();
-
-        //println!("{:?}", artifacts);
-
-        let download_list: Vec<Contract> = artifacts
-            .values()
-            .filter(|c| c.url.contains('.'))
-            .filter(|c| {
-                let extension = c.url.split('.').collect::<Vec<&str>>().pop().unwrap();
-                extension == "wasm"
-            })
-            .cloned()
-            .collect();
-
-        let clone_list: Vec<Contract> = artifacts
-            .values()
-            .filter(|c| c.url.contains('.'))
-            .filter(|c| {
-                let extension = c.url.split('.').collect::<Vec<&str>>().pop().unwrap();
-                extension == "git"
-            })
-            .cloned()
-            .collect();
-
-        // compile list
-        let compile_list: Vec<Contract> = artifacts
-            .values()
-            .filter(|c| !c.url.contains("https"))
-            .cloned()
-            .collect();
+                PreferredSource::Chain => {
+                    if (contract.chain_address == "" && contract.chain_code_id == 0)
+                        && contract.url != ""
+                    {
+                        // Preferred chain, but no chain address available. Use URL instead.
+                        parse_contract_url(contract);
+                    } else if contract.chain_address != "" || contract.chain_code_id != 0 {
+                        chain_download_list.push(contract);
+                    }
+                }
+            }
+        }
 
         //println!("download_list [{:#?}]", download_list);
         //println!("clone_list [{:#?}]", clone_list);
         //println!("compile_list [{:#?}]", compile_list);
 
-        for contract in download_list {
-            self.download_contract(&contract, &self.artifacts_folder);
+        if !chain_download_list.is_empty() {
+            let http_client = HttpClient::new(self.contract_chain_download_rpc.as_str()).unwrap();
+            for contract in chain_download_list {
+                self.download_contract_from_chain(&http_client, &contract)
+            }
+        }
+
+        for contract in url_download_list {
+            self.download_contract_from_url(&contract, &self.artifacts_folder);
         }
 
         for contract in clone_list {
             self.clone_repo(&contract, &self.artifacts_folder)
                 .expect("Error cloning artifact");
-            if !contract.artifacts.is_empty() {
+            if !contract.artifact.is_empty() {
                 self.wasm_compile(&contract, &self.artifacts_folder)
                     .expect("Error compiling artifact");
             }
@@ -297,7 +345,7 @@ impl TestConfig {
         }
         Ok(())
     }
-    fn download_contract(&self, contract: &Contract, artifact_folder: &str) {
+    fn download_contract_from_url(&self, contract: &Contract, artifact_folder: &str) {
         let mut downloader = Downloader::builder()
             .download_folder(std::path::Path::new(&artifact_folder))
             .parallel_requests(32)
@@ -313,6 +361,52 @@ impl TestConfig {
         // } else {
         //     println!("File already exist [{}]", fp);
         // }
+    }
+
+    fn download_contract_from_chain(&self, http_client: &HttpClient, contract: &Contract) {
+        let contract_path = format!("{}/{}", self.artifacts_folder, contract.artifact);
+        println!("Downloading {} from chain", contract.artifact);
+
+        // Query contract info
+        let code_id = if contract.chain_code_id == 0 {
+            let contract_info_res = QueryContractInfoResponse::decode(
+                abci_query(
+                    http_client,
+                    QueryContractInfoRequest {
+                        address: contract.chain_address.clone(),
+                    },
+                    "/cosmwasm.wasm.v1.Query/ContractInfo",
+                )
+                .unwrap()
+                .value
+                .as_slice(),
+            )
+            .unwrap();
+            println!("Contract info: {:?}", contract_info_res);
+            contract_info_res.contract_info.unwrap().code_id
+        } else {
+            contract.chain_code_id
+        };
+
+        // Query wasm file
+        let code_res = QueryCodeResponse::decode(
+            abci_query(
+                &http_client,
+                QueryCodeRequest { code_id },
+                "/cosmwasm.wasm.v1.Query/Code",
+            )
+            .unwrap()
+            .value
+            .as_slice(),
+        )
+        .unwrap();
+        let wasm = code_res.data;
+
+        // Write wasm file
+        println!("Writing wasm file to {}", contract_path);
+        let mut file = File::create(&contract_path).unwrap();
+        file.write_all(&wasm).unwrap();
+        println!("Wrote to disk: {}", contract_path);
     }
 
     #[allow(clippy::expect_fun_call)]
@@ -403,7 +497,7 @@ impl TestConfig {
                 if let Some(extension) = path.extension() {
                     if extension == "wasm" {
                         let filename = entry.as_ref().unwrap().file_name().into_string().unwrap();
-                        if contract.artifacts.contains(&filename) {
+                        if contract.artifact.eq(&filename) {
                             rename(
                                 path,
                                 format!(
@@ -430,4 +524,16 @@ fn get_current_working_dir() -> String {
         Ok(path) => path.into_os_string().into_string().unwrap(),
         Err(_) => "FAILED".to_string(),
     }
+}
+
+fn abci_query<T: Message>(client: &HttpClient, req: T, path: &str) -> RunnerResult<AbciQuery> {
+    let mut buf = Vec::with_capacity(req.encoded_len());
+    req.encode(&mut buf).unwrap();
+    tokio_block(async {
+        let res = client
+            .abci_query(Some(path.parse().unwrap()), buf, None, false)
+            .await
+            .unwrap();
+        Ok(res)
+    })
 }

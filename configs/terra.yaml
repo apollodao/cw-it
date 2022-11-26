@@ -1,5 +1,6 @@
-folder: "./terra"
-chain_cfg:
+folder: "./configs"
+artifacts_folder: "./artifacts"
+chain_config:
   name: "terra"
   chain_id: "localterra"
   prefix: "terra"
@@ -8,82 +9,84 @@ chain_cfg:
   gas_adjustment: 1.2
   # https://github.com/confio/cosmos-hd-key-derivation-spec#the-cosmos-hub-path
   derivation_path: "m/44'/330'/0'/0/0"
-
   # leave this empty if using test_containers
   rpc_endpoint: ""
   grpc_endpoint: ""
+
 container:
-  name: "apollodao/terra-local"
-  tag: "latest"
+  name: "terramoney/localterra-core"
+  tag: "2.0.1"
+  entrypoint: "/entrypoint.sh"
+  volumes:
+    [
+      ["configs/terra/config", "/root/.terra/config"],
+      ["configs/terra/entrypoint.sh", "/entrypoint.sh"],
+    ]
+  ports: [26657, 1317, 9090, 9091]
+
+# Chain to download contracts from
+contract_chain_download_rpc: "https://terra-rpc.polkachu.com"
+
 # contracts list to download
 # Do not repeat names
 contracts:
-  cw20_base: 
-    url: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw20_base.wasm"
-    branch: ""
-    cargo_path: ""
-    artifacts:
-      - cw20_base.wasm
-  cw3_fixed_multisig: 
-    url: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw3_fixed_multisig.wasm"
-    branch: ""
-    cargo_path: ""
-    artifacts:
-      - cw3_fixed_multisig.wasm
-  cw1_whitelist:
-    url: "https://github.com/CosmWasm/cw-plus/releases/download/v0.15.1/cw1_whitelist.wasm"
-    branch: ""
-    cargo_path: ""
-    artifacts:
-      - cw1_whitelist.wasm
-  apollo_safe:
-    url: "https://github.com/apollodao/apollo-safe-contracts.git"
-    branch: "master"
-    cargo_path: ""
-    artifacts:
-      - apollo_pay.wasm
-      - apollo_safe_factory.wasm
-  steak_contracts:
-    url: "https://github.com/apollodao/steak-contracts.git"
-    branch: "dev/vault-token-abstraction"
-    cargo_path: ""
-    artifacts:
-      - cw20_steak_hub.wasm
-      - osmosis_steak_hub.wasm
-  astroport_vault:
-    url: "https://github.com/apollodao/apollo-vaults.git"
-    branch: "develop"
-    cargo_path: "contracts/astroport-vault"
-    artifacts:
-      - astroport_vault.wasm
-  junoswap_vault:
-    url: "https://github.com/apollodao/apollo-vaults.git"
-    branch: "develop"
-    cargo_path: "contracts/junoswap-vault"
-    artifacts:
-      - junoswap_vault.wasm
-  osmosis_vault:
-    url: "https://github.com/apollodao/apollo-vaults.git"
-    branch: "develop"
-    cargo_path: "contracts/osmosis-vault"
-    artifacts:
-      - osmosis_vault.wasm
+  # astroport_liquidity_helper:
+  # url: "https://github.com/apollodao/astroport-liquidity-helper.git"
+  # branch: "master"
+  # cargo_path: ""
+  # artifact: "astroport_liquidity_helper_unoptimized.wasm"
+  # preferred_source: "url" # Where to prefer getting contract, can be either "chain" or "url".
+  # always_fetch: true # Whether to fetch even if contract exists in `artifacts folder`
+  # chain_address: ""
 
-  # NOTE: LEAVING ARTIFACTS EMPTY, IT WILL NOT COMPILE BUT DOWNLOAD THE REPO. THIS IS WANTED.
-  cw_token:
-    url: "https://github.com/apollodao/cw-token.git"
-    branch: "master"
-    cargo_path: ""
-    artifacts: []
-  cw_asset:
-    url: "https://github.com/apollodao/cw-asset.git"
-    branch: "main"
-    cargo_path: ""
-    artifacts: []
-  address_book:
-    url: "../../contracts/address-book"
-    branch: "master"
-    cargo_path: ""
-    artifacts:
-      - address_book.wasm
+  astro_token:
+    url: "https://github.com/astroport-fi/astroport-core.git"
+    branch: "c216ecd4f350113316be44d06a95569f451ac681" # TODO: Allow commit instead of branch
+    artifact: "astro_token.wasm"
+    preferred_source: "chain" # Where to prefer getting contract, can be either "chain" or "url".
+    chain_address: "terra1nsuqsk6kh58ulczatwev87ttq2z6r3pusulg9r24mfj2fvtzd4uq3exn26"
 
+  astroport_factory:
+    artifact: "astroport_factory.wasm"
+    preferred_source: "chain"
+    chain_address: "terra14x9fr055x5hvr48hzy2t4q7kvjvfttsvxusa4xsdcy702mnzsvuqprer8r"
+
+  astroport_maker:
+    artifact: "astroport_maker.wasm"
+    preferred_source: "chain"
+    chain_address: "terra1ygcvxp9s054q8u2q4hvl52ke393zvgj0sllahlycm4mj8dm96zjsa45rzk"
+
+  astroport_router:
+    artifact: "astroport_router.wasm"
+    preferred_source: "chain"
+    chain_address: "terra1j8hayvehh3yy02c2vtw5fdhz9f4drhtee8p5n5rguvg3nyd6m83qd2y90a"
+
+  astroport_generator:
+    artifact: "astroport_generator.wasm"
+    preferred_source: "chain"
+    chain_address: "terra1ksvlfex49desf4c452j6dewdjs6c48nafemetuwjyj6yexd7x3wqvwa7j9"
+
+  astroport_pair_stable:
+    artifact: "astroport_pair_stable.wasm"
+    preferred_source: "chain"
+    chain_code_id: 428
+
+  astroport_pair_xyk:
+    artifact: "astroport_pair_xyk.wasm"
+    preferred_source: "chain"
+    chain_code_id: 392
+
+  astroport_whitelist:
+    artifact: "astroport_whitelist.wasm"
+    preferred_source: "chain"
+    chain_code_id: 70
+
+  astroport_staking:
+    artifact: "astroport_staking.wasm"
+    preferred_source: "chain"
+    chain_address: "terra1nyu6sk9rvtvsltm7tjjrp6rlavnm3e4sq03kltde6kesam260f8szar8ze"
+
+  astroport_vesting:
+    artifact: "astroport_vesting.wasm"
+    preferred_source: "chain"
+    chain_address: "terra1qyuarnzcc6uuft9n9mltraprreke4v8gvxd8u3nslngxhflhru9qw34nc3"

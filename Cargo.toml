@@ -31,6 +31,8 @@ overflow-checks = true
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
+# Support for Astroport
+astroport = ["dep:cw20", "dep:astroport"]
 
 [package.metadata.scripts]
 optimize = """docker run --rm -v "$(pwd)":/code \
@@ -39,14 +41,19 @@ optimize = """docker run --rm -v "$(pwd)":/code \
   cosmwasm/rust-optimizer:0.12.6
 """
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [dependencies]
 cosmwasm-std = {version = "1.1.3", features = ["stargate"]}
 serde = { version = "1.0.145", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
-
+cosmwasm-schema = "1.1.3"
 
 cosmrs = { version="0.9.0", features = ["rpc", "cosmwasm"] }
 testcontainers = { version="0.14.0", features = ["experimental"] }
+# testcontainers = { path = "../testcontainers-rs/testcontainers" }
 cosmos-sdk-proto = "0.15.0"
 prost = { version="0.11.2", default-features = false, features = [
     "prost-derive",
@@ -61,3 +68,10 @@ git2 = "0.15.0"
 git2_credentials = "0.9.1"
 anyhow = "1.0.66"
 serde_json = "1.0.89"
+
+# Astroport deps
+astroport = { git = "https://github.com/apollodao/astroport/", rev = "3d1793e6936ca03d8a58c51bbc2611a19566e82a", optional = true }
+cw20 = { version = "0.16", optional = true }
+
+[dev-dependencies]
+env_logger = "0.9.0"
