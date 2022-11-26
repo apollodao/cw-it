@@ -1,4 +1,4 @@
-folder: "./tests/configs"
+folder: "./configs"
 artifacts_folder: "./artifacts"
 chain_config:
   name: "terra"
@@ -19,8 +19,8 @@ container:
   entrypoint: "/entrypoint.sh"
   volumes:
     [
-      ["tests/configs/terra/config", "/root/.terra/config"],
-      ["tests/configs/terra/entrypoint.sh", "/entrypoint.sh"],
+      ["configs/terra/config", "/root/.terra/config"],
+      ["configs/terra/entrypoint.sh", "/entrypoint.sh"],
     ]
   ports: [26657, 1317, 9090, 9091]
 
@@ -69,12 +69,17 @@ contracts:
   astroport_pair_stable:
     artifact: "astroport_pair_stable.wasm"
     preferred_source: "chain"
-    chain_code_id: 322
+    chain_code_id: 428
 
   astroport_pair_xyk:
     artifact: "astroport_pair_xyk.wasm"
     preferred_source: "chain"
-    chain_code_id: 72
+    chain_code_id: 392
+
+  astroport_whitelist:
+    artifact: "astroport_whitelist.wasm"
+    preferred_source: "chain"
+    chain_code_id: 70
 
   # astroport_oracle:
   #   url: ""

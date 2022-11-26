@@ -329,7 +329,7 @@ impl<'a> Runner<'_> for App<'a> {
             },
             25_000_000u64,
         );
-        println!("Fix this: Custom Fee [{:?}]", fee);
+        // println!("Fix this: Custom Fee [{:?}]", fee);
 
         let tx_raw = self.create_signed_tx(msgs, signer, fee).unwrap();
 
