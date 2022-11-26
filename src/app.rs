@@ -86,9 +86,7 @@ impl Querier for App<'_> {
                         "/cosmwasm.wasm.v1.Query/SmartContractState",
                         &QuerySmartContractStateRequest {
                             address: contract_addr.to_owned(),
-                            query_data: serde_json::to_vec(&msg)
-                                .map_err(EncodeError::JsonEncodeError)
-                                .unwrap(),
+                            query_data: msg.into(),
                         },
                     )
                     .unwrap()
