@@ -334,7 +334,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "serde",
- "time 0.1.44",
+ "time 0.1.45",
  "wasm-bindgen",
  "winapi",
 ]
@@ -1864,7 +1864,7 @@ checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 [[package]]
 name = "osmosis-std"
 version = "0.12.0"
-source = "git+https://github.com/apollodao/osmosis-rust.git#28bf02ac473e901e49d0f1f494f3cf05b41dc96f"
+source = "git+https://github.com/apollodao/osmosis-rust.git#630714a1e8be9d879ea38f6fcf151c117b787007"
 dependencies = [
  "chrono",
  "cosmwasm-std",
@@ -1879,7 +1879,7 @@ dependencies = [
 [[package]]
 name = "osmosis-std-derive"
 version = "0.12.0"
-source = "git+https://github.com/apollodao/osmosis-rust.git#28bf02ac473e901e49d0f1f494f3cf05b41dc96f"
+source = "git+https://github.com/apollodao/osmosis-rust.git#630714a1e8be9d879ea38f6fcf151c117b787007"
 dependencies = [
  "itertools",
  "proc-macro2",
@@ -1890,12 +1890,13 @@ dependencies = [
 [[package]]
 name = "osmosis-testing"
 version = "0.12.0"
-source = "git+https://github.com/apollodao/osmosis-rust.git#28bf02ac473e901e49d0f1f494f3cf05b41dc96f"
+source = "git+https://github.com/apollodao/osmosis-rust.git#630714a1e8be9d879ea38f6fcf151c117b787007"
 dependencies = [
  "base64",
  "bindgen",
  "cosmrs",
  "cosmwasm-std",
+ "itertools",
  "osmosis-std",
  "prost",
  "serde",
@@ -2898,9 +2899,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6db9e6914ab8b1ae1c260a4ae7a49b6c5611b40328a735b21862567685e73255"
+checksum = "1b797afad3f312d1c66a56d11d0316f916356d11bd158fbc6ca6389ff6bf805a"
 dependencies = [
  "libc",
  "wasi 0.10.0+wasi-snapshot-preview1",
