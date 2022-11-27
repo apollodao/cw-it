@@ -60,6 +60,17 @@ pub struct AstroportContracts {
     pub whitelist: Contract,
 }
 
+pub fn setup_astroport<'a, R>(app: &'a R, admin: &SigningAccount) -> AstroportContracts
+where
+    R: Runner<'a>,
+{
+    // Upload contracts
+    let code_ids = upload_astroport_contracts(app, admin);
+
+    // Instantiate contracts
+    instantiate_astroport(app, admin, &code_ids)
+}
+
 pub fn upload_astroport_contracts<'a, R>(
     app: &'a R,
     signer: &SigningAccount,
@@ -83,14 +94,15 @@ where
     code_ids
 }
 
-pub fn instantiate_astroport<'a, R>(app: &'a R, admin: &SigningAccount) -> AstroportContracts
+pub fn instantiate_astroport<'a, R>(
+    app: &'a R,
+    admin: &SigningAccount,
+    code_ids: &HashMap<String, u64>,
+) -> AstroportContracts
 where
     R: Runner<'a>,
 {
     let wasm = Wasm::new(app);
-
-    // Upload contracts
-    let code_ids = upload_astroport_contracts(app, admin);
 
     // Instantiate astro token
     println!("Instantiating astro token ...");
@@ -371,7 +383,7 @@ mod tests {
 
     use crate::{
         app::App as RpcRunner,
-        astroport::{create_astroport_pair, instantiate_astroport},
+        astroport::{create_astroport_pair, setup_astroport},
     };
     use astroport::pair::ExecuteMsg as PairExecuteMsg;
     use std::str::FromStr;
@@ -404,7 +416,7 @@ mod tests {
         println!("Balances of admin: {:?}", balances);
 
         // Instantiate contracts
-        let contracts = instantiate_astroport(&app, admin);
+        let contracts = setup_astroport(&app, admin);
 
         // Create XYK pool
         let asset_infos: [AssetInfo; 2] = [
