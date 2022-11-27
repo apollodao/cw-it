@@ -14,9 +14,8 @@ pub fn upload_wasm_files<'a, R: Runner<'a>>(
     config
         .contracts
         .into_iter()
-        .map(|(_, contract)| contract.artifact)
-        .map(|file_name| {
-            let wasm_file_path = format!("{}/{}", config.artifacts_folder, file_name);
+        .map(|(name, contract)| {
+            let wasm_file_path = format!("{}/{}", config.artifacts_folder, contract.artifact);
             println!("Uploading wasm file: {}", wasm_file_path);
             let wasm_byte_code = std::fs::read(wasm_file_path).unwrap();
             let code_id = wasm
@@ -24,7 +23,7 @@ pub fn upload_wasm_files<'a, R: Runner<'a>>(
                 .map_err(|e| StdError::generic_err(format!("{:?}", e)))?
                 .data
                 .code_id;
-            Ok((file_name, code_id))
+            Ok((name, code_id))
         })
         .collect()
 }
