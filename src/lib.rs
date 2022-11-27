@@ -2,6 +2,7 @@ pub mod app;
 pub mod application;
 pub mod chain;
 pub mod config;
+pub mod helpers;
 pub mod mock_api;
 
 #[cfg(feature = "astroport")]
