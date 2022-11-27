@@ -1,7 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
-use cosmwasm_std::{StdError, StdResult};
-use osmosis_testing::{Module, Runner, SigningAccount, Wasm};
+use cosmrs::proto::cosmos::bank::v1beta1::QueryBalanceRequest;
+use cosmwasm_std::{StdError, StdResult, Uint128};
+use osmosis_testing::{Bank, Module, Runner, SigningAccount, Wasm};
 
 use crate::config::TestConfig;
 
@@ -26,4 +27,17 @@ pub fn upload_wasm_files<'a, R: Runner<'a>>(
             Ok((name, code_id))
         })
         .collect()
+}
+
+pub fn bank_balance_query<'a>(
+    runner: &'a impl Runner<'a>,
+    address: String,
+    denom: String,
+) -> StdResult<Uint128> {
+    Bank::new(runner)
+        .query_balance(&QueryBalanceRequest { address, denom })
+        .unwrap()
+        .balance
+        .map(|c| Uint128::from_str(&c.amount).unwrap())
+        .ok_or(StdError::generic_err("Bank balance query failed"))
 }
