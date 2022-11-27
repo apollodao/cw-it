@@ -5,8 +5,8 @@ use cosmrs::proto::cosmwasm::wasm::v1::{
     QuerySmartContractStateRequest, QuerySmartContractStateResponse,
 };
 use cosmwasm_std::{
-    from_binary, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
-    WasmQuery, Coin,
+    from_binary, Coin, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
+    WasmQuery,
 };
 use osmosis_testing::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult,
@@ -69,7 +69,10 @@ impl<'a> App<'a> {
 
         let mut accounts = vec![];
         for i in 0..count {
-            let account = self.test_config.import_account(&format!("test{}", i)).unwrap();
+            let account = self
+                .test_config
+                .import_account(&format!("test{}", i))
+                .unwrap();
             accounts.push(account);
         }
 
@@ -363,24 +366,11 @@ impl<'a> Runner<'_> for App<'a> {
         tx_commit_response.try_into()
     }
 
-    // Q -> QueryParamsRequest
-    fn query<Q, R>(&self, path: &str, msg: &Q) -> RunnerResult<R>
-    where
-        Q: ::prost::Message,
-        R: ::prost::Message + Default,
-    {
-        let mut base64_query_msg_bytes = Vec::with_capacity(msg.encoded_len());
-        msg.encode(&mut base64_query_msg_bytes).unwrap();
-
+    fn query_raw(&self, path: &str, protobuf: Vec<u8>) -> RunnerResult<Vec<u8>> {
         let res = tokio_block(async {
             self.chain
                 .client()
-                .abci_query(
-                    Some(path.parse().unwrap()),
-                    base64_query_msg_bytes,
-                    None,
-                    false,
-                )
+                .abci_query(Some(path.parse().unwrap()), protobuf, None, false)
                 .await
         })
         .unwrap();
@@ -392,7 +382,21 @@ impl<'a> Runner<'_> for App<'a> {
             });
         }
 
-        R::decode(res.value.as_slice())
+        Ok(res.value)
+    }
+
+    // Q -> QueryParamsRequest
+    fn query<Q, R>(&self, path: &str, msg: &Q) -> RunnerResult<R>
+    where
+        Q: ::prost::Message,
+        R: ::prost::Message + Default,
+    {
+        let mut base64_query_msg_bytes = Vec::with_capacity(msg.encoded_len());
+        msg.encode(&mut base64_query_msg_bytes).unwrap();
+
+        let res = self.query_raw(path, base64_query_msg_bytes).unwrap();
+
+        R::decode(res.as_slice())
             .map_err(DecodeError::ProtoDecodeError)
             .map_err(RunnerError::DecodeError)
     }
