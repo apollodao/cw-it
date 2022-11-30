@@ -1,8 +1,9 @@
 use std::{collections::HashMap, str::FromStr};
 
 use cosmrs::proto::cosmos::bank::v1beta1::QueryBalanceRequest;
-use cosmwasm_std::{StdError, StdResult, Uint128};
-use osmosis_testing::{Bank, Module, Runner, SigningAccount, Wasm};
+use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
+use osmosis_testing::{Account, Bank, Module, Runner, RunnerResult, SigningAccount, Wasm};
+use serde::Serialize;
 
 use crate::config::TestConfig;
 
@@ -27,6 +28,48 @@ pub fn upload_wasm_files<'a, R: Runner<'a>>(
             Ok((name, code_id))
         })
         .collect()
+}
+
+/// Instantiates the liquidity helper contract
+pub fn instantiate_contract_with_funds<'a, R, M, S>(
+    app: &'a R,
+    admin: &SigningAccount,
+    code_id: u64,
+    instantite_msg: &M,
+    funds: &[Coin],
+) -> RunnerResult<S>
+where
+    R: Runner<'a>,
+    M: Serialize,
+    S: From<String>,
+{
+    let wasm = Wasm::new(app);
+
+    // Instantiate the contract
+    println!("Instantiating contract with code id {}", code_id);
+    wasm.instantiate(
+        code_id,
+        instantite_msg,
+        Some(&admin.address()), // contract admin used for migration
+        None,
+        funds,
+        admin, // signer
+    )
+    .map(|r| r.data.address.into())
+}
+
+pub fn instantiate_contract<'a, R, M, S>(
+    app: &'a R,
+    admin: &SigningAccount,
+    code_id: u64,
+    instantite_msg: &M,
+) -> RunnerResult<S>
+where
+    R: Runner<'a>,
+    M: Serialize,
+    S: From<String>,
+{
+    instantiate_contract_with_funds(app, admin, code_id, instantite_msg, &[])
 }
 
 pub fn bank_balance_query<'a>(
