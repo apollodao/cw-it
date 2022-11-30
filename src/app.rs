@@ -38,8 +38,7 @@ pub struct App<'a> {
 }
 
 impl<'a> App<'a> {
-    pub fn new(test_config_path: &str, docker: &'a Cli) -> Self {
-        let mut test_config = TestConfig::from_yaml(test_config_path);
+    pub fn new(mut test_config: TestConfig, docker: &'a Cli) -> Self {
         test_config.build();
 
         // Setup test container
