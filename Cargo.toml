@@ -70,7 +70,7 @@ anyhow = "1.0.66"
 serde_json = "1.0.89"
 
 # Astroport deps
-astroport = { git = "https://github.com/apollodao/astroport/", rev = "3d1793e6936ca03d8a58c51bbc2611a19566e82a", optional = true }
+astroport = { git = "https://github.com/apollodao/astroport/", rev = "afbf5e70c3d7bf986bebba65609b5e60016f5919", optional = true }
 cw20 = { version = "0.16", optional = true }
 
 [dev-dependencies]
