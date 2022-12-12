@@ -40,7 +40,7 @@ checksum = "216261ddc8289130e551ddcd5ce8a064710c0d064a4d2895c67151c92b5443f6"
 [[package]]
 name = "astroport"
 version = "0.2.0"
-source = "git+https://github.com/apollodao/astroport/?rev=3d1793e6936ca03d8a58c51bbc2611a19566e82a#3d1793e6936ca03d8a58c51bbc2611a19566e82a"
+source = "git+https://github.com/apollodao/astroport/?rev=afbf5e70c3d7bf986bebba65609b5e60016f5919#afbf5e70c3d7bf986bebba65609b5e60016f5919"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -620,7 +620,6 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw20",
- "dotenv",
  "downloader",
  "env_logger",
  "git2",
@@ -864,12 +863,6 @@ name = "dlv-list"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0688c2a7f92e427f44895cd63841bff7b29f8d7a1648b9e7e07a4a365b2e1257"
-
-[[package]]
-name = "dotenv"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
 
 [[package]]
 name = "downloader"
