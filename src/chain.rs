@@ -1,4 +1,5 @@
 use anyhow::Error;
+use osmosis_testing::RunnerError;
 
 use std::future::Future;
 
@@ -59,7 +60,8 @@ impl Chain {
         let http_client = HttpClient::new(chain_cfg.rpc_endpoint.as_str()).unwrap();
 
         let grpc_client: ServiceClient<Channel> =
-            tokio_block(async { ServiceClient::connect(chain_cfg.grpc_endpoint.clone()).await })
+            tokio_block(ServiceClient::connect(chain_cfg.grpc_endpoint.clone()))
+                .unwrap()
                 .unwrap();
 
         Self {
@@ -81,23 +83,20 @@ impl Chain {
         &self.chain_cfg
     }
 
-    pub fn current_heigth(&self) -> u64 {
-        tokio_block(async {
-            self.http_client
-                .latest_block()
-                .await
-                .unwrap()
-                .block
-                .header
-                .height
-                .into()
-        })
+    pub fn current_height(&self) -> u64 {
+        tokio_block(self.http_client.latest_block())
+            .unwrap()
+            .unwrap()
+            .block
+            .header
+            .height
+            .into()
     }
 
     pub fn wait(&self, n_block: u64) {
-        tokio_block(async {
-            let _wait = self.poll_for_n_blocks(n_block, false).await;
-        });
+        tokio_block(self.poll_for_n_blocks(n_block, false))
+            .unwrap()
+            .unwrap();
     }
 
     pub async fn poll_for_n_blocks(&self, n: u64, is_first_block: bool) -> Result<(), Error> {
@@ -144,10 +143,9 @@ impl Chain {
     }
 }
 
-pub fn tokio_block<F: Future>(f: F) -> F::Output {
-    tokio::runtime::Builder::new_current_thread()
+pub fn tokio_block<F: Future>(f: F) -> Result<F::Output, RunnerError> {
+    Ok(tokio::runtime::Builder::new_current_thread()
         .enable_all()
-        .build()
-        .unwrap()
-        .block_on(f)
+        .build()?
+        .block_on(f))
 }

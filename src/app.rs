@@ -9,8 +9,8 @@ use cosmwasm_std::{
     WasmQuery,
 };
 use osmosis_testing::{
-    Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult,
-    RunnerResult, SigningAccount,
+    Account, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult, RunnerResult,
+    SigningAccount,
 };
 use testcontainers::clients::Cli;
 use testcontainers::images::generic::GenericImage;
@@ -114,7 +114,7 @@ impl<'a> Application for App<'a> {
         I: IntoIterator<Item = cosmrs::Any>,
     {
         // println!("create_signed_tx");
-        let account: BaseAccount = self.base_account(signer.account_id()).unwrap();
+        let account: BaseAccount = self.base_account(signer.account_id())?;
         let tx_body = tx::Body::new(msgs, "MEMO", 0u32);
 
         // println!("accountId -> {:?}", signer.account_id());
@@ -137,10 +137,9 @@ impl<'a> Application for App<'a> {
         .map_err(|e| match e.downcast::<prost::EncodeError>() {
             Ok(encode_err) => EncodeError::ProtoEncodeError(encode_err),
             Err(e) => panic!("expect `prost::EncodeError` but got {:?}", e),
-        })
-        .unwrap();
+        })?;
 
-        let tx_raw: Raw = sign_doc.sign(signer.signing_key()).unwrap();
+        let tx_raw: Raw = sign_doc.sign(signer.signing_key())?;
 
         tx_raw
             .to_bytes()
@@ -163,13 +162,13 @@ impl<'a> Application for App<'a> {
         // println!("simulate_tx called");
         let zero_fee = Fee::from_amount_and_gas(
             cosmrs::Coin {
-                denom: self.chain.chain_cfg().denom().parse().unwrap(),
+                denom: self.chain.chain_cfg().denom().parse()?,
                 amount: (0u8).into(),
             },
             0u64,
         );
 
-        let tx_raw = self.create_signed_tx(msgs, signer, zero_fee).unwrap();
+        let tx_raw = self.create_signed_tx(msgs, signer, zero_fee)?;
         println!("tx_raw size = {:?}", tx_raw.len());
 
         let simulate_msg = SimulateRequest {
@@ -179,23 +178,18 @@ impl<'a> Application for App<'a> {
 
         // println!("Init GRpc ServiceClient (port 9090)");
 
-        let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo = tokio_block(async {
-            let mut service = ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
-                .await
-                .unwrap();
-            service.simulate(simulate_msg).await
-        })
-        .unwrap()
-        .into_inner()
-        .gas_info
-        .unwrap();
+        let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo =
+            tokio_block(async {
+                let mut service =
+                    ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone()).await?;
+                Ok::<_, RunnerError>(service.simulate(simulate_msg).await?)
+            })??
+            .into_inner()
+            .gas_info
+            .ok_or(RunnerError::QueryError {
+                msg: "No gas_info returned from simulate".into(),
+            })?;
 
-        // println!("Estimated Gas [{:?}]", gas_info);
-        // let gas_info: GasInfo = tokio_block(async { service.simulate(simulate_msg).await })
-        //     .unwrap()
-        //     .into_inner()
-        //     .gas_info
-        //     .unwrap();
         Ok(cosmrs::proto::cosmos::base::abci::v1beta1::GasInfo {
             gas_wanted: gas_info.gas_wanted,
             gas_used: gas_info.gas_used,
@@ -226,11 +220,11 @@ impl<'a> Application for App<'a> {
                 gas_price,
                 gas_adjustment,
             } => {
-                let gas_info = self.simulate_tx(msgs, signer).unwrap();
+                let gas_info = self.simulate_tx(msgs, signer)?;
                 let gas_limit = ((gas_info.gas_used as f64) * gas_adjustment).ceil() as u64;
 
                 let amount = cosmrs::Coin {
-                    denom: self.chain.chain_cfg().denom().parse().unwrap(),
+                    denom: self.chain.chain_cfg().denom().parse()?,
                     amount: (((gas_limit as f64) * (gas_price.amount.u128() as f64)).ceil() as u64)
                         .into(),
                 };
@@ -247,44 +241,33 @@ impl<'a> Application for App<'a> {
 
     fn base_account(&self, account_id: AccountId) -> RunnerResult<BaseAccount> {
         // TODO: find out a race here
-        let abci_query = self
-            .abci_query(
-                QueryAccountRequest {
-                    address: account_id.as_ref().into(),
-                },
-                "/cosmos.auth.v1beta1.Query/Account",
-            )
-            .unwrap();
+        let abci_query = self.abci_query(
+            QueryAccountRequest {
+                address: account_id.as_ref().into(),
+            },
+            "/cosmos.auth.v1beta1.Query/Account",
+        )?;
 
-        let res = QueryAccountResponse::decode(abci_query.value.as_slice())
-            //.map_err(ClientError::prost_proto_de)
-            .unwrap()
+        let res = QueryAccountResponse::decode(abci_query.value.as_slice())?
             .account
             .ok_or(RunnerError::QueryError {
                 msg: "account query failed".to_string(),
-            })
-            .unwrap();
+            })?;
 
-        let base_account = BaseAccount::decode(res.value.as_slice())
-            //.map_err(ClientError::prost_proto_de)
-            .unwrap();
+        let base_account = BaseAccount::decode(res.value.as_slice())?;
 
         Ok(base_account)
     }
 
     fn abci_query<T: Message>(&self, req: T, path: &str) -> RunnerResult<AbciQuery> {
         let mut buf = Vec::with_capacity(req.encoded_len());
-        req.encode(&mut buf).unwrap();
-        tokio_block(async {
-            let res = self
-                .chain
-                .client()
-                .abci_query(Some(path.parse().unwrap()), buf, None, false)
-                .await
-                .unwrap();
-            println!("ABCI QUERY [{:?}]", res);
-            Ok(res)
-        })
+        req.encode(&mut buf)?;
+        Ok(tokio_block(self.chain.client().abci_query(
+            Some(path.parse()?),
+            buf,
+            None,
+            false,
+        ))??)
     }
 }
 
@@ -324,11 +307,11 @@ impl<'a> Runner<'_> for App<'a> {
         R: prost::Message + Default,
     {
         let _fee = match &signer.fee_setting() {
-            FeeSetting::Auto { .. } => self.estimate_fee(msgs.clone(), signer).unwrap(),
+            FeeSetting::Auto { .. } => self.estimate_fee(msgs.clone(), signer)?,
             FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
                 cosmrs::Coin {
-                    denom: amount.denom.parse().unwrap(),
-                    amount: amount.amount.to_string().parse().unwrap(),
+                    denom: amount.denom.parse()?,
+                    amount: amount.amount.to_string().parse()?,
                 },
                 *gas_limit,
             ),
@@ -338,19 +321,16 @@ impl<'a> Runner<'_> for App<'a> {
         // there must be a trick somewhere
         let fee = Fee::from_amount_and_gas(
             cosmrs::Coin {
-                denom: self.chain.chain_cfg().denom().parse().unwrap(),
+                denom: self.chain.chain_cfg().denom().parse()?,
                 amount: 4_000_000,
             },
             25_000_000u64,
         );
-        // println!("Fix this: Custom Fee [{:?}]", fee);
 
-        let tx_raw = self.create_signed_tx(msgs, signer, fee).unwrap();
+        let tx_raw = self.create_signed_tx(msgs, signer, fee)?;
 
         let tx_commit_response: TxCommitResponse =
-            tokio_block(async { self.chain.client().broadcast_tx_commit(tx_raw.into()).await })
-                .unwrap();
-        //.map_err(EncodeError::ProtoEncodeError)
+            tokio_block(self.chain.client().broadcast_tx_commit(tx_raw.into()))??;
 
         if tx_commit_response.check_tx.code.is_err() {
             return Err(RunnerError::ExecuteError {
@@ -366,13 +346,12 @@ impl<'a> Runner<'_> for App<'a> {
     }
 
     fn query_raw(&self, path: &str, protobuf: Vec<u8>) -> RunnerResult<Vec<u8>> {
-        let res = tokio_block(async {
-            self.chain
-                .client()
-                .abci_query(Some(path.parse().unwrap()), protobuf, None, false)
-                .await
-        })
-        .unwrap();
+        let res = tokio_block(self.chain.client().abci_query(
+            Some(path.parse()?),
+            protobuf,
+            None,
+            false,
+        ))??;
 
         // TODO: use tendermint_rpc::abci::Code here since latest version of comrs break it.
         if res.code != cosmrs::tendermint::abci::Code::Ok {
@@ -391,12 +370,10 @@ impl<'a> Runner<'_> for App<'a> {
         R: ::prost::Message + Default,
     {
         let mut base64_query_msg_bytes = Vec::with_capacity(msg.encoded_len());
-        msg.encode(&mut base64_query_msg_bytes).unwrap();
+        msg.encode(&mut base64_query_msg_bytes)?;
 
-        let res = self.query_raw(path, base64_query_msg_bytes).unwrap();
+        let res = self.query_raw(path, base64_query_msg_bytes)?;
 
-        R::decode(res.as_slice())
-            .map_err(DecodeError::ProtoDecodeError)
-            .map_err(RunnerError::DecodeError)
+        Ok(R::decode(res.as_slice())?)
     }
 }

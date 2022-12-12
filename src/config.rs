@@ -529,11 +529,10 @@ fn get_current_working_dir() -> String {
 fn abci_query<T: Message>(client: &HttpClient, req: T, path: &str) -> RunnerResult<AbciQuery> {
     let mut buf = Vec::with_capacity(req.encoded_len());
     req.encode(&mut buf).unwrap();
-    tokio_block(async {
-        let res = client
-            .abci_query(Some(path.parse().unwrap()), buf, None, false)
-            .await
-            .unwrap();
-        Ok(res)
-    })
+    Ok(tokio_block(client.abci_query(
+        Some(path.parse().unwrap()),
+        buf,
+        None,
+        false,
+    ))??)
 }
