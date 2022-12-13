@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use crate::config::TestConfig;
 use astroport::asset::AssetInfo;
 use astroport::factory::{
     ExecuteMsg as AstroportFactoryExecuteMsg, InstantiateMsg as AstroportFactoryInstantiateMsg,
@@ -7,6 +6,8 @@ use astroport::factory::{
 };
 use astroport::generator::InstantiateMsg as GeneratorInstantiateMsg;
 use astroport::maker::InstantiateMsg as MakerInstantiateMsg;
+use std::collections::HashMap;
+use std::path::Path;
 
 use astroport::router::InstantiateMsg as RouterInstantiateMsg;
 use astroport::staking::InstantiateMsg as StakingInstantiateMsg;
@@ -20,7 +21,6 @@ use cosmwasm_std::{to_binary, Binary, Event, Uint128, Uint64};
 use cw20::{Cw20Coin, Cw20ExecuteMsg, MinterResponse};
 use osmosis_testing::{Account, Module, Runner, SigningAccount, Wasm};
 
-pub const ARTIFACTS_FOLDER: &str = "artifacts/";
 pub const ASTROPORT_CONTRACT_NAMES: [&str; 10] = [
     "astro_token",
     "astroport_factory",
@@ -60,12 +60,16 @@ pub struct AstroportContracts {
     pub whitelist: Contract,
 }
 
-pub fn setup_astroport<'a, R>(app: &'a R, admin: &SigningAccount) -> AstroportContracts
+pub fn setup_astroport<'a, R>(
+    app: &'a R,
+    test_config: &TestConfig,
+    admin: &SigningAccount,
+) -> AstroportContracts
 where
     R: Runner<'a>,
 {
     // Upload contracts
-    let code_ids = upload_astroport_contracts(app, admin);
+    let code_ids = upload_astroport_contracts(app, test_config, admin);
 
     // Instantiate contracts
     instantiate_astroport(app, admin, &code_ids)
@@ -73,6 +77,7 @@ where
 
 pub fn upload_astroport_contracts<'a, R>(
     app: &'a R,
+    test_config: &TestConfig,
     signer: &SigningAccount,
 ) -> HashMap<String, u64>
 where
@@ -81,8 +86,8 @@ where
     let wasm = Wasm::new(app);
     let mut code_ids: HashMap<String, u64> = HashMap::new();
     for contract_name in ASTROPORT_CONTRACT_NAMES {
-        let path = format!("{}{}.wasm", ARTIFACTS_FOLDER, contract_name);
-        println!("Uploading {}.wasm ...", contract_name);
+        let path = Path::new(&test_config.artifacts_folder).join(format!("{}.wasm", contract_name));
+        println!("Uploading {:?} ...", path);
         let wasm_byte_code = std::fs::read(path).unwrap();
         let code_id = wasm
             .store_code(&wasm_byte_code, None, signer)
@@ -384,6 +389,7 @@ mod tests {
     use crate::{
         app::App as RpcRunner,
         astroport::{create_astroport_pair, setup_astroport},
+        config::TestConfig,
     };
     use astroport::pair::ExecuteMsg as PairExecuteMsg;
     use std::str::FromStr;
@@ -394,7 +400,8 @@ mod tests {
     pub fn test_instantiate_astroport_with_localterra() {
         // let _ = env_logger::builder().is_test(true).try_init();
         let docker: Cli = Cli::default();
-        let app = RpcRunner::new(TEST_CONFIG_PATH, &docker);
+        let test_config = TestConfig::from_yaml(TEST_CONFIG_PATH);
+        let app = RpcRunner::new(test_config.clone(), &docker);
         let accs = app
             .test_config
             .import_all_accounts()
@@ -416,7 +423,7 @@ mod tests {
         println!("Balances of admin: {:?}", balances);
 
         // Instantiate contracts
-        let contracts = setup_astroport(&app, admin);
+        let contracts = setup_astroport(&app, &test_config, admin);
 
         // Create XYK pool
         let asset_infos: [AssetInfo; 2] = [
