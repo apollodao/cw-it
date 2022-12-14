@@ -4,6 +4,7 @@ use astroport::factory::{
     ExecuteMsg as AstroportFactoryExecuteMsg, InstantiateMsg as AstroportFactoryInstantiateMsg,
     PairConfig, PairType,
 };
+use osmosis_testing::RunnerResult;
 use astroport::generator::InstantiateMsg as GeneratorInstantiateMsg;
 use astroport::maker::InstantiateMsg as MakerInstantiateMsg;
 use std::collections::HashMap;
@@ -64,12 +65,12 @@ pub fn setup_astroport<'a, R>(
     app: &'a R,
     test_config: &TestConfig,
     admin: &SigningAccount,
-) -> AstroportContracts
+) -> RunnerResult<AstroportContracts>
 where
     R: Runner<'a>,
 {
     // Upload contracts
-    let code_ids = upload_astroport_contracts(app, test_config, admin);
+    let code_ids = upload_astroport_contracts(app, test_config, admin)?;
 
     // Instantiate contracts
     instantiate_astroport(app, admin, &code_ids)
@@ -79,7 +80,7 @@ pub fn upload_astroport_contracts<'a, R>(
     app: &'a R,
     test_config: &TestConfig,
     signer: &SigningAccount,
-) -> HashMap<String, u64>
+) -> RunnerResult<HashMap<String, u64>>
 where
     R: Runner<'a>,
 {
@@ -88,22 +89,18 @@ where
     for contract_name in ASTROPORT_CONTRACT_NAMES {
         let path = Path::new(&test_config.artifacts_folder).join(format!("{}.wasm", contract_name));
         println!("Uploading {:?} ...", path);
-        let wasm_byte_code = std::fs::read(path).unwrap();
-        let code_id = wasm
-            .store_code(&wasm_byte_code, None, signer)
-            .unwrap()
-            .data
-            .code_id;
+        let wasm_byte_code = std::fs::read(path)?;
+        let code_id = wasm.store_code(&wasm_byte_code, None, signer)?.data.code_id;
         code_ids.insert(contract_name.to_string(), code_id);
     }
-    code_ids
+    Ok(code_ids)
 }
 
 pub fn instantiate_astroport<'a, R>(
     app: &'a R,
     admin: &SigningAccount,
     code_ids: &HashMap<String, u64>,
-) -> AstroportContracts
+) -> RunnerResult<AstroportContracts>
 where
     R: Runner<'a>,
 {
@@ -131,8 +128,7 @@ where
             Some("Astro Token"),
             &vec![],
             admin,
-        )
-        .unwrap()
+        )?
         .data
         .address;
 
@@ -171,7 +167,7 @@ where
             &[],                       // funds
             admin,                     // signer
         )
-        .unwrap()
+        ?
         .data
         .address;
 
@@ -188,8 +184,7 @@ where
             Some("Astroport Vesting"),
             &vec![],
             admin,
-        )
-        .unwrap()
+        )?
         .data
         .address;
 
@@ -216,7 +211,7 @@ where
             &[],                       // funds
             admin,                     // signer
         )
-        .unwrap()
+        ?
         .data
         .address;
 
@@ -234,7 +229,7 @@ where
             &vec![],
             admin,
         )
-        .unwrap();
+        ?;
 
     // Instantiate staking
     println!("Instantiating staking ...");
@@ -252,7 +247,7 @@ where
             &[],                       // funds
             admin,                     // signer
         )
-        .unwrap()
+        ?
         .data
         .address;
 
@@ -269,7 +264,7 @@ where
             &[],                      // funds
             admin,                    // signer
         )
-        .unwrap()
+        ?
         .data
         .address;
 
@@ -292,7 +287,7 @@ where
             &[],                     // funds
             admin,                   // signer
         )
-        .unwrap()
+        ?
         .data
         .address;
 
@@ -314,11 +309,11 @@ where
                 }],
             }],
         })
-        .unwrap(),
+        ?,
     };
-    let _res = wasm.execute(&astro_token, &msg, &vec![], admin).unwrap();
+    let _res = wasm.execute(&astro_token, &msg, &vec![], admin)?;
 
-    AstroportContracts {
+    Ok(AstroportContracts {
         factory: Contract::new(factory, code_ids["astroport_factory"]),
         generator: Contract::new(generator, code_ids["astroport_generator"]),
         staking: Contract::new(staking, code_ids["astroport_staking"]),
@@ -329,7 +324,7 @@ where
         pair_stable: Contract::new(String::from(""), code_ids["astroport_pair_stable"]),
         pair_xyk: Contract::new(String::from(""), code_ids["astroport_pair_xyk"]),
         whitelist: Contract::new(String::from(""), code_ids["astroport_whitelist"]),
-    }
+    })
 }
 
 pub fn create_astroport_pair<'a, R>(
@@ -339,7 +334,7 @@ pub fn create_astroport_pair<'a, R>(
     asset_infos: [AssetInfo; 2],
     init_params: Option<Binary>,
     signer: &SigningAccount,
-) -> (String, String)
+) -> RunnerResult<(String, String)>
 where
     R: Runner<'a>,
 {
@@ -350,9 +345,9 @@ where
         asset_infos,
         init_params,
     };
-    let res = wasm.execute(factory_addr, &msg, &[], signer).unwrap();
+    let res = wasm.execute(factory_addr, &msg, &[], signer)?;
     // Get pair and lp_token addresses from event
-    parse_astroport_create_pair_events(&res.events)
+    Ok(parse_astroport_create_pair_events(&res.events))
 }
 
 pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String) {
@@ -418,7 +413,7 @@ mod tests {
                 address: admin.address().to_string(),
                 pagination: None,
             })
-            .unwrap()
+            ?
             .balances;
         println!("Balances of admin: {:?}", balances);
 
@@ -456,7 +451,7 @@ mod tests {
                 &vec![],
                 admin,
             )
-            .unwrap();
+            ?;
 
         // Query allowance
         let allowance_res: AllowanceResponse = wasm
@@ -467,7 +462,7 @@ mod tests {
                     spender: uluna_astro_pair_addr.clone(),
                 },
             )
-            .unwrap();
+            ?;
         assert_eq!(allowance_res.allowance, Uint128::from(1000000000u128));
 
         // Provide liquidity to XYK pool
@@ -486,7 +481,7 @@ mod tests {
                     },
                 },
             ],
-            slippage_tolerance: Some(Decimal::from_str("0.02").unwrap()),
+            slippage_tolerance: Some(Decimal::from_str("0.02")?),
             auto_stake: Some(false),
             receiver: None,
         };
@@ -508,7 +503,7 @@ mod tests {
                     address: admin.address().to_string(),
                 },
             )
-            .unwrap();
+            ?;
         println!("LP token balance: {:?}", lp_token_balance);
         assert!(lp_token_balance.balance > Uint128::zero());
     }

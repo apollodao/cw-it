@@ -19,7 +19,7 @@ pub fn upload_wasm_files<'a, R: Runner<'a>>(
         .map(|(name, contract)| {
             let wasm_file_path = format!("{}/{}", config.artifacts_folder, contract.artifact);
             println!("Uploading wasm file: {}", wasm_file_path);
-            let wasm_byte_code = std::fs::read(wasm_file_path).unwrap();
+            let wasm_byte_code = std::fs::read(wasm_file_path)?;
             let code_id = wasm
                 .store_code(&wasm_byte_code, None, signer)
                 .map_err(|e| StdError::generic_err(format!("{:?}", e)))?
@@ -76,11 +76,10 @@ pub fn bank_balance_query<'a>(
     runner: &'a impl Runner<'a>,
     address: String,
     denom: String,
-) -> StdResult<Uint128> {
+) -> RunnerResult<Uint128> {
     Bank::new(runner)
-        .query_balance(&QueryBalanceRequest { address, denom })
-        .unwrap()
+        .query_balance(&QueryBalanceRequest { address, denom })?
         .balance
         .map(|c| Uint128::from_str(&c.amount).unwrap())
-        .ok_or(StdError::generic_err("Bank balance query failed"))
+        .ok_or(osmosis_testing::RunnerError::StdError(StdError::generic_err("Bank balance query failed")))
 }
