@@ -1,8 +1,10 @@
 use std::{collections::HashMap, str::FromStr};
 
-use cosmrs::proto::cosmos::bank::v1beta1::QueryBalanceRequest;
+use cosmrs::proto::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
 use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
-use osmosis_testing::{Account, Bank, Module, Runner, RunnerResult, SigningAccount, Wasm};
+use osmosis_testing::{
+    Account, Bank, Module, Runner, RunnerExecuteResult, RunnerResult, SigningAccount, Wasm,
+};
 use serde::Serialize;
 
 use crate::config::TestConfig;
@@ -99,4 +101,29 @@ pub fn bank_balance_query<'a>(
         .balance
         .map(|c| Uint128::from_str(&c.amount).unwrap())
         .ok_or(StdError::generic_err("Bank balance query failed"))
+}
+
+pub fn bank_send<'a>(
+    runner: &'a impl Runner<'a>,
+    sender: &SigningAccount,
+    recipient: &str,
+    coins: Vec<Coin>,
+) -> RunnerExecuteResult<MsgSendResponse> {
+    let bank = Bank::new(runner);
+    bank.send(
+        MsgSend {
+            from_address: sender.address(),
+            to_address: recipient.to_string(),
+            amount: coins
+                .iter()
+                .map(
+                    |c| osmosis_testing::cosmrs::proto::cosmos::base::v1beta1::Coin {
+                        denom: c.denom.clone(),
+                        amount: c.amount.to_string(),
+                    },
+                )
+                .collect(),
+        },
+        sender,
+    )
 }
