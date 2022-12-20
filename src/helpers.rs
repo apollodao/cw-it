@@ -72,6 +72,22 @@ where
     instantiate_contract_with_funds(app, admin, code_id, instantite_msg, &[])
 }
 
+/// Uploads a wasm file to the chain and returns the code_id
+pub fn upload_wasm_file<'a, R: Runner<'a>>(
+    runner: &'a R,
+    signer: &SigningAccount,
+    wasm_file_path: &str,
+) -> StdResult<u64> {
+    let wasm = Wasm::new(runner);
+    let wasm_byte_code = std::fs::read(wasm_file_path).unwrap();
+    let code_id = wasm
+        .store_code(&wasm_byte_code, None, signer)
+        .map_err(|e| StdError::generic_err(format!("{:?}", e)))?
+        .data
+        .code_id;
+    Ok(code_id)
+}
+
 pub fn bank_balance_query<'a>(
     runner: &'a impl Runner<'a>,
     address: String,
