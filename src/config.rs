@@ -9,7 +9,6 @@ use std::{
 
 use config::Config;
 use cosmwasm_schema::cw_serde;
-use downloader::Downloader;
 use git2::Repository;
 use git2_credentials::CredentialHandler;
 use osmosis_testing::{FeeSetting, RunnerResult, SigningAccount};
@@ -151,7 +150,6 @@ impl TestConfig {
             .collect();
 
         let mut chain_download_list: Vec<Contract> = vec![];
-        let mut url_download_list: Vec<Contract> = vec![];
         let mut clone_list: Vec<Contract> = vec![];
         let mut compile_list: Vec<Contract> = vec![];
 
@@ -162,10 +160,7 @@ impl TestConfig {
                 .collect::<Vec<&str>>()
                 .pop()
                 .unwrap();
-            if extension == "wasm" {
-                // URL is a wasm file, so we can just download it
-                url_download_list.push(contract);
-            } else if extension == "git" {
+            if extension == "git" {
                 // URL is a git repo, so we need to clone it
                 clone_list.push(contract);
             } else {
@@ -207,10 +202,6 @@ impl TestConfig {
             for contract in chain_download_list {
                 self.download_contract_from_chain(&http_client, &contract)
             }
-        }
-
-        for contract in url_download_list {
-            self.download_contract_from_url(&contract, &self.artifacts_folder);
         }
 
         for contract in clone_list {
@@ -344,23 +335,6 @@ impl TestConfig {
             }
         }
         Ok(())
-    }
-    fn download_contract_from_url(&self, contract: &Contract, artifact_folder: &str) {
-        let mut downloader = Downloader::builder()
-            .download_folder(std::path::Path::new(&artifact_folder))
-            .parallel_requests(32)
-            .build()
-            .unwrap();
-        downloader
-            .download(&[downloader::Download::new(&contract.url)])
-            .unwrap();
-        //let fp = format!("{}/{}", DEFAULT_ARTIFACTS_FOLDER, contract.artifacts[0]);
-        // if !Path::new(&fp).exists() {
-        //     println!("File to download [{}]", contract.url);
-        //     downloader.download(&[downloader::Download::new(&contract.url)]).unwrap();
-        // } else {
-        //     println!("File already exist [{}]", fp);
-        // }
     }
 
     fn download_contract_from_chain(&self, http_client: &HttpClient, contract: &Contract) {
