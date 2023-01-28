@@ -9,4 +9,8 @@ pub mod mock_api;
 #[cfg_attr(docsrs, doc(cfg(feature = "astroport")))]
 pub mod astroport;
 
+#[cfg(feature = "mars")]
+#[cfg_attr(docsrs, doc(cfg(feature = "mars")))]
+pub mod mars;
+
 pub use testcontainers::clients::Cli;
