@@ -19,9 +19,9 @@ use std::path::Path;
 
 pub const MARS_CONTRACT_NAMES: [&str; 5] = [
     "mars_credit_manager",
-    "mars_mock_zapper",
+    "mars_zapper_mock",
     "mars_mock_oracle",
-    "mars_mock_swapper",
+    "mars_swapper_mock",
     "mars_mock_red_bank",
 ];
 
