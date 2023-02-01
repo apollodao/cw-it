@@ -3,6 +3,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_binary, Binary, Decimal, Event, Uint128, Uint64};
 use mars_mock_oracle::msg::{CoinPrice, InstantiateMsg as MockOracleInstantiateMsg};
 use mars_mock_red_bank::msg::{CoinMarketInfo, InstantiateMsg as RedBankInstantiateMsg};
+use mars_rover::adapters::account_nft::InstantiateMsg as NftInstantiateMsg;
 use mars_rover::adapters::oracle::OracleBase;
 use mars_rover::adapters::red_bank::RedBank;
 use mars_rover::adapters::red_bank::RedBankBase;
@@ -10,19 +11,24 @@ use mars_rover::adapters::swap::{InstantiateMsg as SwapperInstantiateMsg, Swappe
 use mars_rover::adapters::vault::VaultConfig;
 use mars_rover::adapters::vault::VaultUnchecked;
 use mars_rover::adapters::zapper::ZapperBase;
+use mars_rover::msg::instantiate::ConfigUpdates;
 use mars_rover::msg::instantiate::VaultInstantiateConfig;
 use mars_rover::msg::zapper::{InstantiateMsg as ZapperInstantiateMsg, LpConfig};
+use mars_rover::msg::ExecuteMsg as CreditManagerExecuteMsg;
 use mars_rover::msg::InstantiateMsg as CreditManagerInstantiateMsg;
+use mars_rover::msg::QueryMsg as CreditManagerQueryMsg;
+use mars_rover::msg::query::ConfigResponse;
 use osmosis_testing::{Account, Module, Runner, SigningAccount, Wasm};
 use std::collections::HashMap;
 use std::path::Path;
 
-pub const MARS_CONTRACT_NAMES: [&str; 5] = [
+pub const MARS_CONTRACT_NAMES: [&str; 6] = [
     "mars_credit_manager",
     "mars_zapper_mock",
     "mars_mock_oracle",
     "mars_swapper_mock",
     "mars_mock_red_bank",
+    "mars_account_nft",
 ];
 
 #[cw_serde]
@@ -40,6 +46,10 @@ impl Contract {
 #[cw_serde]
 pub struct MarsContracts {
     pub credit_manager: Contract,
+    pub oracle: Contract,
+    pub swapper: Contract,
+    pub zapper: Contract,
+    pub red_bank: Contract,
 }
 
 pub fn setup_mars<'a, R>(
@@ -113,7 +123,7 @@ where
     println!("Instantiating zapper ...");
     let mock_zapper = wasm
         .instantiate(
-            code_ids["mars_mock_zapper"],
+            code_ids["mars_zapper_mock"],
             &ZapperInstantiateMsg {
                 oracle: OracleBase::new(mock_oracle.clone()),
                 lp_configs: vec![LpConfig {
@@ -154,7 +164,7 @@ where
     println!("Instantiating mock swapper ...");
     let mock_swapper = wasm
         .instantiate(
-            code_ids["mars_mock_swapper"],
+            code_ids["mars_swapper_mock"],
             &SwapperInstantiateMsg {
                 owner: admin.address(),
             },
@@ -170,17 +180,17 @@ where
     println!("Instantiating credit manager ...");
     let credit_manager = wasm
         .instantiate(
-            code_ids["credit_manager"],
+            code_ids["mars_credit_manager"],
             &CreditManagerInstantiateMsg {
                 owner: admin.address(),
                 allowed_coins: vec!["uosmo".to_string(), "usdc".to_string()],
                 vault_configs: vec![],
-                red_bank: RedBankBase::new(red_bank),
-                oracle: OracleBase::new(mock_oracle),
+                red_bank: RedBankBase::new(red_bank.clone()),
+                oracle: OracleBase::new(mock_oracle.clone()),
                 max_close_factor: Decimal::from_ratio(1u8, 5u8),
                 max_unlocking_positions: Uint128::new(5),
-                swapper: SwapperBase::new(mock_swapper),
-                zapper: ZapperBase::new(mock_zapper),
+                swapper: SwapperBase::new(mock_swapper.clone()),
+                zapper: ZapperBase::new(mock_zapper.clone()),
             },
             Some(&admin.address()),
             Some("Credit Manager"),
@@ -191,8 +201,60 @@ where
         .data
         .address;
 
+    println!("Instantiating account nft ...");
+    let account_nft = wasm
+        .instantiate(
+            code_ids["mars_account_nft"],
+            &NftInstantiateMsg {
+                max_value_for_burn: Default::default(),
+                name: "Rover Credit Account".to_string(),
+                symbol: "RCA".to_string(),
+                minter: admin.address(),
+            },
+            Some(&admin.address()),
+            Some("Account NFT"),
+            &vec![],
+            admin,
+        )
+        .unwrap()
+        .data
+        .address;
+
+    println!("Update credit manager config for account NFT");
+
+    let config_res: ConfigResponse = wasm
+        .query(&credit_manager, &CreditManagerQueryMsg::Config {})
+        .unwrap();
+
+    println!("config_res : {:?}", config_res);
+
+    println!("admin: {}", admin.address());
+
+    wasm.execute(
+        &credit_manager,
+        &CreditManagerExecuteMsg::UpdateConfig {
+            updates: ConfigUpdates {
+                account_nft: Some(account_nft),
+                allowed_coins: None,
+                oracle: None,
+                max_close_factor: None,
+                max_unlocking_positions: None,
+                swapper: None,
+                vault_configs: None,
+                zapper: None,
+            },
+        },
+        &vec![],
+        admin,
+    )
+    .unwrap();
+
     MarsContracts {
         credit_manager: Contract::new(credit_manager, code_ids["mars_credit_manager"]),
+        oracle: Contract::new(mock_oracle, code_ids["mars_mock_oracle"]),
+        swapper: Contract::new(mock_swapper, code_ids["mars_swapper_mock"]),
+        zapper: Contract::new(mock_zapper, code_ids["mars_zapper_mock"]),
+        red_bank: Contract::new(red_bank, code_ids["mars_mock_red_bank"]),
     }
 }
 
