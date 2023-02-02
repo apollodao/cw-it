@@ -1,9 +1,12 @@
 use crate::config::TestConfig;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_binary, Binary, Decimal, Event, Uint128, Uint64};
-use mars_mock_oracle::msg::{CoinPrice, InstantiateMsg as MockOracleInstantiateMsg};
+use mars_mock_oracle::msg::{
+    CoinPrice, ExecuteMsg as MockOracleExecuteMsg, InstantiateMsg as MockOracleInstantiateMsg,
+};
 use mars_mock_red_bank::msg::{CoinMarketInfo, InstantiateMsg as RedBankInstantiateMsg};
 use mars_rover::adapters::account_nft::InstantiateMsg as NftInstantiateMsg;
+use mars_rover::adapters::account_nft::{ExecuteMsg as NftExecuteMsg, NftConfigUpdates};
 use mars_rover::adapters::oracle::OracleBase;
 use mars_rover::adapters::red_bank::RedBank;
 use mars_rover::adapters::red_bank::RedBankBase;
@@ -13,11 +16,11 @@ use mars_rover::adapters::vault::VaultUnchecked;
 use mars_rover::adapters::zapper::ZapperBase;
 use mars_rover::msg::instantiate::ConfigUpdates;
 use mars_rover::msg::instantiate::VaultInstantiateConfig;
+use mars_rover::msg::query::ConfigResponse;
 use mars_rover::msg::zapper::{InstantiateMsg as ZapperInstantiateMsg, LpConfig};
 use mars_rover::msg::ExecuteMsg as CreditManagerExecuteMsg;
 use mars_rover::msg::InstantiateMsg as CreditManagerInstantiateMsg;
 use mars_rover::msg::QueryMsg as CreditManagerQueryMsg;
-use mars_rover::msg::query::ConfigResponse;
 use osmosis_testing::{Account, Module, Runner, SigningAccount, Wasm};
 use std::collections::HashMap;
 use std::path::Path;
@@ -231,6 +234,19 @@ where
     println!("admin: {}", admin.address());
 
     wasm.execute(
+        &account_nft,
+        &NftExecuteMsg::UpdateConfig {
+            updates: NftConfigUpdates {
+                max_value_for_burn: None,
+                proposed_new_minter: Some(credit_manager.clone()),
+            },
+        },
+        &vec![],
+        admin,
+    )
+    .unwrap();
+
+    wasm.execute(
         &credit_manager,
         &CreditManagerExecuteMsg::UpdateConfig {
             updates: ConfigUpdates {
@@ -258,6 +274,23 @@ where
     }
 }
 
+pub fn change_oracle_price<'a, R>(
+    app: &'a R,
+    oracle_addr: &str,
+    signer: &SigningAccount,
+    coin_price: CoinPrice,
+) where
+    R: Runner<'a>,
+{
+    Wasm::new(app)
+        .execute(
+            oracle_addr,
+            &MockOracleExecuteMsg::ChangePrice(coin_price),
+            &vec![],
+            signer,
+        )
+        .unwrap();
+}
 // #[cfg(test)]
 // mod tests {
 //     use astroport::{
