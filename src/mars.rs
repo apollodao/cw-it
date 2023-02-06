@@ -26,7 +26,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 pub const MARS_CONTRACT_NAMES: [&str; 6] = [
-    "mars_credit_manager",
+    "mars_mock_credit_manager",
     "mars_zapper_mock",
     "mars_mock_oracle",
     "mars_swapper_mock",
@@ -148,12 +148,20 @@ where
         .instantiate(
             code_ids["mars_mock_red_bank"],
             &RedBankInstantiateMsg {
-                coins: vec![CoinMarketInfo {
-                    denom: "usdc".to_string(),
-                    max_ltv: Decimal::from_ratio(4u8, 5u8),
-                    liquidation_threshold: Decimal::from_ratio(1u8, 20u8),
-                    liquidation_bonus: Decimal::from_ratio(1u8, 100u8),
-                }],
+                coins: vec![
+                    CoinMarketInfo {
+                        denom: "usdc".to_string(),
+                        max_ltv: Decimal::from_ratio(4u8, 5u8),
+                        liquidation_threshold: Decimal::from_ratio(1u8, 20u8),
+                        liquidation_bonus: Decimal::from_ratio(1u8, 100u8),
+                    },
+                    CoinMarketInfo {
+                        denom: "uosmo".to_string(),
+                        max_ltv: Decimal::from_ratio(4u8, 5u8),
+                        liquidation_threshold: Decimal::from_ratio(1u8, 20u8),
+                        liquidation_bonus: Decimal::from_ratio(1u8, 100u8),
+                    },
+                ],
             },
             Some(&admin.address()),
             Some("Mock Mars Red Bank"),
@@ -228,10 +236,6 @@ where
     let config_res: ConfigResponse = wasm
         .query(&credit_manager, &CreditManagerQueryMsg::Config {})
         .unwrap();
-
-    println!("config_res : {:?}", config_res);
-
-    println!("admin: {}", admin.address());
 
     wasm.execute(
         &account_nft,
