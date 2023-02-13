@@ -1810,7 +1810,7 @@ dependencies = [
 [[package]]
 name = "osmosis-test-tube"
 version = "14.1.1"
-source = "git+https://github.com/apollodao/test-tube.git#7c1cf7d7e0255a119483c63c77ea8cfeda4aaaad"
+source = "git+https://github.com/apollodao/test-tube.git?rev=d90e8fb436915a8f1bca2708899e92a9e397c5f5#d90e8fb436915a8f1bca2708899e92a9e397c5f5"
 dependencies = [
  "base64",
  "bindgen",
@@ -2738,7 +2738,7 @@ dependencies = [
 [[package]]
 name = "test-tube"
 version = "0.1.1"
-source = "git+https://github.com/apollodao/test-tube.git#7c1cf7d7e0255a119483c63c77ea8cfeda4aaaad"
+source = "git+https://github.com/apollodao/test-tube.git?rev=d90e8fb436915a8f1bca2708899e92a9e397c5f5#d90e8fb436915a8f1bca2708899e92a9e397c5f5"
 dependencies = [
  "base64",
  "cosmrs",
