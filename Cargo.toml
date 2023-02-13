@@ -46,22 +46,20 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-cosmwasm-std = {version = "1.1.3", features = ["stargate"]}
-serde = { version = "1.0.145", default-features = false, features = ["derive"] }
+cosmwasm-std = {version = "1.2.1", features = ["stargate"]}
+serde = { version = "1.0.152", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
-cosmwasm-schema = "1.1.3"
-
-cosmrs = { version="0.9.0", features = ["rpc", "cosmwasm"] }
-testcontainers = { version="0.14.0", features = ["experimental"] }
-# testcontainers = { path = "../testcontainers-rs/testcontainers" }
+cosmwasm-schema = "1.2.1"
+cosmrs = { version = "0.9.0", features = ["rpc", "cosmwasm"] }
+testcontainers = { version = "0.14.0", features = ["experimental"] }
 cosmos-sdk-proto = "0.15.0"
-prost = { version="0.11.2", default-features = false, features = [
+prost = { version = "0.11.2", default-features = false, features = [
     "prost-derive",
 ] }
 osmosis-testing = { git = "https://github.com/apollodao/osmosis-rust.git", branch = "osmosis-v13" }
 config = { version = "0.13.2", features = ["yaml"] }
-tokio = { version="1.22.0", features = ["macros"] }
-tonic = { version="0.8.2", default-features = false }
+tokio = { version = "1.22.0", features = ["macros"] }
+tonic = { version = "0.8.2", default-features = false }
 git2 = "0.15.0"
 git2_credentials = "0.9.1"
 anyhow = "1.0.66"
@@ -69,7 +67,7 @@ serde_json = "1.0.89"
 
 # Astroport deps
 astroport-types = { version = "0.1.0", optional = true }
-cw20 = { version = "0.16", optional = true }
+cw20 = { version = "1.0.1", optional = true }
 
 [dev-dependencies]
 env_logger = "0.9.0"
