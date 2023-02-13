@@ -11,7 +11,7 @@ use config::Config;
 use cosmwasm_schema::cw_serde;
 use git2::Repository;
 use git2_credentials::CredentialHandler;
-use osmosis_testing::{FeeSetting, RunnerResult, SigningAccount};
+use osmosis_test_tube::{FeeSetting, RunnerResult, SigningAccount};
 use prost::Message;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

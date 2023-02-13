@@ -1,3 +1,5 @@
+use std::num::ParseIntError;
+
 use cosmos_sdk_proto::cosmos::auth::v1beta1::{
     BaseAccount, QueryAccountRequest, QueryAccountResponse,
 };
@@ -8,9 +10,9 @@ use cosmwasm_std::{
     from_binary, Coin, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
     WasmQuery,
 };
-use osmosis_testing::{
-    Account, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult, RunnerResult,
-    SigningAccount,
+use osmosis_test_tube::{
+    Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerExecuteResult,
+    RunnerResult, SigningAccount,
 };
 use testcontainers::clients::Cli;
 use testcontainers::images::generic::GenericImage;
@@ -181,8 +183,15 @@ impl<'a> Application for App<'a> {
         let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo =
             tokio_block(async {
                 let mut service =
-                    ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone()).await?;
-                Ok::<_, RunnerError>(service.simulate(simulate_msg).await?)
+                    ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
+                        .await
+                        .map_err(|e| RunnerError::GenericError(e.to_string()))?;
+                Ok::<_, RunnerError>(
+                    service
+                        .simulate(simulate_msg)
+                        .await
+                        .map_err(|e| RunnerError::GenericError(e.to_string()))?,
+                )
             })??
             .into_inner()
             .gas_info
@@ -248,20 +257,23 @@ impl<'a> Application for App<'a> {
             "/cosmos.auth.v1beta1.Query/Account",
         )?;
 
-        let res = QueryAccountResponse::decode(abci_query.value.as_slice())?
+        let res = QueryAccountResponse::decode(abci_query.value.as_slice())
+            .map_err(DecodeError::ProtoDecodeError)?
             .account
             .ok_or(RunnerError::QueryError {
                 msg: "account query failed".to_string(),
             })?;
 
-        let base_account = BaseAccount::decode(res.value.as_slice())?;
+        let base_account =
+            BaseAccount::decode(res.value.as_slice()).map_err(DecodeError::ProtoDecodeError)?;
 
         Ok(base_account)
     }
 
     fn abci_query<T: Message>(&self, req: T, path: &str) -> RunnerResult<AbciQuery> {
         let mut buf = Vec::with_capacity(req.encoded_len());
-        req.encode(&mut buf)?;
+        req.encode(&mut buf)
+            .map_err(EncodeError::ProtoEncodeError)?;
         Ok(tokio_block(self.chain.client().abci_query(
             Some(path.parse()?),
             buf,
@@ -311,7 +323,11 @@ impl<'a> Runner<'_> for App<'a> {
             FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
                 cosmrs::Coin {
                     denom: amount.denom.parse()?,
-                    amount: amount.amount.to_string().parse()?,
+                    amount: amount
+                        .amount
+                        .to_string()
+                        .parse()
+                        .map_err(|e: ParseIntError| RunnerError::GenericError(e.to_string()))?,
                 },
                 *gas_limit,
             ),
@@ -345,35 +361,28 @@ impl<'a> Runner<'_> for App<'a> {
         tx_commit_response.try_into()
     }
 
-    fn query_raw(&self, path: &str, protobuf: Vec<u8>) -> RunnerResult<Vec<u8>> {
-        let res = tokio_block(self.chain.client().abci_query(
-            Some(path.parse()?),
-            protobuf,
-            None,
-            false,
-        ))??;
-
-        // TODO: use tendermint_rpc::abci::Code here since latest version of comrs break it.
-        if res.code != cosmrs::tendermint::abci::Code::Ok {
-            return Err(RunnerError::QueryError {
-                msg: "error".to_string(),
-            });
-        }
-
-        Ok(res.value)
-    }
-
-    // Q -> QueryParamsRequest
     fn query<Q, R>(&self, path: &str, msg: &Q) -> RunnerResult<R>
     where
         Q: ::prost::Message,
         R: ::prost::Message + Default,
     {
         let mut base64_query_msg_bytes = Vec::with_capacity(msg.encoded_len());
-        msg.encode(&mut base64_query_msg_bytes)?;
+        msg.encode(&mut base64_query_msg_bytes)
+            .map_err(EncodeError::ProtoEncodeError)?;
 
-        let res = self.query_raw(path, base64_query_msg_bytes)?;
+        let res = tokio_block(self.chain.client().abci_query(
+            Some(path.parse()?),
+            base64_query_msg_bytes,
+            None,
+            false,
+        ))??;
 
-        Ok(R::decode(res.as_slice())?)
+        if res.code != cosmrs::tendermint::abci::Code::Ok {
+            return Err(RunnerError::QueryError {
+                msg: "error".to_string(),
+            });
+        }
+
+        Ok(R::decode(res.value.as_slice()).map_err(DecodeError::ProtoDecodeError)?)
     }
 }

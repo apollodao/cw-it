@@ -19,7 +19,7 @@ use astroport::vesting::{
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_binary, Binary, Event, Uint128, Uint64};
 use cw20::{Cw20Coin, Cw20ExecuteMsg, MinterResponse};
-use osmosis_testing::{Account, Module, Runner, SigningAccount, Wasm};
+use osmosis_test_tube::{Account, Module, Runner, SigningAccount, Wasm};
 
 pub const ASTROPORT_CONTRACT_NAMES: [&str; 10] = [
     "astro_token",
@@ -383,7 +383,7 @@ mod tests {
     use cosmrs::proto::cosmos::bank::v1beta1::QueryAllBalancesRequest;
     use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
     use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
-    use osmosis_testing::{Account, Bank, Module, Wasm};
+    use osmosis_test_tube::{Account, Bank, Module, Wasm};
     use testcontainers::clients::Cli;
 
     use crate::{
