@@ -32,7 +32,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
 # Support for Astroport
-astroport = ["dep:cw20", "dep:astroport"]
+astroport = ["dep:cw20", "dep:astroport-types"]
 
 [package.metadata.scripts]
 optimize = """docker run --rm -v "$(pwd)":/code \
@@ -68,7 +68,7 @@ anyhow = "1.0.66"
 serde_json = "1.0.89"
 
 # Astroport deps
-astroport = { git = "https://github.com/apollodao/astroport/", rev = "afbf5e70c3d7bf986bebba65609b5e60016f5919", optional = true }
+astroport-types = { version = "0.1.0", optional = true }
 cw20 = { version = "0.16", optional = true }
 
 [dev-dependencies]

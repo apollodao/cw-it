@@ -1,18 +1,18 @@
 use crate::config::TestConfig;
-use astroport::asset::AssetInfo;
-use astroport::factory::{
+use astroport_types::asset::AssetInfo;
+use astroport_types::factory::{
     ExecuteMsg as AstroportFactoryExecuteMsg, InstantiateMsg as AstroportFactoryInstantiateMsg,
     PairConfig, PairType,
 };
-use astroport::generator::InstantiateMsg as GeneratorInstantiateMsg;
-use astroport::maker::InstantiateMsg as MakerInstantiateMsg;
+use astroport_types::generator::InstantiateMsg as GeneratorInstantiateMsg;
+use astroport_types::maker::InstantiateMsg as MakerInstantiateMsg;
 use std::collections::HashMap;
 use std::path::Path;
 
-use astroport::router::InstantiateMsg as RouterInstantiateMsg;
-use astroport::staking::InstantiateMsg as StakingInstantiateMsg;
-use astroport::token::InstantiateMsg as AstroTokenInstantiateMsg;
-use astroport::vesting::{
+use astroport_types::router::InstantiateMsg as RouterInstantiateMsg;
+use astroport_types::staking::InstantiateMsg as StakingInstantiateMsg;
+use astroport_types::token::InstantiateMsg as AstroTokenInstantiateMsg;
+use astroport_types::vesting::{
     Cw20HookMsg as VestingHookMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
     VestingSchedule, VestingSchedulePoint,
 };
@@ -376,7 +376,7 @@ pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String) 
 
 #[cfg(test)]
 mod tests {
-    use astroport::{
+    use astroport_types::{
         asset::{Asset, AssetInfo},
         factory::PairType,
     };
@@ -391,7 +391,7 @@ mod tests {
         astroport::{create_astroport_pair, setup_astroport},
         config::TestConfig,
     };
-    use astroport::pair::ExecuteMsg as PairExecuteMsg;
+    use astroport_types::pair::ExecuteMsg as PairExecuteMsg;
     use std::str::FromStr;
 
     pub const TEST_CONFIG_PATH: &str = "configs/terra.yaml";
