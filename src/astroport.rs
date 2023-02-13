@@ -398,7 +398,6 @@ mod tests {
 
     #[test]
     pub fn test_instantiate_astroport_with_localterra() {
-        // let _ = env_logger::builder().is_test(true).try_init();
         let docker: Cli = Cli::default();
         let test_config = TestConfig::from_yaml(TEST_CONFIG_PATH);
         let app = RpcRunner::new(test_config.clone(), &docker);

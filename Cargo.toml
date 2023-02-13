@@ -47,15 +47,14 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-cosmwasm-std = {version = "1.1.9", features = ["stargate"]}
+cosmwasm-std = "1.2.1"
 serde = { version = "1.0.145", default-features = false, features = ["derive"] }
-thiserror = { version = "1.0.31" }
-cosmwasm-schema = "1.1.3"
+thiserror = "1.0.38"
+cosmwasm-schema = "1.2.1"
 
 cosmrs = { version="0.9.0", features = ["rpc", "cosmwasm"] }
 testcontainers = { version="0.14.0", features = ["experimental"] }
-# testcontainers = { path = "../testcontainers-rs/testcontainers" }
-cosmos-sdk-proto = "0.15.0"
+cosmos-sdk-proto = "0.16.0"
 prost = { version="0.11.2", default-features = false, features = [
     "prost-derive",
 ] }
@@ -63,14 +62,14 @@ osmosis-testing = { git = "https://github.com/apollodao/osmosis-rust.git", branc
 config = { version = "0.13.2", features = ["yaml"] }
 tokio = { version="1.22.0", features = ["macros"] }
 tonic = { version="0.8.2", default-features = false }
-git2 = "0.15.0"
-git2_credentials = "0.9.1"
+git2 = "0.16.1"
+git2_credentials = "0.10.0"
 anyhow = "1.0.66"
 serde_json = "1.0.89"
 
 # Astroport deps
 astroport = { git = "https://github.com/apollodao/astroport/", rev = "afbf5e70c3d7bf986bebba65609b5e60016f5919", optional = true }
-cw20 = { version = "0.16", optional = true }
+cw20 = { version = "1.0.1", optional = true }
 
 # Mars deps
 mars-rover = { git = "https://github.com/mars-protocol/rover.git", optional = true }
@@ -78,6 +77,3 @@ mars-mock-oracle = { git = "https://github.com/mars-protocol/rover.git", optiona
 mars-zapper-mock = { git = "https://github.com/mars-protocol/rover.git", optional = true }
 mars-mock-red-bank = { git = "https://github.com/mars-protocol/rover.git", optional = true }
 mars-swapper-mock = { git = "https://github.com/mars-protocol/rover.git", optional = true }
-
-[dev-dependencies]
-env_logger = "0.9.0"
