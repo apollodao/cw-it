@@ -636,7 +636,7 @@ dependencies = [
  "cosmwasm-std",
  "cw20",
  "env_logger",
- "git2 0.16.1",
+ "git2",
  "git2_credentials",
  "osmosis-test-tube",
  "prost",
@@ -1152,19 +1152,6 @@ dependencies = [
 
 [[package]]
 name = "git2"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2994bee4a3a6a51eb90c218523be382fd7ea09b16380b9312e9dbe955ff7c7d1"
-dependencies = [
- "bitflags",
- "libc",
- "libgit2-sys",
- "log",
- "url",
-]
-
-[[package]]
-name = "git2"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf7f68c2995f392c49fffb4f95ae2c873297830eb25c6bc4c114ce8f4562acc"
@@ -1180,13 +1167,13 @@ dependencies = [
 
 [[package]]
 name = "git2_credentials"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2830b44b79fbc335179bf68cdc6d77d1d0a88b13b108cd95d969a38a2fe1f996"
+checksum = "2e96ac714d1351a2eff9e31311436bd2bf16d720dabfa031ce72e9e00bed145b"
 dependencies = [
  "dialoguer",
  "dirs",
- "git2 0.15.0",
+ "git2",
  "pest",
  "pest_derive",
  "regex",
