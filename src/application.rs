@@ -1,7 +1,7 @@
 use cosmos_sdk_proto::cosmos::auth::v1beta1::BaseAccount;
 use cosmrs::proto::cosmos::base::abci::v1beta1::GasInfo;
 use cosmrs::{rpc::endpoint::abci_query::AbciQuery, tx::Fee, AccountId};
-use osmosis_testing::{RunnerResult, SigningAccount};
+use osmosis_test_tube::{RunnerResult, SigningAccount};
 use prost::Message;
 //use tendermint_rpc::endpoint::abci_query::AbciQuery;
 

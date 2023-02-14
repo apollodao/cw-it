@@ -1,5 +1,5 @@
 use anyhow::Error;
-use osmosis_testing::RunnerError;
+use osmosis_test_tube::RunnerError;
 
 use std::future::Future;
 
@@ -146,6 +146,7 @@ impl Chain {
 pub fn tokio_block<F: Future>(f: F) -> Result<F::Output, RunnerError> {
     Ok(tokio::runtime::Builder::new_current_thread()
         .enable_all()
-        .build()?
+        .build()
+        .map_err(|e| RunnerError::GenericError(e.to_string()))?
         .block_on(f))
 }

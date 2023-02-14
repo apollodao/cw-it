@@ -1,8 +1,9 @@
 use std::{collections::HashMap, str::FromStr};
 
 use cosmrs::proto::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
+use cosmrs::proto::cosmos::base::v1beta1::Coin as ProtoCoin;
 use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
-use osmosis_testing::{
+use osmosis_test_tube::{
     Account, Bank, Module, Runner, RunnerExecuteResult, RunnerResult, SigningAccount, Wasm,
 };
 use serde::Serialize;
@@ -116,12 +117,10 @@ pub fn bank_send<'a>(
             to_address: recipient.to_string(),
             amount: coins
                 .iter()
-                .map(
-                    |c| osmosis_testing::cosmrs::proto::cosmos::base::v1beta1::Coin {
-                        denom: c.denom.clone(),
-                        amount: c.amount.to_string(),
-                    },
-                )
+                .map(|c| ProtoCoin {
+                    denom: c.denom.clone(),
+                    amount: c.amount.to_string(),
+                })
                 .collect(),
         },
         sender,

@@ -636,9 +636,9 @@ dependencies = [
  "cosmwasm-std",
  "cw20",
  "env_logger",
- "git2 0.16.1",
+ "git2",
  "git2_credentials",
- "osmosis-testing",
+ "osmosis-test-tube",
  "prost",
  "serde",
  "serde_json",
@@ -1152,19 +1152,6 @@ dependencies = [
 
 [[package]]
 name = "git2"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2994bee4a3a6a51eb90c218523be382fd7ea09b16380b9312e9dbe955ff7c7d1"
-dependencies = [
- "bitflags",
- "libc",
- "libgit2-sys",
- "log",
- "url",
-]
-
-[[package]]
-name = "git2"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf7f68c2995f392c49fffb4f95ae2c873297830eb25c6bc4c114ce8f4562acc"
@@ -1180,13 +1167,13 @@ dependencies = [
 
 [[package]]
 name = "git2_credentials"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2830b44b79fbc335179bf68cdc6d77d1d0a88b13b108cd95d969a38a2fe1f996"
+checksum = "2e96ac714d1351a2eff9e31311436bd2bf16d720dabfa031ce72e9e00bed145b"
 dependencies = [
  "dialoguer",
  "dirs",
- "git2 0.15.0",
+ "git2",
  "pest",
  "pest_derive",
  "regex",
@@ -1794,8 +1781,9 @@ checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 
 [[package]]
 name = "osmosis-std"
-version = "0.12.0"
-source = "git+https://github.com/apollodao/osmosis-rust.git?branch=osmosis-v13#38a48533ed88243070b105cb9085e34c2b0c4eeb"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fc0a9075efd64ed5a8be3bf134cbf1080570d68384f2ad58ffaac6c00d063fd"
 dependencies = [
  "chrono",
  "cosmwasm-std",
@@ -1809,8 +1797,9 @@ dependencies = [
 
 [[package]]
 name = "osmosis-std-derive"
-version = "0.12.0"
-source = "git+https://github.com/apollodao/osmosis-rust.git?branch=osmosis-v13#38a48533ed88243070b105cb9085e34c2b0c4eeb"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a455e262a6fdfd3914f3a4e11e6bc0ce491901cb9d507d7856d7ef6e129e90c6"
 dependencies = [
  "itertools",
  "proc-macro2",
@@ -1819,21 +1808,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "osmosis-testing"
-version = "0.13.1"
-source = "git+https://github.com/apollodao/osmosis-rust.git?branch=osmosis-v13#38a48533ed88243070b105cb9085e34c2b0c4eeb"
+name = "osmosis-test-tube"
+version = "14.1.1"
+source = "git+https://github.com/apollodao/test-tube.git?rev=d2245dfed56329d8c2e84d109a5a01f29d0db0e8#d2245dfed56329d8c2e84d109a5a01f29d0db0e8"
 dependencies = [
  "base64",
  "bindgen",
  "cosmrs",
  "cosmwasm-std",
- "itertools",
  "osmosis-std",
  "prost",
  "serde",
  "serde_json",
+ "test-tube",
  "thiserror",
- "tonic",
 ]
 
 [[package]]
@@ -2745,6 +2733,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be55cf8942feac5c765c2c993422806843c9a9a45d4d5c407ad6dd2ea95eb9b6"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "test-tube"
+version = "0.1.1"
+source = "git+https://github.com/apollodao/test-tube.git?rev=d2245dfed56329d8c2e84d109a5a01f29d0db0e8#d2245dfed56329d8c2e84d109a5a01f29d0db0e8"
+dependencies = [
+ "base64",
+ "cosmrs",
+ "cosmwasm-std",
+ "osmosis-std",
+ "prost",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]
