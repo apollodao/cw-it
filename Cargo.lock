@@ -1781,9 +1781,9 @@ checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 
 [[package]]
 name = "osmosis-std"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10d6fe6ac7fcba45ed61d738091d33c838c4cabbcf4892dc7aa56d19d39cc976"
+checksum = "2fc0a9075efd64ed5a8be3bf134cbf1080570d68384f2ad58ffaac6c00d063fd"
 dependencies = [
  "chrono",
  "cosmwasm-std",
@@ -1810,7 +1810,7 @@ dependencies = [
 [[package]]
 name = "osmosis-test-tube"
 version = "14.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?rev=2039fd847d0c29e5175f298ef4635e121089f917#2039fd847d0c29e5175f298ef4635e121089f917"
+source = "git+https://github.com/apollodao/test-tube.git?rev=d2245dfed56329d8c2e84d109a5a01f29d0db0e8#d2245dfed56329d8c2e84d109a5a01f29d0db0e8"
 dependencies = [
  "base64",
  "bindgen",
@@ -2738,7 +2738,7 @@ dependencies = [
 [[package]]
 name = "test-tube"
 version = "0.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?rev=2039fd847d0c29e5175f298ef4635e121089f917#2039fd847d0c29e5175f298ef4635e121089f917"
+source = "git+https://github.com/apollodao/test-tube.git?rev=d2245dfed56329d8c2e84d109a5a01f29d0db0e8#d2245dfed56329d8c2e84d109a5a01f29d0db0e8"
 dependencies = [
  "base64",
  "cosmrs",
