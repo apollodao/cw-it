@@ -33,6 +33,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 # Support for Astroport
 astroport = ["dep:cw20", "dep:astroport-types"]
+osmosis = ["dep:osmosis-std", "dep:proptest", "dep:proptest-derive"]
 
 [package.metadata.scripts]
 optimize = """docker run --rm -v "$(pwd)":/code \
@@ -68,6 +69,11 @@ osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = 
 # Astroport deps
 astroport-types = { version = "0.1.3", optional = true }
 cw20 = { version = "1.0.1", optional = true }
+
+# Osmosis deps
+proptest = { version = "1.0.0", optional = true }
+proptest-derive = { version = "0.3.0", optional = true }
+osmosis-std = { version = "0.14.0", optional = true }
 
 [dev-dependencies]
 env_logger = "0.9.0"
