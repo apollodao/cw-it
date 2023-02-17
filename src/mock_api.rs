@@ -26,6 +26,12 @@ impl OsmosisMockApi {
     }
 }
 
+impl Default for OsmosisMockApi {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Api for OsmosisMockApi {
     fn addr_validate(&self, human: &str) -> StdResult<Addr> {
         let canonical = self.addr_canonicalize(human)?;

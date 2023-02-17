@@ -145,7 +145,7 @@ impl TestConfig {
             .filter(|(_, contract)| {
                 let fp = format!("{}/{}", self.artifacts_folder, contract.artifact);
                 let already_exists = Path::new(&fp).exists();
-                return !already_exists || contract.always_fetch; // Also re-download if always_fetch is true
+                !already_exists || contract.always_fetch // Also re-download if always_fetch is true
             })
             .collect();
 
@@ -171,22 +171,22 @@ impl TestConfig {
         for (_, contract) in missing_artifacts {
             match contract.preferred_source {
                 PreferredSource::Url => {
-                    if contract.url == ""
-                        && (contract.chain_address != "" || contract.chain_code_id != 0)
+                    if contract.url.is_empty()
+                        && (!contract.chain_address.is_empty() || contract.chain_code_id != 0)
                     {
                         // Preferred URL, but no URL available. Use chain instead.
                         chain_download_list.push(contract);
-                    } else if contract.url != "" {
+                    } else if !contract.url.is_empty() {
                         parse_contract_url(contract);
                     }
                 }
                 PreferredSource::Chain => {
-                    if (contract.chain_address == "" && contract.chain_code_id == 0)
-                        && contract.url != ""
+                    if (contract.chain_address.is_empty() && contract.chain_code_id == 0)
+                        && !contract.url.is_empty()
                     {
                         // Preferred chain, but no chain address available. Use URL instead.
                         parse_contract_url(contract);
-                    } else if contract.chain_address != "" || contract.chain_code_id != 0 {
+                    } else if !contract.chain_address.is_empty() || contract.chain_code_id != 0 {
                         chain_download_list.push(contract);
                     }
                 }
@@ -365,7 +365,7 @@ impl TestConfig {
         // Query wasm file
         let code_res = QueryCodeResponse::decode(
             abci_query(
-                &http_client,
+                http_client,
                 QueryCodeRequest { code_id },
                 "/cosmwasm.wasm.v1.Query/Code",
             )
