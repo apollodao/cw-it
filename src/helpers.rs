@@ -101,7 +101,7 @@ pub fn bank_balance_query<'a>(
         .unwrap()
         .balance
         .map(|c| Uint128::from_str(&c.amount).unwrap())
-        .ok_or(StdError::generic_err("Bank balance query failed"))
+        .ok_or_else(|| StdError::generic_err("Bank balance query failed"))
 }
 
 pub fn bank_send<'a>(

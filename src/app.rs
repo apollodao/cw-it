@@ -89,7 +89,7 @@ impl Querier for App<'_> {
                     .query::<_, QuerySmartContractStateResponse>(
                         "/cosmwasm.wasm.v1.Query/SmartContractState",
                         &QuerySmartContractStateRequest {
-                            address: contract_addr.to_owned(),
+                            address: contract_addr,
                             query_data: msg.into(),
                         },
                     )
@@ -186,12 +186,10 @@ impl<'a> Application for App<'a> {
                     ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
                         .await
                         .map_err(|e| RunnerError::GenericError(e.to_string()))?;
-                Ok::<_, RunnerError>(
-                    service
+                service
                         .simulate(simulate_msg)
                         .await
-                        .map_err(|e| RunnerError::GenericError(e.to_string()))?,
-                )
+                        .map_err(|e| RunnerError::GenericError(e.to_string()))
             })??
             .into_inner()
             .gas_info
