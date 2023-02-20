@@ -30,8 +30,7 @@ pub enum OsmosisPoolType {
 
 #[derive(Debug, Clone)]
 pub struct OsmosisTestPool {
-    pub assets: Vec<String>,
-    pub pool_liquidity: Vec<u64>,
+    pub liquidity: Vec<Coin>,
     pub pool_type: OsmosisPoolType,
 }
 
@@ -53,13 +52,9 @@ prop_compose! {
 prop_compose! {
     /// Generates a random OsmosisTestPool with 2..8 assets
     pub fn test_pool()(pool_params in pool_params())(pool_type in pool_type(pool_params.clone().1), pool_liquidity in Just(pool_params.0)) -> OsmosisTestPool {
-        let mut assets = vec![];
-        for i in 0..pool_liquidity.len() {
-            assets.push(format!("denom{}", i));
-        }
+        let liquidity = pool_liquidity.iter().enumerate().map(|(i, liq)| Coin::new(*liq as u128, format!("denom{}", i))).collect();
         OsmosisTestPool {
-            assets,
-            pool_liquidity,
+            liquidity,
             pool_type,
         }
     }
