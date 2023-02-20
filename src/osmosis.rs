@@ -35,7 +35,7 @@ pub struct OsmosisTestPool {
 }
 
 prop_compose! {
-    /// Generates a touple of vectors with (pool_liquidity, scaling_factors) of size 2..8
+    /// Generates a tuple of vectors with (pool_liquidity, scaling_factors) of size 2..8
     pub fn pool_params()(pool_params in vec((1..u64::MAX, 1..MAX_SCALE_FACTOR), 2..8).prop_filter("scaling factors must be smaller than liquidity",|v| v.iter().all(|(liq, scale)| scale < liq))) -> (Vec<u64>,Vec<u64>) {
          let (pool_liquidity, scaling_factors): (Vec<u64>,Vec<u64>) = pool_params.into_iter().unzip();
             (pool_liquidity, scaling_factors)
@@ -61,6 +61,8 @@ prop_compose! {
 }
 
 /// Create an Osmosis pool with the given initial liquidity.
+///
+/// Returns the `u64` pool ID.
 pub fn create_osmosis_pool<'a, R: Runner<'a>>(
     runner: &'a R,
     pool_type: &OsmosisPoolType,
