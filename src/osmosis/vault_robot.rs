@@ -15,7 +15,7 @@ use crate::helpers::{
     upload_wasm_files,
 };
 use crate::osmosis::create_osmosis_pool;
-use cosmwasm_std::{to_binary, Addr, Decimal, Empty, Querier, Uint128};
+use cosmwasm_std::{to_binary, Addr, Decimal, Empty, Uint128};
 use cw_dex::osmosis::{OsmosisPool, OsmosisStaking};
 use cw_dex::traits::Pool as PoolTrait;
 use cw_dex::Pool;
@@ -63,7 +63,7 @@ pub struct OsmosisVaultRobot<'a, R: Runner<'a>> {
     liquidity_helper: LiquidityHelper,
 }
 
-impl<'a, R: Runner<'a> + Querier> OsmosisVaultRobot<'a, R> {
+impl<'a, R: Runner<'a>> OsmosisVaultRobot<'a, R> {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         app: &'a R,
