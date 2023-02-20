@@ -36,8 +36,8 @@ pub struct OsmosisTestPool {
 
 prop_compose! {
     /// Generates a tuple of vectors with (pool_liquidity, scaling_factors) of size 2..8
-    pub fn pool_params()(pool_params in vec((1..u64::MAX, 1..MAX_SCALE_FACTOR), 2..8).prop_filter("scaling factors must be smaller than liquidity",|v| v.iter().all(|(liq, scale)| scale < liq))) -> (Vec<u64>,Vec<u64>) {
-         let (pool_liquidity, scaling_factors): (Vec<u64>,Vec<u64>) = pool_params.into_iter().unzip();
+    pub fn pool_params(min_liquidity: u128)(pool_params in vec((min_liquidity..u128::MAX, 1u64..MAX_SCALE_FACTOR), 2..8).prop_filter("scaling factors must be smaller than liquidity",|v| v.iter().all(|(liq, scale)| (*scale as u128) < *liq))) -> (Vec<u128>,Vec<u64>) {
+         let (pool_liquidity, scaling_factors): (Vec<u128>,Vec<u64>) = pool_params.into_iter().unzip();
             (pool_liquidity, scaling_factors)
     }
 }
@@ -51,8 +51,8 @@ prop_compose! {
 
 prop_compose! {
     /// Generates a random OsmosisTestPool with 2..8 assets
-    pub fn test_pool()(pool_params in pool_params())(pool_type in pool_type(pool_params.clone().1), pool_liquidity in Just(pool_params.0)) -> OsmosisTestPool {
-        let liquidity = pool_liquidity.iter().enumerate().map(|(i, liq)| Coin::new(*liq as u128, format!("denom{}", i))).collect();
+    pub fn test_pool(min_liquidity: u128)(pool_params in pool_params(min_liquidity))(pool_type in pool_type(pool_params.clone().1), pool_liquidity in Just(pool_params.0)) -> OsmosisTestPool {
+        let liquidity = pool_liquidity.iter().enumerate().map(|(i, liq)| Coin::new(*liq, format!("denom{}", i))).collect();
         OsmosisTestPool {
             liquidity,
             pool_type,
