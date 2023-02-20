@@ -187,9 +187,9 @@ impl<'a> Application for App<'a> {
                         .await
                         .map_err(|e| RunnerError::GenericError(e.to_string()))?;
                 service
-                        .simulate(simulate_msg)
-                        .await
-                        .map_err(|e| RunnerError::GenericError(e.to_string()))
+                    .simulate(simulate_msg)
+                    .await
+                    .map_err(|e| RunnerError::GenericError(e.to_string()))
             })??
             .into_inner()
             .gas_info
