@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Coin;
+use cosmwasm_std::{testing::MockApi, Coin};
 use cw_vault_standard::{VaultStandardExecuteMsg, VaultStandardQueryMsg};
 use osmosis_test_tube::{Account, Gamm, Module, OsmosisTestApp, Runner, SigningAccount, Wasm};
 
@@ -14,7 +14,6 @@ use crate::helpers::{
     bank_balance_query, bank_send, instantiate_contract, instantiate_contract_with_funds,
     upload_wasm_files,
 };
-use crate::mock_api::OsmosisMockApi;
 use crate::osmosis::create_osmosis_pool;
 use cosmwasm_std::{to_binary, Addr, Decimal, Empty, Querier, Uint128};
 use cw_dex::osmosis::{OsmosisPool, OsmosisStaking};
@@ -65,13 +64,14 @@ pub struct OsmosisVaultRobot<'a, R: Runner<'a>> {
 }
 
 impl<'a, R: Runner<'a> + Querier> OsmosisVaultRobot<'a, R> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         app: &'a R,
         admin: &SigningAccount,
         force_withdraw_admin: &SigningAccount,
         treasury: &SigningAccount,
         base_pool: OsmosisTestPool,
-        reward_token_denoms: &Vec<String>,
+        reward_token_denoms: &[String],
         reward1_pool_liquidity: Vec<Coin>,
         reward2_pool_liquidity: Option<Vec<Coin>>,
         reward_liquidation_target: String,
@@ -79,7 +79,7 @@ impl<'a, R: Runner<'a> + Querier> OsmosisVaultRobot<'a, R> {
         test_config_path: &str,
     ) -> Self {
         let gamm = Gamm::new(app);
-        let api = OsmosisMockApi::new();
+        let api = MockApi::default();
 
         let test_config = TestConfig::from_yaml(test_config_path);
 
