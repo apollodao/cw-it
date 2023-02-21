@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use cosmwasm_std::Coin;
 use osmosis_std::types::osmosis::gamm::poolmodels::balancer::v1beta1::MsgCreateBalancerPool;
 use osmosis_std::types::osmosis::gamm::poolmodels::stableswap::v1beta1::{
@@ -36,7 +38,7 @@ pub struct OsmosisTestPool {
 
 prop_compose! {
     /// Generates a tuple of vectors with (pool_liquidity, scaling_factors) of size 2..8
-    pub fn pool_params(min_liquidity: u128)(pool_params in vec((min_liquidity..u128::MAX, 1u64..MAX_SCALE_FACTOR), 2..8).prop_filter("scaling factors must be smaller than liquidity",|v| v.iter().all(|(liq, scale)| (*scale as u128) < *liq))) -> (Vec<u128>,Vec<u64>) {
+    pub fn pool_params(liquidity_range: Range<u128>)(pool_params in vec((liquidity_range, 1u64..MAX_SCALE_FACTOR), 2..8).prop_filter("scaling factors must be smaller than liquidity",|v| v.iter().all(|(liq, scale)| (*scale as u128) < *liq))) -> (Vec<u128>,Vec<u64>) {
          let (pool_liquidity, scaling_factors): (Vec<u128>,Vec<u64>) = pool_params.into_iter().unzip();
             (pool_liquidity, scaling_factors)
     }
@@ -51,7 +53,7 @@ prop_compose! {
 
 prop_compose! {
     /// Generates a random OsmosisTestPool with 2..8 assets
-    pub fn test_pool(min_liquidity: u128)(pool_params in pool_params(min_liquidity))(pool_type in pool_type(pool_params.clone().1), pool_liquidity in Just(pool_params.0)) -> OsmosisTestPool {
+    pub fn test_pool(liquidity_range: Range<u128>)(pool_params in pool_params(liquidity_range))(pool_type in pool_type(pool_params.clone().1), pool_liquidity in Just(pool_params.0)) -> OsmosisTestPool {
         let liquidity = pool_liquidity.iter().enumerate().map(|(i, liq)| Coin::new(*liq, format!("denom{}", i))).collect();
         OsmosisTestPool {
             liquidity,
