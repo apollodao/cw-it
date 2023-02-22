@@ -57,10 +57,10 @@ pub struct InstantiateMsg {
 const UOSMO: &str = "uosmo";
 
 pub struct OsmosisVaultRobot<'a, R: Runner<'a>> {
-    app: &'a R,
-    vault_addr: String,
-    base_pool: OsmosisPool,
-    liquidity_helper: LiquidityHelper,
+    pub app: &'a R,
+    pub vault_addr: String,
+    pub base_pool: OsmosisPool,
+    pub liquidity_helper: LiquidityHelper,
 }
 
 impl<'a, R: Runner<'a>> OsmosisVaultRobot<'a, R> {
