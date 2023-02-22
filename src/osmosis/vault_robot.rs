@@ -1,7 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{testing::MockApi, Coin};
 use cw_vault_standard::{VaultStandardExecuteMsg, VaultStandardQueryMsg};
-use osmosis_test_tube::{Account, Gamm, Module, OsmosisTestApp, Runner, SigningAccount, Wasm};
+use osmosis_test_tube::{Account, Module, OsmosisTestApp, Runner, SigningAccount, Wasm};
 
 use apollo_cw_asset::{AssetInfo, AssetInfoUnchecked};
 use apollo_vault::msg::{
@@ -71,51 +71,41 @@ impl<'a, R: Runner<'a>> OsmosisVaultRobot<'a, R> {
         force_withdraw_admin: &SigningAccount,
         treasury: &SigningAccount,
         base_pool: OsmosisTestPool,
-        reward_token_denoms: &[String],
-        reward1_pool_liquidity: Vec<Coin>,
-        reward2_pool_liquidity: Option<Vec<Coin>>,
+        reward1_pool: OsmosisTestPool,
+        reward2_pool: Option<OsmosisTestPool>,
         reward_liquidation_target: String,
         performance_fee: Decimal,
         test_config_path: &str,
     ) -> Self {
-        let gamm = Gamm::new(app);
         let api = MockApi::default();
 
         let test_config = TestConfig::from_yaml(test_config_path);
 
-        println!("base_pool_liquidity: {:?}", base_pool.liquidity);
-
         // Create base pool (the pool this vault will compound)
         let base_pool_id =
             create_osmosis_pool(app, &base_pool.pool_type, &base_pool.liquidity, admin);
-        println!("Pool ID: {}", base_pool_id);
         let base_pool = OsmosisPool::unchecked(base_pool_id);
 
         // Create pool for first reward token
-        let reward1_pool_id = gamm
-            .create_basic_pool(&reward1_pool_liquidity, admin)
-            .unwrap()
-            .data
-            .pool_id;
-        let reward1_pool = OsmosisPool::unchecked(reward1_pool_id);
-        let reward1_token = reward1_pool_liquidity
+        let reward1_pool_id =
+            create_osmosis_pool(app, &reward1_pool.pool_type, &reward1_pool.liquidity, admin);
+        let reward1_token = reward1_pool
+            .liquidity
             .iter()
             .find(|x| x.denom != reward_liquidation_target)
             .unwrap()
             .denom
             .clone();
+        let reward1_pool = OsmosisPool::unchecked(reward1_pool_id);
 
         // Create pool for second reward token (if set)
-        let reward2_pool = reward2_pool_liquidity.clone().map(|liquidity| {
-            let rewards2_pool_id = gamm
-                .create_basic_pool(&liquidity, admin)
-                .unwrap()
-                .data
-                .pool_id;
+        let reward2_osmosis_pool = reward2_pool.clone().map(|pool| {
+            let rewards2_pool_id =
+                create_osmosis_pool(app, &pool.pool_type, &pool.liquidity, admin);
             OsmosisPool::unchecked(rewards2_pool_id)
         });
-        let reward2_token = reward2_pool_liquidity.map(|liquidity| {
-            liquidity
+        let reward2_token = reward2_pool.clone().map(|pool| {
+            pool.liquidity
                 .iter()
                 .find(|x| x.denom != reward_liquidation_target)
                 .unwrap()
@@ -163,19 +153,20 @@ impl<'a, R: Runner<'a>> OsmosisVaultRobot<'a, R> {
             app.execute_cosmos_msgs::<MsgExecuteContractResponse>(&[msg], admin)
                 .unwrap();
         };
-        update_path_for_reward_pool(reward1_token, Pool::Osmosis(reward1_pool));
+        update_path_for_reward_pool(reward1_token.clone(), Pool::Osmosis(reward1_pool));
         if let Some(reward2_token) = &reward2_token {
             update_path_for_reward_pool(
                 reward2_token.clone(),
-                Pool::Osmosis(reward2_pool.unwrap()),
+                Pool::Osmosis(reward2_osmosis_pool.unwrap()),
             );
         }
 
         // Create vault config
-        let reward_assets = reward_token_denoms
-            .iter()
-            .map(|x| AssetInfoUnchecked::Native(x.clone()))
-            .collect::<Vec<_>>();
+        let reward_assets = [reward1_token.clone(), reward2_token.unwrap_or_default()]
+            .into_iter()
+            .filter(|x| !x.is_empty())
+            .map(|x| AssetInfoUnchecked::Native(x.to_string()))
+            .collect();
         let config = ConfigUnchecked {
             force_withdraw_whitelist: vec![force_withdraw_admin.address()],
             performance_fee,
