@@ -268,6 +268,38 @@ pub fn create_osmosis_pool<'a, R: Runner<'a>>(
     }
 }
 
+/// Asserts that all pool properties are valid.
+#[cfg(test)]
+fn assert_test_pool_properties(pool: OsmosisTestPool) {
+    let OsmosisTestPool {
+        liquidity,
+        pool_type,
+    } = pool;
+    assert!(liquidity.len() >= 2);
+    assert!(liquidity.len() <= 8);
+    assert!(liquidity.iter().all(|liq| liq.amount.u128() > 0));
+    assert!(liquidity.iter().all(|liq| liq.amount.u128() < u128::MAX));
+    match pool_type {
+        OsmosisPoolType::Basic => {}
+        OsmosisPoolType::Balancer { pool_weights } => {
+            assert_eq!(pool_weights.len(), liquidity.len());
+            assert!(pool_weights.iter().all(|weight| weight > &0));
+            assert!(pool_weights.iter().all(|weight| weight < &MAX_POOL_WEIGHT));
+        }
+        OsmosisPoolType::StableSwap { scaling_factors } => {
+            assert_eq!(scaling_factors.len(), liquidity.len());
+            assert!(scaling_factors.iter().all(|scale| scale > &0));
+            assert!(scaling_factors
+                .iter()
+                .all(|scale| scale < &MAX_SCALE_FACTOR));
+            assert!(liquidity
+                .iter()
+                .zip(scaling_factors.iter())
+                .all(|(liq, scale)| (*scale as u128) < liq.amount.u128()));
+        }
+    }
+}
+
 proptest! {
     #![proptest_config(ProptestConfig {
         cases: 10000,
@@ -314,78 +346,24 @@ proptest! {
     }
 
     #[test]
-    fn test_pool_with_denom(pool in pool_with_denom(String::from("requested_denom"))) {
-        let OsmosisTestPool { liquidity, pool_type } = pool;
-        assert!(liquidity.iter().any(|liq| liq.denom == "requested_denom"));
-        assert!(liquidity.len() >= 2);
-        assert!(liquidity.len() <= 8);
-        assert!(liquidity.iter().all(|liq| liq.amount.u128() > 0));
-        assert!(liquidity.iter().all(|liq| liq.amount.u128() < u128::MAX));
-        match pool_type {
-            OsmosisPoolType::Basic => {}
-            OsmosisPoolType::Balancer { pool_weights } => {
-                assert_eq!(pool_weights.len(), liquidity.len());
-                assert!(pool_weights.iter().all(|weight| weight > &0));
-                assert!(pool_weights.iter().all(|weight| weight < &MAX_POOL_WEIGHT));
-            }
-            OsmosisPoolType::StableSwap { scaling_factors } => {
-                assert_eq!(scaling_factors.len(), liquidity.len());
-                assert!(scaling_factors.iter().all(|scale| scale > &0));
-                assert!(scaling_factors.iter().all(|scale| scale < &MAX_SCALE_FACTOR));
-                assert!(liquidity.iter().zip(scaling_factors.iter()).all(|(liq, scale)| (*scale as u128) < liq.amount.u128()));
-            }
-        }
+    fn test_test_pool(pool in test_pool()) {
+        assert_test_pool_properties(pool);
     }
 
     #[test]
-    fn test_test_pool(pool in test_pool()) {
-        let OsmosisTestPool { liquidity, pool_type } = pool;
-        assert!(liquidity.len() >= 2);
-        assert!(liquidity.len() <= 8);
-        assert!(liquidity.iter().all(|liq| liq.amount.u128() > 0));
-        assert!(liquidity.iter().all(|liq| liq.amount.u128() < u128::MAX));
-        match pool_type {
-            OsmosisPoolType::Basic => {}
-            OsmosisPoolType::Balancer { pool_weights } => {
-                assert_eq!(pool_weights.len(), liquidity.len());
-                assert!(pool_weights.iter().all(|weight| weight > &0));
-                assert!(pool_weights.iter().all(|weight| weight < &MAX_POOL_WEIGHT));
-            }
-            OsmosisPoolType::StableSwap { scaling_factors } => {
-                assert_eq!(scaling_factors.len(), liquidity.len());
-                assert!(scaling_factors.iter().all(|scale| scale > &0));
-                assert!(scaling_factors.iter().all(|scale| scale < &MAX_SCALE_FACTOR));
-                assert!(liquidity.iter().zip(scaling_factors.iter()).all(|(liq, scale)| (*scale as u128) < liq.amount.u128()));
-            }
-        }
+    fn test_pool_with_denom(pool in pool_with_denom(String::from("requested_denom"))) {
+        assert!(pool.liquidity.iter().any(|liq| liq.denom == "requested_denom"));
+        assert_test_pool_properties(pool);
     }
 
     #[test]
     fn test_reward_pool((pool, reward_pool) in test_pool().prop_flat_map(|base_pool| (Just(base_pool.clone()), reward_pool(base_pool)))) {
-        let OsmosisTestPool { liquidity: reward_liquidity, pool_type: reward_pool_type } = reward_pool;
-        assert!(reward_liquidity.len() >= 2);
-        assert!(reward_liquidity.len() <= 8);
-        assert!(reward_liquidity.iter().all(|liq| liq.amount.u128() > 0));
-        assert!(reward_liquidity.iter().all(|liq| liq.amount.u128() < u128::MAX));
-        match reward_pool_type {
-            OsmosisPoolType::Basic => {}
-            OsmosisPoolType::Balancer { pool_weights } => {
-                assert_eq!(pool_weights.len(), reward_liquidity.len());
-                assert!(pool_weights.iter().all(|weight| weight > &0));
-                assert!(pool_weights.iter().all(|weight| weight < &MAX_POOL_WEIGHT));
-            }
-            OsmosisPoolType::StableSwap { scaling_factors } => {
-                assert_eq!(scaling_factors.len(), reward_liquidity.len());
-                assert!(scaling_factors.iter().all(|scale| scale > &0));
-                assert!(scaling_factors.iter().all(|scale| scale < &MAX_SCALE_FACTOR));
-                assert!(reward_liquidity.iter().zip(scaling_factors.iter()).all(|(liq, scale)| (*scale as u128) < liq.amount.u128()));
-            }
-        }
-
-        let OsmosisTestPool {liquidity, pool_type: _ } = pool;
-        let reward_denoms = reward_liquidity.iter().map(|liq| liq.denom.clone()).collect::<Vec<String>>();
-        let base_denoms = liquidity.iter().map(|liq| liq.denom.clone()).collect::<Vec<String>>();
+        let reward_denoms = reward_pool.liquidity.iter().map(|liq| liq.denom.clone()).collect::<Vec<String>>();
+        let base_denoms = pool.liquidity.iter().map(|liq| liq.denom.clone()).collect::<Vec<String>>();
         // Assert that reward denoms has at least one denom in common with base denoms
         assert!(reward_denoms.iter().any(|denom| base_denoms.contains(denom)));
+
+        assert_test_pool_properties(pool);
+        assert_test_pool_properties(reward_pool);
     }
 }
