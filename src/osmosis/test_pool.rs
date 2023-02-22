@@ -22,10 +22,84 @@ pub enum OsmosisPoolType {
     StableSwap { scaling_factors: Vec<u64> },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OsmosisTestPool {
     pub liquidity: Vec<Coin>,
     pub pool_type: OsmosisPoolType,
+}
+
+impl OsmosisTestPool {
+    /// Create a new Osmosis pool with the given initial liquidity and pool type.
+    pub fn new(liquidity: Vec<Coin>, pool_type: OsmosisPoolType) -> Self {
+        Self {
+            liquidity,
+            pool_type,
+        }
+    }
+
+    /// Create an Osmosis pool with the given initial liquidity.
+    ///
+    /// Returns the `u64` pool ID.
+    pub fn create<'a, R: Runner<'a>>(&self, runner: &'a R, signer: &SigningAccount) -> u64 {
+        let gamm = Gamm::new(runner);
+        match &self.pool_type {
+            OsmosisPoolType::Basic => {
+                gamm.create_basic_pool(&self.liquidity, signer)
+                    .unwrap()
+                    .data
+                    .pool_id
+            }
+            OsmosisPoolType::Balancer { pool_weights } => {
+                gamm.create_balancer_pool(
+                    MsgCreateBalancerPool {
+                        sender: signer.address(),
+                        pool_params: Some(PoolParams {
+                            swap_fee: "10000000000000000".to_string(),
+                            exit_fee: "10000000000000000".to_string(),
+                            smooth_weight_change_params: None,
+                        }),
+                        pool_assets: self
+                            .liquidity
+                            .iter()
+                            .zip(pool_weights.iter())
+                            .map(|(c, weight)| PoolAsset {
+                                token: Some(c.clone().into()),
+                                weight: weight.to_string(),
+                            })
+                            .collect(),
+                        future_pool_governor: "".to_string(),
+                    },
+                    signer,
+                )
+                .unwrap()
+                .data
+                .pool_id
+            }
+            OsmosisPoolType::StableSwap { scaling_factors } => {
+                gamm.create_stable_swap_pool(
+                    MsgCreateStableswapPool {
+                        sender: signer.address(),
+                        pool_params: Some(StableSwapPoolParams {
+                            swap_fee: "10000000000000000".to_string(),
+                            exit_fee: "10000000000000000".to_string(),
+                        }),
+                        initial_pool_liquidity: self
+                            .liquidity
+                            .iter()
+                            .map(|c| c.clone().into())
+                            .collect(),
+                        scaling_factors: scaling_factors.clone(),
+                        future_pool_governor: "".to_string(),
+                        scaling_factor_controller: "".to_string(),
+                    },
+                    signer,
+                )
+                .unwrap()
+                .data
+                .pool_id
+            }
+        }
+    }
 }
 
 /// Generates a vector of random denoms of the specified size
@@ -197,73 +271,6 @@ prop_compose! {
         OsmosisTestPool {
             liquidity,
             pool_type,
-        }
-    }
-}
-
-/// Create an Osmosis pool with the given initial liquidity.
-///
-/// Returns the `u64` pool ID.
-pub fn create_osmosis_pool<'a, R: Runner<'a>>(
-    runner: &'a R,
-    pool_type: &OsmosisPoolType,
-    initial_liquidity: &[Coin],
-    signer: &SigningAccount,
-) -> u64 {
-    let gamm = Gamm::new(runner);
-    match pool_type {
-        OsmosisPoolType::Basic => {
-            gamm.create_basic_pool(initial_liquidity, signer)
-                .unwrap()
-                .data
-                .pool_id
-        }
-        OsmosisPoolType::Balancer { pool_weights } => {
-            gamm.create_balancer_pool(
-                MsgCreateBalancerPool {
-                    sender: signer.address(),
-                    pool_params: Some(PoolParams {
-                        swap_fee: "10000000000000000".to_string(),
-                        exit_fee: "10000000000000000".to_string(),
-                        smooth_weight_change_params: None,
-                    }),
-                    pool_assets: initial_liquidity
-                        .iter()
-                        .zip(pool_weights.iter())
-                        .map(|(c, weight)| PoolAsset {
-                            token: Some(c.clone().into()),
-                            weight: weight.to_string(),
-                        })
-                        .collect(),
-                    future_pool_governor: "".to_string(),
-                },
-                signer,
-            )
-            .unwrap()
-            .data
-            .pool_id
-        }
-        OsmosisPoolType::StableSwap { scaling_factors } => {
-            gamm.create_stable_swap_pool(
-                MsgCreateStableswapPool {
-                    sender: signer.address(),
-                    pool_params: Some(StableSwapPoolParams {
-                        swap_fee: "10000000000000000".to_string(),
-                        exit_fee: "10000000000000000".to_string(),
-                    }),
-                    initial_pool_liquidity: initial_liquidity
-                        .iter()
-                        .map(|c| c.clone().into())
-                        .collect(),
-                    scaling_factors: scaling_factors.clone(),
-                    future_pool_governor: "".to_string(),
-                    scaling_factor_controller: "".to_string(),
-                },
-                signer,
-            )
-            .unwrap()
-            .data
-            .pool_id
         }
     }
 }

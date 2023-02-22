@@ -14,7 +14,6 @@ use crate::helpers::{
     bank_balance_query, bank_send, instantiate_contract, instantiate_contract_with_funds,
     upload_wasm_files,
 };
-use crate::osmosis::create_osmosis_pool;
 use cosmwasm_std::{to_binary, Addr, Decimal, Empty, Uint128};
 use cw_dex::osmosis::{OsmosisPool, OsmosisStaking};
 use cw_dex::traits::Pool as PoolTrait;
@@ -82,13 +81,11 @@ impl<'a, R: Runner<'a>> OsmosisVaultRobot<'a, R> {
         let test_config = TestConfig::from_yaml(test_config_path);
 
         // Create base pool (the pool this vault will compound)
-        let base_pool_id =
-            create_osmosis_pool(app, &base_pool.pool_type, &base_pool.liquidity, admin);
+        let base_pool_id = base_pool.create(app, admin);
         let base_pool = OsmosisPool::unchecked(base_pool_id);
 
         // Create pool for first reward token
-        let reward1_pool_id =
-            create_osmosis_pool(app, &reward1_pool.pool_type, &reward1_pool.liquidity, admin);
+        let reward1_pool_id = reward1_pool.create(app, admin);
         let reward1_token = reward1_pool
             .liquidity
             .iter()
@@ -100,8 +97,7 @@ impl<'a, R: Runner<'a>> OsmosisVaultRobot<'a, R> {
 
         // Create pool for second reward token (if set)
         let reward2_osmosis_pool = reward2_pool.clone().map(|pool| {
-            let rewards2_pool_id =
-                create_osmosis_pool(app, &pool.pool_type, &pool.liquidity, admin);
+            let rewards2_pool_id = pool.create(app, admin);
             OsmosisPool::unchecked(rewards2_pool_id)
         });
         let reward2_token = reward2_pool.clone().map(|pool| {
