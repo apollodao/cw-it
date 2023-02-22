@@ -78,14 +78,18 @@ pub fn pool_denoms_with_one_specific(
     })
 }
 
-/// Generates a vector of size 2..8 with random u64 values between 1 and u64::MAX
-pub fn pool_liquidity_amounts() -> impl Strategy<Value = Vec<u64>> {
-    vec(1..u64::MAX, 2..8)
+/// Generates a vector of size 2..8 with random amounts in the given range,
+/// or 0..u128::MAX if no range is given.
+pub fn pool_liquidity_amounts(
+    liquidity_range: Option<Range<u128>>,
+) -> impl Strategy<Value = Vec<u128>> {
+    let liquidity_range = liquidity_range.unwrap_or_else(|| 0..u128::MAX);
+    vec(liquidity_range, 2..8)
 }
 
 prop_compose! {
     /// Generates a randomly sized vector (size 2-8) of Coins with random amounts and denoms
-    pub fn pool_liquidity()(amounts in pool_liquidity_amounts())(denoms in pool_denoms(amounts.len()), amounts in Just(amounts)) -> Vec<Coin> {
+    pub fn pool_liquidity(liquidity_range: Option<Range<u128>>)(amounts in pool_liquidity_amounts(liquidity_range))(denoms in pool_denoms(amounts.len()), amounts in Just(amounts)) -> Vec<Coin> {
         amounts.into_iter().zip(denoms).map(|(amount, denom)| Coin { amount: Uint128::from(amount), denom }).collect()
     }
 }
@@ -93,8 +97,8 @@ prop_compose! {
 prop_compose! {
     /// Generates a randomly sized vector (size 2-8) of Coins with random amounts
     /// and denoms, where one denom is in common with the given base_liquidity
-    pub fn pool_liquidity_with_one_common_denom(base_liquidity: Vec<Coin>)
-        (amounts in pool_liquidity_amounts())
+    pub fn pool_liquidity_with_one_common_denom(base_liquidity: Vec<Coin>, liquidity_range: Option<Range<u128>>)
+        (amounts in  pool_liquidity_amounts(liquidity_range))
         (
             denoms in pool_denoms_with_one_common(amounts.len(),
             base_liquidity.iter().map(|x| x.denom.clone()).collect()),
@@ -109,8 +113,8 @@ prop_compose! {
 prop_compose! {
     /// Generates a randomly sized vector (size 2-8) of Coins with random amounts
     /// and denoms, where one denom is the given specific_denom
-    pub fn pool_liquidity_with_one_specific_denom(specific_denom: String)
-        (amounts in pool_liquidity_amounts())
+    pub fn pool_liquidity_with_one_specific_denom(specific_denom: String, liquidity_range: Option<Range<u128>>)
+        (amounts in  pool_liquidity_amounts(liquidity_range))
         (
             denoms in pool_denoms_with_one_specific(amounts.len(), specific_denom.clone()),
             amounts in Just(amounts)
@@ -138,7 +142,7 @@ pub fn scaling_factors(pool_liquidity: &Vec<Coin>) -> impl Strategy<Value = Vec<
 
 prop_compose! {
     /// Generates a tuple of vectors with (pool_liquidity, scaling_factors)
-    pub fn pool_params()(pool_liq in pool_liquidity())(scaling_factors in scaling_factors(&pool_liq), pool_liquidity in Just(pool_liq)) -> (Vec<Coin>,Vec<u64>) {
+    pub fn pool_params()(pool_liq in pool_liquidity(None))(scaling_factors in scaling_factors(&pool_liq), pool_liquidity in Just(pool_liq)) -> (Vec<Coin>,Vec<u64>) {
         (pool_liquidity, scaling_factors)
     }
 }
@@ -166,7 +170,7 @@ prop_compose! {
 
 prop_compose! {
     /// Generates a random OsmosisTestPool with 2..8 assets
-    pub fn test_pool()(pool_liquidity in pool_liquidity())(
+    pub fn test_pool()(pool_liquidity in pool_liquidity(None))(
         test_pool in test_pool_from_liquidity(pool_liquidity)
     ) -> OsmosisTestPool {
         test_pool
@@ -175,7 +179,7 @@ prop_compose! {
 
 prop_compose! {
     /// Generates a random OsmosisTestPool with one denom in common with the given base pool
-    pub fn reward_pool(base_pool: OsmosisTestPool)(pool_liquidity in pool_liquidity_with_one_common_denom(base_pool.liquidity))(
+    pub fn reward_pool(base_pool: OsmosisTestPool)(pool_liquidity in pool_liquidity_with_one_common_denom(base_pool.liquidity, None))(
         pool_type in pool_type(&pool_liquidity), liquidity in Just(pool_liquidity)
     ) -> OsmosisTestPool {
         OsmosisTestPool {
@@ -187,7 +191,7 @@ prop_compose! {
 
 prop_compose! {
     /// Generates a random OsmosisTestPool with one denom being the given specific denom
-    pub fn pool_with_denom(specific_denom: String)(pool_liquidity in pool_liquidity_with_one_specific_denom(specific_denom))(
+    pub fn pool_with_denom(specific_denom: String)(pool_liquidity in pool_liquidity_with_one_specific_denom(specific_denom, None))(
         pool_type in pool_type(&pool_liquidity), liquidity in Just(pool_liquidity)
     ) -> OsmosisTestPool {
         OsmosisTestPool {
@@ -278,7 +282,7 @@ proptest! {
         assert!(pool_liquidity.iter().all(|liq| liq.amount.u128() > 0));
         assert!(scaling_factors.iter().all(|scale| scale > &0));
         assert!(scaling_factors.iter().all(|scale| scale < &MAX_SCALE_FACTOR));
-        assert!(pool_liquidity.iter().all(|liq| liq.amount.u128() < u64::MAX as u128));
+        assert!(pool_liquidity.iter().all(|liq| liq.amount.u128() < u128::MAX));
         assert!(pool_liquidity.iter().zip(scaling_factors.iter()).all(|(liq, scale)| (*scale as u128) < liq.amount.u128()));
     }
 
@@ -316,7 +320,7 @@ proptest! {
         assert!(liquidity.len() >= 2);
         assert!(liquidity.len() <= 8);
         assert!(liquidity.iter().all(|liq| liq.amount.u128() > 0));
-        assert!(liquidity.iter().all(|liq| liq.amount.u128() < u64::MAX as u128));
+        assert!(liquidity.iter().all(|liq| liq.amount.u128() < u128::MAX));
         match pool_type {
             OsmosisPoolType::Basic => {}
             OsmosisPoolType::Balancer { pool_weights } => {
@@ -339,7 +343,7 @@ proptest! {
         assert!(liquidity.len() >= 2);
         assert!(liquidity.len() <= 8);
         assert!(liquidity.iter().all(|liq| liq.amount.u128() > 0));
-        assert!(liquidity.iter().all(|liq| liq.amount.u128() < u64::MAX as u128));
+        assert!(liquidity.iter().all(|liq| liq.amount.u128() < u128::MAX));
         match pool_type {
             OsmosisPoolType::Basic => {}
             OsmosisPoolType::Balancer { pool_weights } => {
@@ -362,7 +366,7 @@ proptest! {
         assert!(reward_liquidity.len() >= 2);
         assert!(reward_liquidity.len() <= 8);
         assert!(reward_liquidity.iter().all(|liq| liq.amount.u128() > 0));
-        assert!(reward_liquidity.iter().all(|liq| liq.amount.u128() < u64::MAX as u128));
+        assert!(reward_liquidity.iter().all(|liq| liq.amount.u128() < u128::MAX));
         match reward_pool_type {
             OsmosisPoolType::Basic => {}
             OsmosisPoolType::Balancer { pool_weights } => {
