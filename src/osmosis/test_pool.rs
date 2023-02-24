@@ -230,6 +230,7 @@ pub fn pool_type(pool_liquidity: &Vec<Coin>) -> impl Strategy<Value = OsmosisPoo
         scaling_factors(pool_liquidity)
             .prop_map(|scaling_factors| { OsmosisPoolType::StableSwap { scaling_factors } }),
     ]
+    .no_shrink()
 }
 
 prop_compose! {
@@ -244,7 +245,7 @@ prop_compose! {
 
 prop_compose! {
     /// Generates a random OsmosisTestPool with 2..8 assets
-    pub fn test_pool()(pool_liquidity in pool_liquidity(None))(
+    pub fn test_pool(liq_range: Option<Range<u128>>)(pool_liquidity in pool_liquidity(liq_range))(
         test_pool in test_pool_from_liquidity(pool_liquidity)
     ) -> OsmosisTestPool {
         test_pool
@@ -353,7 +354,7 @@ proptest! {
     }
 
     #[test]
-    fn test_test_pool(pool in test_pool()) {
+    fn test_test_pool(pool in test_pool(None)) {
         assert_test_pool_properties(pool);
     }
 
@@ -364,7 +365,7 @@ proptest! {
     }
 
     #[test]
-    fn test_reward_pool((pool, reward_pool) in test_pool().prop_flat_map(|base_pool| (Just(base_pool.clone()), reward_pool(base_pool)))) {
+    fn test_reward_pool((pool, reward_pool) in test_pool(None).prop_flat_map(|base_pool| (Just(base_pool.clone()), reward_pool(base_pool)))) {
         let reward_denoms = reward_pool.liquidity.iter().map(|liq| liq.denom.clone()).collect::<Vec<String>>();
         let base_denoms = pool.liquidity.iter().map(|liq| liq.denom.clone()).collect::<Vec<String>>();
         // Assert that reward denoms has at least one denom in common with base denoms
