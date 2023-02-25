@@ -10,7 +10,7 @@ use osmosis_test_tube::{Account, Gamm, Module, Runner, SigningAccount};
 use prop::collection::vec;
 use proptest::prelude::*;
 use proptest::strategy::{Just, Strategy};
-use proptest::{prop_compose, proptest};
+use proptest::{option, prop_compose, proptest};
 
 const MAX_SCALE_FACTOR: u64 = 0x7FFF_FFFF_FFFF_FFFF; // 2^63 - 1
 const MAX_POOL_WEIGHT: u64 = 1048575; //2^20 - 1
@@ -273,6 +273,22 @@ prop_compose! {
             liquidity,
             pool_type,
         }
+    }
+}
+
+prop_compose! {
+    /// Generates a tuple of OsmosisTestPools with the given base pool and one or two reward pools
+    /// with one denom in common with the base pool
+    fn test_pools(liq_range: Option<Range<u128>>)
+    ((liquidation_target, base_pool) in test_pool(liq_range.clone()).prop_flat_map(|pool| {
+        (Just(pool.liquidity[0].denom.clone()),Just(pool))
+    }))
+    (
+        reward1_pool in pool_with_denom(liquidation_target.clone(), liq_range.clone()),
+        reward2_pool in option::of(pool_with_denom(liquidation_target, liq_range.clone())),
+        base_pool in Just(base_pool)
+    ) -> (OsmosisTestPool, OsmosisTestPool, Option<OsmosisTestPool>) {
+        (base_pool, reward1_pool, reward2_pool)
     }
 }
 
