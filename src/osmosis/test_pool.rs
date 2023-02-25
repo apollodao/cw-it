@@ -10,7 +10,7 @@ use osmosis_test_tube::{Account, Gamm, Module, Runner, SigningAccount};
 use prop::collection::vec;
 use proptest::prelude::*;
 use proptest::strategy::{Just, Strategy};
-use proptest::{prop_compose, proptest};
+use proptest::{option, prop_compose, proptest};
 
 const MAX_SCALE_FACTOR: u64 = 0x7FFF_FFFF_FFFF_FFFF; // 2^63 - 1
 const MAX_POOL_WEIGHT: u64 = 1048575; //2^20 - 1
@@ -157,7 +157,7 @@ pub fn pool_denoms_with_one_specific(
 pub fn pool_liquidity_amounts(
     liquidity_range: Option<Range<u128>>,
 ) -> impl Strategy<Value = Vec<u128>> {
-    let liquidity_range = liquidity_range.unwrap_or_else(|| 0..u128::MAX);
+    let liquidity_range = liquidity_range.unwrap_or_else(|| 0..u64::MAX as u128);
     vec(liquidity_range, 2..8)
 }
 
@@ -266,13 +266,29 @@ prop_compose! {
 
 prop_compose! {
     /// Generates a random OsmosisTestPool with one denom being the given specific denom
-    pub fn pool_with_denom(specific_denom: String)(pool_liquidity in pool_liquidity_with_one_specific_denom(specific_denom, None))(
+    pub fn pool_with_denom(specific_denom: String, liq_range: Option<Range<u128>>)(pool_liquidity in pool_liquidity_with_one_specific_denom(specific_denom, liq_range))(
         pool_type in pool_type(&pool_liquidity), liquidity in Just(pool_liquidity)
     ) -> OsmosisTestPool {
         OsmosisTestPool {
             liquidity,
             pool_type,
         }
+    }
+}
+
+prop_compose! {
+    /// Generates a tuple of OsmosisTestPools with the given base pool and one or two reward pools
+    /// with one denom in common with the base pool
+    fn test_pools(liq_range: Option<Range<u128>>)
+    ((liquidation_target, base_pool) in test_pool(liq_range.clone()).prop_flat_map(|pool| {
+        (Just(pool.liquidity[0].denom.clone()),Just(pool))
+    }))
+    (
+        reward1_pool in pool_with_denom(liquidation_target.clone(), liq_range.clone()),
+        reward2_pool in option::of(pool_with_denom(liquidation_target, liq_range.clone())),
+        base_pool in Just(base_pool)
+    ) -> (OsmosisTestPool, OsmosisTestPool, Option<OsmosisTestPool>) {
+        (base_pool, reward1_pool, reward2_pool)
     }
 }
 
@@ -359,7 +375,7 @@ proptest! {
     }
 
     #[test]
-    fn test_pool_with_denom(pool in pool_with_denom(String::from("requested_denom"))) {
+    fn test_pool_with_denom(pool in pool_with_denom(String::from("requested_denom"), None)) {
         assert!(pool.liquidity.iter().any(|liq| liq.denom == "requested_denom"));
         assert_test_pool_properties(pool);
     }
