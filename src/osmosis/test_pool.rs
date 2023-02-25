@@ -157,7 +157,7 @@ pub fn pool_denoms_with_one_specific(
 pub fn pool_liquidity_amounts(
     liquidity_range: Option<Range<u128>>,
 ) -> impl Strategy<Value = Vec<u128>> {
-    let liquidity_range = liquidity_range.unwrap_or_else(|| 0..u128::MAX);
+    let liquidity_range = liquidity_range.unwrap_or_else(|| 0..u64::MAX as u128);
     vec(liquidity_range, 2..8)
 }
 
@@ -266,7 +266,7 @@ prop_compose! {
 
 prop_compose! {
     /// Generates a random OsmosisTestPool with one denom being the given specific denom
-    pub fn pool_with_denom(specific_denom: String)(pool_liquidity in pool_liquidity_with_one_specific_denom(specific_denom, None))(
+    pub fn pool_with_denom(specific_denom: String, liq_range: Option<Range<u128>>)(pool_liquidity in pool_liquidity_with_one_specific_denom(specific_denom, liq_range))(
         pool_type in pool_type(&pool_liquidity), liquidity in Just(pool_liquidity)
     ) -> OsmosisTestPool {
         OsmosisTestPool {
@@ -359,7 +359,7 @@ proptest! {
     }
 
     #[test]
-    fn test_pool_with_denom(pool in pool_with_denom(String::from("requested_denom"))) {
+    fn test_pool_with_denom(pool in pool_with_denom(String::from("requested_denom"), None)) {
         assert!(pool.liquidity.iter().any(|liq| liq.denom == "requested_denom"));
         assert_test_pool_properties(pool);
     }
