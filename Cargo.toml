@@ -27,14 +27,14 @@ incremental = false
 overflow-checks = true
 
 [features]
-default = ["osmosis"]
+default = []
 # for more explicit tests, cargo test --features=backtraces
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
 # Support for Astroport
 astroport = ["dep:cw20", "dep:astroport-types"]
-osmosis = ["dep:osmosis-std", "dep:proptest", "dep:proptest-derive", "dep:liquidity-helper", "dep:cw-dex", "dep:apollo-cw-asset", "dep:cw-vault-standard", "dep:cw-vault-token", "dep:apollo-vault", "dep:cw-dex-router"]
+osmosis = ["dep:osmosis-std", "dep:proptest"]
 
 [package.metadata.scripts]
 optimize = """docker run --rm -v "$(pwd)":/code \
@@ -73,15 +73,7 @@ cw20 = { version = "1.0.1", optional = true }
 
 # Osmosis deps
 proptest = { version = "1.0.0", optional = true }
-proptest-derive = { version = "0.3.0", optional = true }
 osmosis-std = { version = "0.14.0", optional = true }
-liquidity-helper = { version = "0.1.0", optional = true }
-cw-dex = { version = "0.1.0", features = ["osmosis"], optional = true }
-apollo-cw-asset = { version = "0.1.0", optional = true }
-cw-vault-standard = { version = "0.2.0", features = ["lockup"], optional = true }
-cw-vault-token = { version = "0.1.0", optional = true }
-apollo-vault = { git = "https://github.com/apollodao/apollo-vault.git", features = ["lockup"], default-features = false, optional = true }
-cw-dex-router = { version = "0.1.0", optional = true }
 
 [dev-dependencies]
 env_logger = "0.9.0"
