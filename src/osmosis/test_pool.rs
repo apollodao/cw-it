@@ -279,7 +279,7 @@ prop_compose! {
 prop_compose! {
     /// Generates a tuple of OsmosisTestPools with the given base pool and one or two reward pools
     /// with one denom in common with the base pool
-    fn test_pools(liq_range: Option<Range<u128>>)
+    pub fn test_pools(liq_range: Option<Range<u128>>)
     ((liquidation_target, base_pool) in test_pool(liq_range.clone()).prop_flat_map(|pool| {
         (Just(pool.liquidity[0].denom.clone()),Just(pool))
     }))
