@@ -12,4 +12,5 @@ pub mod osmosis;
 #[cfg_attr(docsrs, doc(cfg(feature = "astroport")))]
 pub mod astroport;
 
+pub use osmosis_test_tube;
 pub use testcontainers::clients::Cli;
