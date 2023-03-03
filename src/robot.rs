@@ -3,6 +3,8 @@ use osmosis_test_tube::{Bank, Module, Runner, SigningAccount, Wasm};
 
 use crate::helpers::{bank_balance_query, bank_send};
 
+/// Implements a collection of common interactions with a `Runner`, that are all applicable to any
+/// cosmos chain.
 pub trait TestRobot<'a, R: Runner<'a> + 'a> {
     fn app(&self) -> &'a R;
 

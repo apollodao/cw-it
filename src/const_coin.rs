@@ -16,10 +16,7 @@ impl ConstCoin {
 
 impl From<ConstCoin> for Coin {
     fn from(coin: ConstCoin) -> Self {
-        Self {
-            denom: coin.denom.to_string(),
-            amount: coin.amount,
-        }
+        (&coin).into()
     }
 }
 

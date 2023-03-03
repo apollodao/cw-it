@@ -7,7 +7,8 @@ use osmosis_test_tube::{Account, OsmosisTestApp, Runner, SigningAccount};
 
 use crate::robot::TestRobot;
 
-/// Implements a collection of common interactions with the `OsmosisTestApp`
+/// Implements a collection of common interactions with the `OsmosisTestApp`, that are
+/// specific to the osmosis chain
 pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     /// Increases the block time by the given number of seconds
     ///
