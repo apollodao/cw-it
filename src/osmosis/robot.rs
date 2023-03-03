@@ -33,7 +33,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     ///   - `denom`: The LP share denom to whitelist
     fn whitelist_superfluid_lp_share(&self, denom: impl Into<String>) -> &Self {
         let denom = denom.into();
-        let parts = denom.split("/").collect::<Vec<_>>();
+        let parts = denom.split('/').collect::<Vec<_>>();
         if !(parts[0] == "gamm" && parts[1] == "pool" && parts[2].parse::<u32>().is_ok()) {
             panic!("Denom must be an LP share to be whitelisted as a superfluid LP share");
         }
@@ -113,6 +113,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use apollo_utils::iterators::IntoElementwise;
     use cosmwasm_std::testing::mock_env;

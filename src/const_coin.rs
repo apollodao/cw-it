@@ -29,6 +29,7 @@ impl From<&ConstCoin> for Coin {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use cosmwasm_std::{Coin, Uint128};
 

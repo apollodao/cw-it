@@ -77,6 +77,7 @@ pub trait TestRobot<'a, R: Runner<'a> + 'a> {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use osmosis_test_tube::{Account, OsmosisTestApp};
 

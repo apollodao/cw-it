@@ -157,7 +157,7 @@ pub fn pool_denoms_with_one_specific(
 pub fn pool_liquidity_amounts(
     liquidity_range: Option<Range<u128>>,
 ) -> impl Strategy<Value = Vec<u128>> {
-    let liquidity_range = liquidity_range.unwrap_or_else(|| 0..u64::MAX as u128);
+    let liquidity_range = liquidity_range.unwrap_or(0..u64::MAX as u128);
     vec(liquidity_range, 2..8)
 }
 
@@ -200,7 +200,7 @@ prop_compose! {
 }
 
 /// Generates scaling factors for an Osmosis StableSwap pool for the given liquidity
-pub fn scaling_factors(pool_liquidity: &Vec<Coin>) -> impl Strategy<Value = Vec<u64>> {
+pub fn scaling_factors(pool_liquidity: &[Coin]) -> impl Strategy<Value = Vec<u64>> {
     pool_liquidity
         .iter()
         .map(|x| {
