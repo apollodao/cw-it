@@ -27,8 +27,17 @@ pub enum OsmosisPoolType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstOsmosisTestPool {
-    pub liquidity: Vec<ConstCoin>,
+    pub liquidity: &'static [ConstCoin],
     pub pool_type: OsmosisPoolType,
+}
+
+impl ConstOsmosisTestPool {
+    pub const fn new(liquidity: &'static [ConstCoin], pool_type: OsmosisPoolType) -> Self {
+        Self {
+            liquidity,
+            pool_type,
+        }
+    }
 }
 
 impl From<ConstOsmosisTestPool> for OsmosisTestPool {
