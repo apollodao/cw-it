@@ -1,5 +1,6 @@
 use std::ops::Range;
 
+use apollo_utils::iterators::IntoElementwise;
 use cosmwasm_std::{Coin, Uint128};
 use osmosis_std::types::osmosis::gamm::poolmodels::balancer::v1beta1::MsgCreateBalancerPool;
 use osmosis_std::types::osmosis::gamm::poolmodels::stableswap::v1beta1::{
@@ -12,6 +13,8 @@ use proptest::prelude::*;
 use proptest::strategy::{Just, Strategy};
 use proptest::{option, prop_compose, proptest};
 
+use crate::const_coin::ConstCoin;
+
 const MAX_SCALE_FACTOR: u64 = 0x7FFF_FFFF_FFFF_FFFF; // 2^63 - 1
 const MAX_POOL_WEIGHT: u64 = 1048575; //2^20 - 1
 
@@ -20,6 +23,21 @@ pub enum OsmosisPoolType {
     Basic,
     Balancer { pool_weights: Vec<u64> },
     StableSwap { scaling_factors: Vec<u64> },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConstOsmosisTestPool {
+    pub liquidity: Vec<ConstCoin>,
+    pub pool_type: OsmosisPoolType,
+}
+
+impl From<ConstOsmosisTestPool> for OsmosisTestPool {
+    fn from(pool: ConstOsmosisTestPool) -> Self {
+        Self {
+            liquidity: pool.liquidity.into_elementwise(),
+            pool_type: pool.pool_type,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
