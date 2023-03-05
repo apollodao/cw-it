@@ -1,3 +1,4 @@
+use crate::osmosis::utils::is_osmosis_lp_token;
 use cosmwasm_std::Coin;
 use osmosis_std::{
     shim::Duration,
@@ -12,12 +13,6 @@ use osmosis_std::{
 use osmosis_test_tube::{Account, OsmosisTestApp, Runner, SigningAccount};
 
 use crate::robot::TestRobot;
-
-/// Returns true if the provided denom is an follows the format of an Osmosis LP token
-fn is_osmosis_lp_token(denom: &str) -> bool {
-    let parts = denom.split('/').collect::<Vec<_>>();
-    parts[0] == "gamm" && parts[1] == "pool" && parts[2].parse::<u32>().is_ok()
-}
 
 /// Implements a collection of common interactions with the `OsmosisTestApp`, that are
 /// specific to the osmosis chain
@@ -124,7 +119,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     }
 
     /// Locks LP shares for a given duration in the osmosis lockup module
-    fn lock_tokens(&self, signer: &SigningAccount, coin: Coin, duration: i64) -> &Self {
+    fn lock_tokens(&self, signer: &SigningAccount, coin: Coin, duration: u32) -> &Self {
         if !is_osmosis_lp_token(&coin.denom) {
             panic!("Only LP shares can be locked");
         }
@@ -132,7 +127,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
         let msg = MsgLockTokens {
             coins: vec![coin.into()],
             duration: Some(Duration {
-                seconds: duration,
+                seconds: duration as i64,
                 nanos: 0,
             }),
             owner: signer.address(),
