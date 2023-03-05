@@ -1,7 +1,14 @@
+use crate::osmosis::utils::is_osmosis_lp_token;
 use cosmwasm_std::Coin;
-use osmosis_std::types::osmosis::gamm::v1beta1::{
-    MsgJoinSwapExternAmountIn, MsgJoinSwapExternAmountInResponse, MsgSwapExactAmountIn,
-    MsgSwapExactAmountInResponse, SwapAmountInRoute,
+use osmosis_std::{
+    shim::Duration,
+    types::osmosis::{
+        gamm::v1beta1::{
+            MsgJoinSwapExternAmountIn, MsgJoinSwapExternAmountInResponse, MsgSwapExactAmountIn,
+            MsgSwapExactAmountInResponse, SwapAmountInRoute,
+        },
+        lockup::{MsgLockTokens, MsgLockTokensResponse},
+    },
 };
 use osmosis_test_tube::{Account, OsmosisTestApp, Runner, SigningAccount};
 
@@ -33,8 +40,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     ///   - `denom`: The LP share denom to whitelist
     fn whitelist_superfluid_lp_share(&self, denom: impl Into<String>) -> &Self {
         let denom = denom.into();
-        let parts = denom.split('/').collect::<Vec<_>>();
-        if !(parts[0] == "gamm" && parts[1] == "pool" && parts[2].parse::<u32>().is_ok()) {
+        if !is_osmosis_lp_token(&denom) {
             panic!("Denom must be an LP share to be whitelisted as a superfluid LP share");
         }
         self.app().add_superfluid_lp_share(&denom);
@@ -109,6 +115,27 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
             .execute::<_, MsgSwapExactAmountInResponse>(msg, MsgSwapExactAmountIn::TYPE_URL, signer)
             .unwrap();
 
+        self
+    }
+
+    /// Locks LP shares for a given duration in the osmosis lockup module
+    fn lock_tokens(&self, signer: &SigningAccount, coin: Coin, duration: u32) -> &Self {
+        if !is_osmosis_lp_token(&coin.denom) {
+            panic!("Only LP shares can be locked");
+        }
+
+        let msg = MsgLockTokens {
+            coins: vec![coin.into()],
+            duration: Some(Duration {
+                seconds: duration as i64,
+                nanos: 0,
+            }),
+            owner: signer.address(),
+        };
+
+        self.app()
+            .execute::<_, MsgLockTokensResponse>(msg, MsgLockTokens::TYPE_URL, signer)
+            .unwrap();
         self
     }
 }

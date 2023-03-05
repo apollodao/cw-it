@@ -1,5 +1,6 @@
 use cosmwasm_std::{Coin, Uint128};
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ConstCoin {
     pub denom: &'static str,
     pub amount: Uint128,
