@@ -667,7 +667,6 @@ dependencies = [
  "env_logger",
  "git2",
  "git2_credentials",
- "osmosis-std 0.14.0",
  "osmosis-test-tube",
  "proptest",
  "prost",

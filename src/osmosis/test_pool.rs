@@ -2,11 +2,13 @@ use std::ops::Range;
 
 use apollo_utils::iterators::IntoElementwise;
 use cosmwasm_std::{Coin, Uint128};
-use osmosis_std::types::osmosis::gamm::poolmodels::balancer::v1beta1::MsgCreateBalancerPool;
-use osmosis_std::types::osmosis::gamm::poolmodels::stableswap::v1beta1::{
-    MsgCreateStableswapPool, PoolParams as StableSwapPoolParams,
+use osmosis_test_tube::osmosis_std::types::osmosis::gamm::{
+    poolmodels::{
+        balancer::v1beta1::MsgCreateBalancerPool,
+        stableswap::v1beta1::{MsgCreateStableswapPool, PoolParams as StableSwapPoolParams},
+    },
+    v1beta1::{PoolAsset, PoolParams},
 };
-use osmosis_std::types::osmosis::gamm::v1beta1::{PoolAsset, PoolParams};
 use osmosis_test_tube::{Account, Gamm, Module, Runner, SigningAccount};
 use prop::collection::vec;
 use proptest::prelude::*;

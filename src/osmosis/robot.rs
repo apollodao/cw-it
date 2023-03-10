@@ -1,13 +1,14 @@
 use crate::osmosis::utils::is_osmosis_lp_token;
 use cosmwasm_std::Coin;
-use osmosis_std::{
+use osmosis_test_tube::osmosis_std::{
     shim::Duration,
     types::osmosis::{
         gamm::v1beta1::{
             MsgJoinSwapExternAmountIn, MsgJoinSwapExternAmountInResponse, MsgSwapExactAmountIn,
-            MsgSwapExactAmountInResponse, SwapAmountInRoute,
+            MsgSwapExactAmountInResponse,
         },
         lockup::{MsgLockTokens, MsgLockTokensResponse},
+        poolmanager::v1beta1::SwapAmountInRoute,
     },
 };
 use osmosis_test_tube::{Account, OsmosisTestApp, Runner, SigningAccount};
