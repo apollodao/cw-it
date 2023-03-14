@@ -1884,7 +1884,7 @@ dependencies = [
 [[package]]
 name = "osmosis-test-tube"
 version = "14.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?branch=additional-test-app-functionality#eb706e581cc417caba93e79c2db4bfbe364d8cf7"
+source = "git+https://github.com/apollodao/test-tube.git?branch=feat/add-superfluid-lp-share#5eb55388974fe7943fa4421551fb10bae7b5173a"
 dependencies = [
  "base64",
  "bindgen",
@@ -2869,7 +2869,7 @@ dependencies = [
 [[package]]
 name = "test-tube"
 version = "0.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?branch=additional-test-app-functionality#eb706e581cc417caba93e79c2db4bfbe364d8cf7"
+source = "git+https://github.com/apollodao/test-tube.git?branch=feat/add-superfluid-lp-share#5eb55388974fe7943fa4421551fb10bae7b5173a"
 dependencies = [
  "base64",
  "cosmrs",
