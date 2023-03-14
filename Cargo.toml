@@ -65,7 +65,7 @@ git2 = "0.16.1"
 git2_credentials = "0.10.0"
 anyhow = "1.0.66"
 serde_json = "1.0.89"
-osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", branch = "feat/osmosis-v15.0.0-rc3" }
+osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", branch = "additional-test-app-functionality" }
 
 # Astroport deps
 astroport-types = { version = "0.1.3", optional = true }
