@@ -1,17 +1,19 @@
 use crate::osmosis::utils::is_osmosis_lp_token;
+use cosmos_sdk_proto::Any;
 use cosmwasm_std::Coin;
 use osmosis_test_tube::osmosis_std::{
     shim::Duration,
     types::osmosis::{
         gamm::v1beta1::{
             MsgJoinSwapExternAmountIn, MsgJoinSwapExternAmountInResponse, MsgSwapExactAmountIn,
-            MsgSwapExactAmountInResponse,
+            MsgSwapExactAmountInResponse, SwapAmountInRoute,
         },
+        lockup::{self, Params as LockupParams},
         lockup::{MsgLockTokens, MsgLockTokensResponse},
-        poolmanager::v1beta1::SwapAmountInRoute,
     },
 };
 use osmosis_test_tube::{Account, OsmosisTestApp, Runner, SigningAccount};
+use prost::Message;
 
 use crate::robot::TestRobot;
 
@@ -31,9 +33,40 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     /// ## Args:
     ///   - `address`: The address to whitelist
     fn whitelist_address_for_force_unlock(&self, address: impl Into<String>) -> &Self {
-        self.app()
-            .whitelist_address_for_force_unlock(&address.into());
+        let address = address.into();
+        let mut whitelist = self.get_force_unlock_whitelisted_addresses();
+
+        if !whitelist.contains(&address) {
+            whitelist.push(address);
+
+            let pset = LockupParams {
+                force_unlock_allowed_addresses: whitelist,
+            };
+
+            self.app()
+                .set_param_set(
+                    "lockup",
+                    Any {
+                        type_url: LockupParams::TYPE_URL.to_string(),
+                        value: pset.encode_to_vec(),
+                    },
+                )
+                .unwrap();
+        }
+
         self
+    }
+
+    /// Get addresses whitelisted for force unlocking
+    ///
+    /// ## Returns:
+    ///  - `Vec<String>`: The addresses whitelisted for force unlocking
+    fn get_force_unlock_whitelisted_addresses(&self) -> Vec<String> {
+        let pset: LockupParams = self
+            .app()
+            .get_param_set("lockup", LockupParams::TYPE_URL)
+            .unwrap();
+        pset.force_unlock_allowed_addresses
     }
 
     /// Whitelists a denom as a superfluid LP share
@@ -166,6 +199,30 @@ mod tests {
         ConstCoin::new(100_000_000_000_000_000u128, "uatom"),
         ConstCoin::new(100_000_000_000_000_000u128, "uosmo"),
     ];
+
+    #[test]
+    fn test_get_and_set_force_withdraw_whitelist() {
+        let app = OsmosisTestApp::new();
+        let robot = TestingRobot(&app);
+
+        let whitelist = robot.get_force_unlock_whitelisted_addresses();
+        assert!(whitelist.is_empty());
+
+        let account = app.init_account(&[]).unwrap();
+
+        robot.whitelist_address_for_force_unlock(account.address());
+        let whitelist = robot.get_force_unlock_whitelisted_addresses();
+        assert_eq!(whitelist, vec![account.address()]);
+
+        robot.whitelist_address_for_force_unlock(account.address());
+        let whitelist = robot.get_force_unlock_whitelisted_addresses();
+        assert_eq!(whitelist, vec![account.address()]);
+
+        let account2 = app.init_account(&[]).unwrap();
+        robot.whitelist_address_for_force_unlock(account2.address());
+        let whitelist = robot.get_force_unlock_whitelisted_addresses();
+        assert_eq!(whitelist, vec![account.address(), account2.address()]);
+    }
 
     #[test]
     fn test_join_pool_swap_extern_amount_in() {
