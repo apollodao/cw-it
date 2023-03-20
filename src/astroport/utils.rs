@@ -387,7 +387,7 @@ mod tests {
     use testcontainers::clients::Cli;
 
     use crate::{
-        app::App as RpcRunner,
+        app::RpcRunner,
         astroport::{create_astroport_pair, setup_astroport},
         config::TestConfig,
     };

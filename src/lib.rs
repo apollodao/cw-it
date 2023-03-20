@@ -1,10 +1,10 @@
-pub mod app;
 pub mod application;
 pub mod chain;
 pub mod config;
 pub mod const_coin;
 pub mod helpers;
 pub mod robot;
+pub mod rpc_runner;
 
 #[cfg(feature = "osmosis")]
 #[cfg_attr(docsrs, doc(cfg(feature = "osmosis")))]

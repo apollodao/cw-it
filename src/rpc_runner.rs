@@ -33,13 +33,13 @@ use cosmrs::AccountId;
 use prost::Message;
 
 #[derive(Debug)]
-pub struct App<'a> {
+pub struct RpcRunner<'a> {
     chain: Chain,
     _container: Option<Container<'a, GenericImage>>,
     pub test_config: TestConfig,
 }
 
-impl<'a> App<'a> {
+impl<'a> RpcRunner<'a> {
     pub fn new(mut test_config: TestConfig, docker: &'a Cli) -> Self {
         test_config.build();
 
@@ -81,7 +81,7 @@ impl<'a> App<'a> {
     }
 }
 
-impl Querier for App<'_> {
+impl Querier for RpcRunner<'_> {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
         let x = match from_binary::<QueryRequest<Empty>>(&bin_request.into()).unwrap() {
             QueryRequest::Wasm(wasm_query) => match wasm_query {
@@ -105,7 +105,7 @@ impl Querier for App<'_> {
     }
 }
 
-impl<'a> Application for App<'a> {
+impl<'a> Application for RpcRunner<'a> {
     fn create_signed_tx<I>(
         &self,
         msgs: I,
@@ -281,7 +281,7 @@ impl<'a> Application for App<'a> {
     }
 }
 
-impl<'a> Runner<'_> for App<'a> {
+impl<'a> Runner<'_> for RpcRunner<'a> {
     fn execute_multiple<M, R>(
         &self,
         msgs: &[(M, &str)],
