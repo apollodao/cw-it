@@ -6,8 +6,8 @@ use cosmrs::{
     },
     rpc::HttpClient,
 };
-use cosmwasm_schema::cw_serde;
 use prost::Message;
+use serde::Deserialize;
 use thiserror::Error;
 
 use crate::helpers::rpc_query;
@@ -16,7 +16,7 @@ use crate::helpers::rpc_query;
 /// - Local: A local file path
 /// - Url: A url to download the artifact from
 /// - Chain: A chain id to download the artifact from
-#[cw_serde]
+#[derive(Clone, Debug, Deserialize)]
 pub enum Artifact {
     Local(String),
     Url(String),
@@ -28,6 +28,7 @@ pub enum Artifact {
         rpc_endpoint: String,
         contract_address: String,
     },
+    #[cfg(feature = "git")]
     Git {
         url: String,
         branch: String,
@@ -72,6 +73,7 @@ impl Artifact {
                 let http_client = HttpClient::new(rpc_endpoint.as_str())?;
                 download_wasm_from_contract_address(&http_client, contract_address)
             }
+            #[cfg(feature = "git")]
             Artifact::Git {
                 url: _,
                 branch: _,
