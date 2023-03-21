@@ -3,31 +3,38 @@ use std::{collections::HashMap, str::FromStr};
 use cosmrs::proto::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
 use cosmrs::proto::cosmos::base::v1beta1::Coin as ProtoCoin;
 use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
-use osmosis_test_tube::{
-    Account, Bank, Module, Runner, RunnerExecuteResult, RunnerResult, SigningAccount, Wasm,
-};
+use osmosis_test_tube::{Bank, Wasm};
 use serde::Serialize;
+use test_tube::{Account, Module, Runner, RunnerExecuteResult, RunnerResult, SigningAccount};
 
-use crate::config::TestConfig;
+use crate::config::Contract;
+use crate::error::CwItError;
+
+use cosmrs::rpc::{endpoint::abci_query::AbciQuery, Client, HttpClient};
+use prost::Message;
+
+pub fn rpc_query<T: Message>(client: &HttpClient, req: T, path: &str) -> RunnerResult<AbciQuery> {
+    let mut buf = Vec::with_capacity(req.encoded_len());
+    req.encode(&mut buf).unwrap();
+    Ok(futures::executor::block_on(client.abci_query(
+        Some(path.parse().unwrap()),
+        buf,
+        None,
+        false,
+    ))?)
+}
 
 pub fn upload_wasm_files<'a, R: Runner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
-    config: TestConfig,
-) -> StdResult<HashMap<String, u64>> {
+    contracts: HashMap<String, Contract>,
+) -> Result<HashMap<String, u64>, CwItError> {
     let wasm = Wasm::new(runner);
-    config
-        .contracts
+    contracts
         .into_iter()
         .map(|(name, contract)| {
-            let wasm_file_path = format!("{}/{}", config.artifacts_folder, contract.artifact);
-            println!("Uploading wasm file: {}", wasm_file_path);
-            let wasm_byte_code = std::fs::read(wasm_file_path).unwrap();
-            let code_id = wasm
-                .store_code(&wasm_byte_code, None, signer)
-                .map_err(|e| StdError::generic_err(format!("{:?}", e)))?
-                .data
-                .code_id;
+            let wasm_byte_code = contract.artifact.get_wasm_byte_code()?;
+            let code_id = wasm.store_code(&wasm_byte_code, None, signer)?.data.code_id;
             Ok((name, code_id))
         })
         .collect()

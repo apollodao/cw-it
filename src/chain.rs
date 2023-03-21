@@ -1,16 +1,22 @@
-use anyhow::Error;
-use osmosis_test_tube::RunnerError;
-
-use std::future::Future;
-
 use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
 use cosmrs::rpc::{Client, HttpClient};
+use futures_time::{task::sleep, time::Duration};
 use serde::Deserialize;
-use std::time::Duration;
-use tokio::time;
+use thiserror::Error;
 use tonic::transport::Channel;
 
+use cosmrs::rpc::error::Error as RpcError;
+
 use config::Config;
+
+#[derive(Debug, Error)]
+pub enum ChainError {
+    #[error("{0}")]
+    RpcError(#[from] RpcError),
+
+    #[error("{0}")]
+    TonicTransportError(#[from] tonic::transport::Error),
+}
 
 #[derive(Debug)]
 pub struct Chain {
@@ -54,21 +60,19 @@ impl ChainConfig {
 #[allow(clippy::missing_const_for_fn)]
 #[allow(clippy::similar_names)]
 impl Chain {
-    pub fn new(chain_cfg: ChainConfig) -> Self {
+    pub fn new(chain_cfg: ChainConfig) -> Result<Self, ChainError> {
         // To run with docker-compose externally
         //let rpc_endpoint="http://localhost:26657".to_string();
-        let http_client = HttpClient::new(chain_cfg.rpc_endpoint.as_str()).unwrap();
+        let http_client = HttpClient::new(chain_cfg.rpc_endpoint.as_str())?;
 
         let grpc_client: ServiceClient<Channel> =
-            tokio_block(ServiceClient::connect(chain_cfg.grpc_endpoint.clone()))
-                .unwrap()
-                .unwrap();
+            futures::executor::block_on(ServiceClient::connect(chain_cfg.grpc_endpoint.clone()))?;
 
-        Self {
+        Ok(Self {
             http_client,
             grpc_client,
             chain_cfg,
-        }
+        })
     }
 
     pub fn client(&self) -> &HttpClient {
@@ -83,23 +87,16 @@ impl Chain {
         &self.chain_cfg
     }
 
-    pub fn current_height(&self) -> u64 {
-        tokio_block(self.http_client.latest_block())
-            .unwrap()
-            .unwrap()
-            .block
-            .header
-            .height
-            .into()
+    pub fn current_height(&self) -> Result<u64, RpcError> {
+        futures::executor::block_on(self.http_client.latest_block())
+            .map(|res| res.block.header.height.into())
     }
 
-    pub fn wait(&self, n_block: u64) {
-        tokio_block(self.poll_for_n_blocks(n_block, false))
-            .unwrap()
-            .unwrap();
+    pub fn wait(&self, n_block: u64) -> Result<(), RpcError> {
+        futures::executor::block_on(self.poll_for_n_blocks(n_block, false))
     }
 
-    pub async fn poll_for_n_blocks(&self, n: u64, is_first_block: bool) -> Result<(), Error> {
+    pub async fn poll_for_n_blocks(&self, n: u64, is_first_block: bool) -> Result<(), RpcError> {
         if is_first_block {
             self.client()
                 .wait_until_healthy(Duration::from_secs(5))
@@ -110,7 +107,7 @@ impl Chain {
                 if !matches!(e.detail(), cosmrs::rpc::error::ErrorDetail::Serde(_)) {
                     return Err(e.into());
                 }
-                time::sleep(Duration::from_millis(500)).await;
+                sleep(Duration::from_millis(500)).await;
             }
         }
 
@@ -126,7 +123,7 @@ impl Chain {
         let target_height: u64 = curr_height + n;
 
         while curr_height < target_height {
-            time::sleep(Duration::from_millis(500)).await;
+            sleep(Duration::from_millis(500)).await;
 
             curr_height = self
                 .client()
@@ -141,12 +138,4 @@ impl Chain {
 
         Ok(())
     }
-}
-
-pub fn tokio_block<F: Future>(f: F) -> Result<F::Output, RunnerError> {
-    Ok(tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|e| RunnerError::GenericError(e.to_string()))?
-        .block_on(f))
 }
