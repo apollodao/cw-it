@@ -35,9 +35,9 @@ library = []
 # Support for Astroport
 astroport = ["dep:cw20", "dep:astroport-types"]
 osmosis = ["dep:proptest"]
-rpc-runner = ["testcontainers", "tonic", "futures-time"]
+rpc-runner = ["testcontainers", "tonic", "futures-time", "futures"]
 git = ["git2", "git2_credentials"]
-chain-download = []
+chain-download = ["futures"]
 
 [package.metadata.scripts]
 optimize = """docker run --rm -v "$(pwd)":/code \
@@ -64,7 +64,7 @@ config = { version = "0.13.2", features = ["yaml"] }
 anyhow = "1.0.66"
 serde_json = "1.0.89"
 test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "b599c5c" }
-futures = "0.3.27"
+futures = { version = "0.3.27", optional = true }
 
 # TODO: remove this and import Bank and Wasm through test-tube?
 osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "b599c5c"}
