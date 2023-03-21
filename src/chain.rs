@@ -105,7 +105,7 @@ impl Chain {
 
             while let Err(e) = self.client().latest_block().await {
                 if !matches!(e.detail(), cosmrs::rpc::error::ErrorDetail::Serde(_)) {
-                    return Err(e.into());
+                    return Err(e);
                 }
                 sleep(Duration::from_millis(500)).await;
             }

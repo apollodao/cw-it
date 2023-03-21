@@ -57,7 +57,7 @@ impl Artifact {
     pub fn get_wasm_byte_code(self) -> Result<Vec<u8>, ArtifactError> {
         match self {
             Artifact::Local(path) => Ok(fs::read(path)?),
-            Artifact::Url(url) => todo!(),
+            Artifact::Url(_url) => todo!(),
             Artifact::ChainCodeId {
                 rpc_endpoint,
                 code_id,
@@ -73,9 +73,9 @@ impl Artifact {
                 download_wasm_from_contract_address(&http_client, contract_address)
             }
             Artifact::Git {
-                url,
-                branch,
-                crate_name,
+                url: _,
+                branch: _,
+                crate_name: _,
             } => todo!(),
         }
     }

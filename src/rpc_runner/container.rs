@@ -38,10 +38,10 @@ impl ContainerInfo {
 
         let dir_os_string = env::current_dir()
             .map(|d| d.into_os_string())
-            .map_err(|e| format!("Failed to get current directory"))?;
+            .map_err(|_e| "Failed to get current directory".to_string())?;
         let working_dir = dir_os_string
             .into_string()
-            .map_err(|e| format!("Failed to convert OS string to string"))?;
+            .map_err(|_e| "Failed to convert OS string to string".to_string())?;
 
         for (from, dest) in &self.volumes {
             // TODO: Merge paths in better way? Should allow leading dot in `from`...

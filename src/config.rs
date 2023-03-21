@@ -1,28 +1,10 @@
-use std::{
-    collections::HashMap,
-    env,
-    fs::{self, rename, File},
-    io::{self, Write},
-    path::{Path, PathBuf},
-    process::{Command, Stdio},
-};
+use std::{collections::HashMap, env};
 
 use config::Config;
-use cosmwasm_schema::cw_serde;
-use git2::Repository;
-use git2_credentials::CredentialHandler;
-use prost::Message;
-use serde::{Deserialize, Serialize};
-use test_tube::RunnerResult;
-use thiserror::Error;
 
-use cosmrs::{
-    bip32::{self, Error},
-    proto::cosmwasm::wasm::v1::{
-        QueryCodeRequest, QueryCodeResponse, QueryContractInfoRequest, QueryContractInfoResponse,
-    },
-    rpc::{endpoint::abci_query::AbciQuery, Client, HttpClient},
-};
+use serde::{Deserialize, Serialize};
+
+use thiserror::Error;
 
 use crate::{artifact::Artifact, chain::ChainConfig};
 
