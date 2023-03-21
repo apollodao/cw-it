@@ -14,7 +14,7 @@ use crate::rpc_runner::config::RpcRunnerConfig;
 pub const DEFAULT_PROJECTS_FOLDER: &str = "cloned_repos";
 #[derive(Clone, Debug, Deserialize)]
 pub struct TestConfig {
-    pub contracts: HashMap<String, Contract>,
+    pub artifacts: HashMap<String, Artifact>,
     #[cfg(feature = "rpc-runner")]
     pub rpc_runner_config: RpcRunnerConfig,
 }
@@ -44,9 +44,5 @@ impl TestConfig {
             .build()
             .unwrap();
         settings.try_deserialize::<Self>().unwrap()
-    }
-
-    pub const fn contracts(&self) -> &HashMap<String, Contract> {
-        &self.contracts
     }
 }

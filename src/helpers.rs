@@ -8,19 +8,19 @@ use osmosis_test_tube::{Bank, Wasm};
 use serde::Serialize;
 use test_tube::{Account, Module, Runner, RunnerExecuteResult, RunnerResult, SigningAccount};
 
-use crate::config::Contract;
+use crate::artifact::Artifact;
 use crate::error::CwItError;
 
 pub fn upload_wasm_files<'a, R: Runner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
-    contracts: HashMap<String, Contract>,
+    contracts: HashMap<String, Artifact>,
 ) -> Result<HashMap<String, u64>, CwItError> {
     let wasm = Wasm::new(runner);
     contracts
         .into_iter()
-        .map(|(name, contract)| {
-            let wasm_byte_code = contract.artifact.get_wasm_byte_code()?;
+        .map(|(name, artifact)| {
+            let wasm_byte_code = artifact.get_wasm_byte_code()?;
             let code_id = wasm.store_code(&wasm_byte_code, None, signer)?.data.code_id;
             Ok((name, code_id))
         })

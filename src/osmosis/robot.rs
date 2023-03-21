@@ -8,7 +8,7 @@ use osmosis_test_tube::osmosis_std::{
             MsgJoinSwapExternAmountIn, MsgJoinSwapExternAmountInResponse, MsgSwapExactAmountIn,
             MsgSwapExactAmountInResponse, SwapAmountInRoute,
         },
-        lockup::{self, Params as LockupParams},
+        lockup::Params as LockupParams,
         lockup::{MsgLockTokens, MsgLockTokensResponse},
     },
 };
