@@ -1,25 +1,22 @@
-use std::{collections::HashMap, env};
+use std::collections::HashMap;
 
 use config::Config;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use thiserror::Error;
 
-use crate::{artifact::Artifact, chain::ChainConfig};
+use crate::{artifact::Artifact, helpers::get_current_working_dir};
 
 #[cfg(feature = "rpc-runner")]
-use crate::rpc_runner::container::ContainerInfo;
+use crate::rpc_runner::config::RpcRunnerConfig;
 
 pub const DEFAULT_PROJECTS_FOLDER: &str = "cloned_repos";
 #[derive(Clone, Debug, Deserialize)]
 pub struct TestConfig {
     pub contracts: HashMap<String, Contract>,
-    pub chain_config: ChainConfig,
     #[cfg(feature = "rpc-runner")]
-    pub container: Option<ContainerInfo>,
-    #[serde(default)]
-    pub folder: String,
+    pub rpc_runner_config: RpcRunnerConfig,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -28,16 +25,6 @@ pub struct Contract {
     pub artifact: Artifact,
     #[serde(default)]
     pub chain_address: String,
-}
-
-impl Contract {}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ImportedAccount {
-    pub name: String,
-    pub address: String,
-    pub mnemonic: String,
-    pub pubkey: String,
 }
 
 #[derive(Error, Debug)]
@@ -61,13 +48,5 @@ impl TestConfig {
 
     pub const fn contracts(&self) -> &HashMap<String, Contract> {
         &self.contracts
-    }
-}
-
-fn get_current_working_dir() -> String {
-    let res = env::current_dir();
-    match res {
-        Ok(path) => path.into_os_string().into_string().unwrap(),
-        Err(_) => "FAILED".to_string(),
     }
 }

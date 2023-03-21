@@ -1,3 +1,4 @@
+use std::env;
 use std::{collections::HashMap, str::FromStr};
 
 use cosmrs::proto::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
@@ -132,4 +133,12 @@ pub fn bank_send<'a>(
         },
         sender,
     )
+}
+
+pub(crate) fn get_current_working_dir() -> String {
+    let res = env::current_dir();
+    match res {
+        Ok(path) => path.into_os_string().into_string().unwrap(),
+        Err(_) => "FAILED".to_string(),
+    }
 }

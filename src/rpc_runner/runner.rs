@@ -52,21 +52,23 @@ pub struct RpcRunner<'a> {
 impl<'a> RpcRunner<'a> {
     pub fn new(mut test_config: TestConfig, docker: &'a Cli) -> Result<Self, RpcRunnerError> {
         // Setup test container
-        let container = match &test_config.container {
+        let container = match &test_config.rpc_runner_config.container {
             Some(container_info) => {
                 let container: Container<GenericImage> = docker.run(
                     container_info
                         .get_container_image()
                         .map_err(RpcRunnerError::Generic)?,
                 );
-                test_config.bind_chain_to_container(&container);
+                test_config
+                    .rpc_runner_config
+                    .bind_chain_to_container(&container);
                 Some(container)
             }
             None => None,
         };
 
         // Setup chain and app
-        let chain = Chain::new(test_config.chain_config.clone())?;
+        let chain = Chain::new(test_config.rpc_runner_config.chain_config.clone())?;
 
         Ok(Self {
             chain,
@@ -84,6 +86,7 @@ impl<'a> RpcRunner<'a> {
         for i in 0..count {
             let account = self
                 .test_config
+                .rpc_runner_config
                 .import_account(&format!("test{}", i))
                 .unwrap();
             accounts.push(account);

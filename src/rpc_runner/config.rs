@@ -2,15 +2,30 @@ use std::{collections::HashMap, fs};
 
 use cosmrs::bip32;
 use cosmwasm_std::Coin;
+use serde::{Deserialize, Serialize};
 use test_tube::{account::FeeSetting, SigningAccount};
 use testcontainers::{images::generic::GenericImage, Container};
 
-use crate::{
-    chain::ChainConfig,
-    config::{ConfigError, ImportedAccount, TestConfig},
-};
+use crate::{chain::ChainConfig, config::ConfigError};
 
-impl TestConfig {
+use super::container::ContainerInfo;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ImportedAccount {
+    pub name: String,
+    pub address: String,
+    pub mnemonic: String,
+    pub pubkey: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct RpcRunnerConfig {
+    pub chain_config: ChainConfig,
+    pub container: Option<ContainerInfo>,
+    pub accounts_folder: String,
+}
+
+impl RpcRunnerConfig {
     pub fn bind_chain_to_container(&mut self, container: &Container<GenericImage>) {
         // We inject here the endpoint since containers have a life time
         self.chain_config.rpc_endpoint =
@@ -20,8 +35,10 @@ impl TestConfig {
     }
 
     pub fn import_account(&self, name: &str) -> Result<SigningAccount, ConfigError> {
-        //println!("get_account [{}]", name);
-        let path = format!("{}/{}/accounts.json", self.folder, self.chain_config.name);
+        let path = format!(
+            "{}/{}/accounts.json",
+            self.accounts_folder, self.chain_config.name
+        );
         println!("Reading accounts from [{}]", path);
         let bytes = fs::read(path).unwrap();
         let accounts: Vec<ImportedAccount> = serde_json::from_slice(&bytes).unwrap();
