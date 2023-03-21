@@ -35,7 +35,7 @@ library = []
 # Support for Astroport
 astroport = ["dep:cw20", "dep:astroport-types"]
 osmosis = ["dep:proptest"]
-rpc-runner = ["testcontainers", "tonic"]
+rpc-runner = ["testcontainers", "tonic", "futures-time"]
 git = ["git2", "git2_credentials"]
 
 [package.metadata.scripts]
@@ -64,7 +64,6 @@ anyhow = "1.0.66"
 serde_json = "1.0.89"
 test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "b599c5c" }
 futures = "0.3.27"
-futures-time = "3.0.0"
 
 # TODO: remove this and import Bank and Wasm through test-tube?
 osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "b599c5c"}
@@ -80,6 +79,7 @@ apollo-utils = "0.1.1"
 # RPC Runner deps
 tonic = { version = "0.8.2", default-features = false, optional = true }
 testcontainers = { version = "0.14.0", features = ["experimental"], optional = true }
+futures-time = { version = "3.0.0", optional = true }
 
 
 # Git deps
