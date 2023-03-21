@@ -11,20 +11,6 @@ use test_tube::{Account, Module, Runner, RunnerExecuteResult, RunnerResult, Sign
 use crate::config::Contract;
 use crate::error::CwItError;
 
-use cosmrs::rpc::{endpoint::abci_query::AbciQuery, Client, HttpClient};
-use prost::Message;
-
-pub fn rpc_query<T: Message>(client: &HttpClient, req: T, path: &str) -> RunnerResult<AbciQuery> {
-    let mut buf = Vec::with_capacity(req.encoded_len());
-    req.encode(&mut buf).unwrap();
-    Ok(futures::executor::block_on(client.abci_query(
-        Some(path.parse().unwrap()),
-        buf,
-        None,
-        false,
-    ))?)
-}
-
 pub fn upload_wasm_files<'a, R: Runner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
