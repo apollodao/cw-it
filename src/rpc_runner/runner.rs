@@ -19,8 +19,8 @@ use testcontainers::images::generic::GenericImage;
 use testcontainers::Container;
 use thiserror::Error;
 
+use super::chain::Chain;
 use crate::application::Application;
-use crate::chain::Chain;
 use crate::config::TestConfig;
 
 use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
@@ -36,7 +36,7 @@ use prost::Message;
 #[derive(Debug, Error)]
 pub enum RpcRunnerError {
     #[error("{0}")]
-    ChainError(#[from] crate::chain::ChainError),
+    ChainError(#[from] super::chain::ChainError),
 
     #[error("{0}")]
     Generic(String),

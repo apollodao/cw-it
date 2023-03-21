@@ -1,6 +1,5 @@
 pub mod application;
 pub mod artifact;
-pub mod chain;
 pub mod config;
 pub mod const_coin;
 pub mod error;

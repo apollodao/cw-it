@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use test_tube::{account::FeeSetting, SigningAccount};
 use testcontainers::{images::generic::GenericImage, Container};
 
-use crate::{chain::ChainConfig, config::ConfigError};
+use super::chain::ChainConfig;
+use crate::config::ConfigError;
 
 use super::container::ContainerInfo;
 
