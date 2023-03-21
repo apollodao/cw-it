@@ -1,8 +1,7 @@
 use std::num::ParseIntError;
 
-use cosmos_sdk_proto::cosmos::auth::v1beta1::{
-    BaseAccount, QueryAccountRequest, QueryAccountResponse,
-};
+use cosmos_sdk_proto::cosmos::auth::v1beta1::{QueryAccountRequest, QueryAccountResponse};
+use cosmrs::proto::cosmos::auth::v1beta1::BaseAccount;
 use cosmrs::proto::cosmwasm::wasm::v1::{
     QuerySmartContractStateRequest, QuerySmartContractStateResponse,
 };

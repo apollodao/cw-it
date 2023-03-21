@@ -1,4 +1,4 @@
-use cosmos_sdk_proto::cosmos::auth::v1beta1::BaseAccount;
+use cosmrs::proto::cosmos::auth::v1beta1::BaseAccount;
 use cosmrs::proto::cosmos::base::abci::v1beta1::GasInfo;
 use cosmrs::{rpc::endpoint::abci_query::AbciQuery, tx::Fee, AccountId};
 use prost::Message;

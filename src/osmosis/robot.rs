@@ -1,5 +1,5 @@
 use crate::osmosis::utils::is_osmosis_lp_token;
-use cosmos_sdk_proto::Any;
+use cosmrs::proto::Any;
 use cosmwasm_std::Coin;
 use osmosis_test_tube::osmosis_std::{
     shim::Duration,
