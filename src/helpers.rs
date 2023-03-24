@@ -20,6 +20,7 @@ pub fn upload_wasm_files<'a, R: Runner<'a>>(
     contracts
         .into_iter()
         .map(|(name, artifact)| {
+            println!("Uploading wasm file for contract {}, {:?}", name, artifact);
             let wasm_byte_code = artifact.get_wasm_byte_code()?;
             let code_id = wasm.store_code(&wasm_byte_code, None, signer)?.data.code_id;
             Ok((name, code_id))
