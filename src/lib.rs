@@ -6,6 +6,9 @@ pub mod error;
 pub mod helpers;
 pub mod robot;
 
+#[cfg(feature = "multi-test")]
+pub mod multi_test;
+
 #[cfg(feature = "rpc-runner")]
 #[cfg_attr(docsrs, doc(cfg(feature = "rpc-runner")))]
 pub mod rpc_runner;
