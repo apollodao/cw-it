@@ -1,7 +1,7 @@
 use crate::config::TestConfig;
 use crate::helpers::upload_wasm_files;
 use ap_native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
-use astroport::asset::AssetInfo;
+use astroport::asset::{Asset, AssetInfo};
 use astroport::factory::{
     ExecuteMsg as AstroportFactoryExecuteMsg, InstantiateMsg as AstroportFactoryInstantiateMsg,
     PairConfig, PairType,
@@ -18,8 +18,8 @@ use astroport::vesting::{
     VestingSchedule, VestingSchedulePoint,
 };
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{to_binary, Addr, Binary, Event, Uint128, Uint64};
-use cw20::{Cw20Coin, Cw20ExecuteMsg, MinterResponse};
+use cosmwasm_std::{to_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
+use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
 use osmosis_test_tube::{Account, Module, Runner, SigningAccount, Wasm};
 
 pub const ASTROPORT_CONTRACT_NAMES: [&str; 11] = [
@@ -350,6 +350,7 @@ pub fn create_astroport_pair<'a, R>(
     asset_infos: [AssetInfo; 2],
     init_params: Option<Binary>,
     signer: &SigningAccount,
+    initial_liquidity: Option<[Uint128; 2]>,
 ) -> (String, String)
 where
     R: Runner<'a>,
@@ -362,8 +363,20 @@ where
         init_params,
     };
     let res = wasm.execute(factory_addr, &msg, &[], signer).unwrap();
+
     // Get pair and lp_token addresses from event
-    parse_astroport_create_pair_events(&res.events)
+    let (pair_addr, lp_token_addr) = parse_astroport_create_pair_events(&res.events);
+
+    if let Some(initial_liquidity) = initial_liquidity {
+        let assets = asset_infos
+            .into_iter()
+            .zip(initial_liquidity.into_iter())
+            .map(|(info, amount)| Asset { info, amount })
+            .collect();
+        provide_liquidity(app, &pair_addr, assets, signer);
+    }
+
+    (pair_addr, lp_token_addr)
 }
 
 pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String) {
@@ -384,11 +397,95 @@ pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String) 
     }
     (pair_addr, lp_token)
 }
+
+pub fn get_lp_token_balance<'a, R>(wasm: &Wasm<'a, R>, pair_addr: &str, address: &str) -> Uint128
+where
+    R: Runner<'a>,
+{
+    // Get lp token address
+    let msg = astroport::pair::QueryMsg::Pair {};
+    let lp_token_addr = wasm
+        .query::<_, astroport::asset::PairInfo>(pair_addr, &msg)
+        .unwrap()
+        .liquidity_token;
+
+    let msg = Cw20QueryMsg::Balance {
+        address: address.to_string(),
+    };
+    let res: BalanceResponse = wasm.query(&lp_token_addr.to_string(), &msg).unwrap();
+    res.balance
+}
+
+pub fn coin_to_astro_asset(coin: &Coin) -> Asset {
+    Asset {
+        info: AssetInfo::NativeToken {
+            denom: coin.denom.clone(),
+        },
+        amount: coin.amount,
+    }
+}
+
+pub fn provide_liquidity<'a, R>(
+    app: &'a R,
+    pair_addr: &str,
+    assets: Vec<Asset>,
+    signer: &SigningAccount,
+) -> Uint128
+where
+    R: Runner<'a>,
+{
+    let wasm = Wasm::new(app);
+
+    // Get lp token balance before providing liquidity
+    let lp_token_balance_before = get_lp_token_balance(&wasm, pair_addr, &signer.address());
+
+    // Increase allowance for cw20 tokens and add coins to funds
+    let mut funds = vec![];
+    for asset in &assets {
+        match &asset.info {
+            AssetInfo::Token { contract_addr } => {
+                let msg = Cw20ExecuteMsg::IncreaseAllowance {
+                    spender: pair_addr.to_string(),
+                    amount: asset.amount,
+                    expires: None,
+                };
+                wasm.execute(&contract_addr.to_string(), &msg, &[], signer)
+                    .unwrap();
+            }
+            AssetInfo::NativeToken { denom } => {
+                funds.push(Coin {
+                    denom: denom.to_string(),
+                    amount: asset.amount,
+                });
+            }
+        }
+    }
+
+    funds.sort_by(|a, b| a.denom.cmp(&b.denom));
+    println!("funds: {:?}", funds);
+
+    // Provide liquidity
+    let msg = astroport::pair::ExecuteMsg::ProvideLiquidity {
+        assets: assets,
+        slippage_tolerance: None,
+        receiver: None,
+        auto_stake: Some(false),
+    };
+    wasm.execute(pair_addr, &msg, &funds, signer).unwrap();
+
+    // Get lp token balance after providing liquidity
+    let lp_token_balance_after = get_lp_token_balance(&wasm, pair_addr, &signer.address());
+
+    // Return lp token balance difference
+    lp_token_balance_after - lp_token_balance_before
+}
+
 #[cfg(test)]
 mod tests {
     use astroport::{
         asset::{Asset, AssetInfo},
         factory::PairType,
+        pair::PoolResponse,
     };
     use cosmrs::proto::cosmos::bank::v1beta1::QueryAllBalancesRequest;
     use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
@@ -625,6 +722,7 @@ mod tests {
             asset_infos.clone(),
             None,
             admin,
+            None,
         );
 
         // Increase allowance of astro token
@@ -695,5 +793,91 @@ mod tests {
             .unwrap();
         println!("LP token balance: {:?}", lp_token_balance);
         assert!(lp_token_balance.balance > Uint128::zero());
+    }
+
+    #[test]
+    fn test_create_astroport_pair() {
+        let app = OsmosisTestApp::new();
+        let admin = app
+            .init_account(&[Coin::new(100000000000000000u128, "uosmo")])
+            .unwrap();
+
+        let test_config = TestConfig {
+            artifacts: get_local_artifacts(),
+            #[cfg(feature = "rpc-runner")]
+            rpc_runner_config: RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH),
+        };
+
+        // Instantiate contracts
+        let contracts = setup_astroport(&app, &test_config, &admin);
+
+        // Create XYK pool
+
+        let asset_infos: [AssetInfo; 2] = [
+            AssetInfo::NativeToken {
+                denom: "uosmo".into(),
+            },
+            AssetInfo::NativeToken {
+                denom: "uatom".into(),
+            },
+        ];
+
+        create_astroport_pair(
+            &app,
+            &contracts.factory.address,
+            PairType::Xyk {},
+            asset_infos.clone(),
+            None,
+            &admin,
+            None,
+        );
+    }
+
+    #[test]
+    fn test_create_astroport_pair_with_initial_liquidity() {
+        let app = OsmosisTestApp::new();
+        let admin = app
+            .init_account(&[
+                Coin::new(100000000000000000u128, "uosmo"),
+                Coin::new(100000000000000000u128, "uatom"),
+            ])
+            .unwrap();
+
+        let test_config = TestConfig {
+            artifacts: get_local_artifacts(),
+            #[cfg(feature = "rpc-runner")]
+            rpc_runner_config: RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH),
+        };
+
+        // Instantiate contracts
+        let contracts = setup_astroport(&app, &test_config, &admin);
+
+        // Create XYK pool
+        let asset_infos: [AssetInfo; 2] = [
+            AssetInfo::NativeToken {
+                denom: "uosmo".into(),
+            },
+            AssetInfo::NativeToken {
+                denom: "uatom".into(),
+            },
+        ];
+
+        let (pool, lp) = create_astroport_pair(
+            &app,
+            &contracts.factory.address,
+            PairType::Xyk {},
+            asset_infos.clone(),
+            None,
+            &admin,
+            Some([1000000u128.into(), 1000000u128.into()]),
+        );
+
+        // Query pool info
+        let wasm = Wasm::new(&app);
+        let pool_info: PoolResponse = wasm
+            .query(&pool, &astroport::pair::QueryMsg::Pool {})
+            .unwrap();
+        assert_eq!(pool_info.assets[0].amount, Uint128::from(1000000u128));
+        assert_eq!(pool_info.assets[1].amount, Uint128::from(1000000u128));
     }
 }
