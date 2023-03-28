@@ -1,3 +1,4 @@
+pub mod application;
 pub mod artifact;
 pub mod config;
 pub mod const_coin;
