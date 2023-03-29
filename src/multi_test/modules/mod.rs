@@ -1,3 +1,4 @@
+mod bank;
 #[cfg(feature = "osmosis")]
 mod token_factory;
 

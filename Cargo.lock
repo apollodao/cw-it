@@ -753,7 +753,7 @@ dependencies = [
 [[package]]
 name = "cw-multi-test"
 version = "0.16.2"
-source = "git+https://github.com/pacmanifold/cw-multi-test.git?rev=ddefa2455096b95e37700ca069c029a42f07b639#ddefa2455096b95e37700ca069c029a42f07b639"
+source = "git+https://github.com/pacmanifold/cw-multi-test.git?rev=4b5fc99ab4c6cb96020251fbd27bda90d6971814#4b5fc99ab4c6cb96020251fbd27bda90d6971814"
 dependencies = [
  "anyhow",
  "cosmwasm-std",
@@ -762,7 +762,9 @@ dependencies = [
  "derivative",
  "itertools",
  "k256",
+ "osmosis-std 0.15.0",
  "prost 0.9.0",
+ "regex",
  "schemars",
  "serde",
  "thiserror",
@@ -2063,6 +2065,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "osmosis-std"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28caa72cf26c0e4c2977ffa975fe31630fc18367b31d180630037aa5b7bd5a27"
+dependencies = [
+ "chrono",
+ "cosmwasm-std",
+ "osmosis-std-derive",
+ "prost 0.11.8",
+ "prost-types",
+ "schemars",
+ "serde",
+ "serde-cw-value",
+]
+
+[[package]]
 name = "osmosis-std-derive"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2083,7 +2101,7 @@ dependencies = [
  "bindgen",
  "cosmrs",
  "cosmwasm-std",
- "osmosis-std",
+ "osmosis-std 0.13.2",
  "prost 0.11.8",
  "serde",
  "serde_json",
@@ -3184,7 +3202,7 @@ dependencies = [
  "base64",
  "cosmrs",
  "cosmwasm-std",
- "osmosis-std",
+ "osmosis-std 0.13.2",
  "prost 0.11.8",
  "serde",
  "serde_json",
