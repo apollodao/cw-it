@@ -4,3 +4,5 @@ mod token_factory;
 
 #[cfg(feature = "osmosis")]
 pub use token_factory::TokenFactory;
+
+pub use bank::BankModule;

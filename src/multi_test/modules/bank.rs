@@ -103,13 +103,13 @@ mod tests {
 
     use super::*;
 
-    const BANK_KEEPER: BankModule = BankModule(BankKeeper {});
+    const BANK_MODULE: BankModule = BankModule(BankKeeper {});
 
     #[test]
     fn query_bank_module_via_stargate() {
         let mut stargate_keeper = StargateKeeper::new();
 
-        BANK_KEEPER.register_queries(&mut stargate_keeper);
+        BANK_MODULE.register_queries(&mut stargate_keeper);
 
         let owner = Addr::unchecked("owner");
         let init_funds = vec![coin(20, "btc"), coin(100, "eth")];

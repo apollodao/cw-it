@@ -1,21 +1,31 @@
 use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
-use cosmwasm_std::{coin, Addr, Binary, Coin, QueryRequest};
-use cw_multi_test::BankSudo;
-use osmosis_test_tube::{
-    osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest, DecodeError, RunnerError,
-    RunnerResult,
-};
+use cosmwasm_std::{coin, Addr, Binary, Coin, Empty, QueryRequest};
+use cw_multi_test::{BankKeeper, BankSudo, BasicAppBuilder, StargateKeeper, StargateQueryHandler};
+use osmosis_test_tube::{DecodeError, RunnerResult};
 use test_tube::{Account, FeeSetting, Runner, SigningAccount};
+
+use super::modules::BankModule;
 
 pub struct MultiTestRunner<'a> {
     pub app: cw_multi_test::App,
     pub address_prefix: &'a str,
 }
 
+const BANK_MODULE: BankModule = BankModule(BankKeeper {});
+
 impl<'a> MultiTestRunner<'a> {
     pub fn new(address_prefix: &'a str) -> Self {
+        // Setup stargate keeper with bank module support
+        let mut stargate_keeper = StargateKeeper::new();
+        BANK_MODULE.register_queries(&mut stargate_keeper);
+
+        // Construct app
+        let app = BasicAppBuilder::<Empty, Empty>::new()
+            .with_stargate(stargate_keeper)
+            .build(|_, _, _| {});
+
         Self {
-            app: cw_multi_test::App::new(|_, _, _| {}),
+            app,
             address_prefix,
         }
     }
@@ -138,6 +148,12 @@ impl Runner<'_> for MultiTestRunner<'_> {
 mod tests {
     use cosmrs::proto::cosmos::bank::v1beta1::MsgSendResponse;
     use cosmwasm_std::coin;
+    use osmosis_test_tube::{
+        osmosis_std::types::cosmos::bank::v1beta1::{
+            QueryAllBalancesRequest, QueryAllBalancesResponse,
+        },
+        Bank, Module,
+    };
 
     use super::*;
 
@@ -162,5 +178,33 @@ mod tests {
         assert_eq!(res.events.len(), 2);
         assert_eq!(res.events[0].ty, "message");
         assert_eq!(res.events[1].ty, "transfer");
+    }
+
+    #[test]
+    fn query_bank_through_test_tube_bank_module() {
+        let mut app = MultiTestRunner::new("osmo");
+        let alice = app.init_account(&[coin(1000, "uatom")]).unwrap();
+
+        let res = QueryAllBalancesRequest {
+            address: alice.address(),
+            pagination: None,
+        }
+        .query(&app.app.wrap())
+        .unwrap();
+
+        // let bank = Bank::new(&app);
+
+        // let res = bank
+        //     .query_all_balances(
+        //         &cosmrs::proto::cosmos::bank::v1beta1::QueryAllBalancesRequest {
+        //             address: alice.address(),
+        //             pagination: None,
+        //         },
+        //     )
+        //     .unwrap();
+
+        assert_eq!(res.balances.len(), 1);
+        assert_eq!(res.balances[0].denom, "uatom".to_string());
+        assert_eq!(res.balances[0].amount, "1000");
     }
 }
