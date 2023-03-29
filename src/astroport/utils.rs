@@ -20,7 +20,7 @@ use astroport::vesting::{
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
-use osmosis_test_tube::{Account, Module, Runner, SigningAccount, Wasm};
+use test_tube::{Account, Module, Runner, SigningAccount, Wasm};
 
 pub const ASTROPORT_CONTRACT_NAMES: [&str; 11] = [
     "astroport_token",
@@ -488,8 +488,7 @@ mod tests {
     use cosmrs::proto::cosmos::bank::v1beta1::QueryAllBalancesRequest;
     use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
     use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
-    use osmosis_test_tube::{Account, Bank, OsmosisTestApp, Runner, SigningAccount, Wasm};
-    use test_tube::Module;
+    use test_tube::{Account, Bank, Module, OsmosisTestApp, Runner, SigningAccount, Wasm};
 
     #[cfg(feature = "rpc-runner")]
     use testcontainers::clients::Cli;

@@ -1,7 +1,7 @@
 use crate::osmosis::utils::is_osmosis_lp_token;
 use cosmrs::proto::Any;
 use cosmwasm_std::Coin;
-use osmosis_test_tube::osmosis_std::{
+use osmosis_std::{
     shim::Duration,
     types::osmosis::{
         gamm::v1beta1::{

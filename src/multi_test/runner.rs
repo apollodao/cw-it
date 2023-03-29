@@ -1,9 +1,8 @@
 use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
 use cosmwasm_std::{coin, Addr, Coin, Empty, QueryRequest};
 use cw_multi_test::{BankKeeper, BankSudo, BasicAppBuilder, StargateKeeper, StargateQueryHandler};
-use osmosis_test_tube::{RunnerError, RunnerResult};
 use serde::de::DeserializeOwned;
-use test_tube::{Account, FeeSetting, Runner, SigningAccount};
+use test_tube::{Account, FeeSetting, Runner, RunnerError, RunnerResult, SigningAccount};
 
 use super::modules::BankModule;
 
@@ -64,7 +63,7 @@ impl Runner<'_> for MultiTestRunner<'_> {
     fn execute_cosmos_msgs<S>(
         &mut self,
         msgs: &[cosmwasm_std::CosmosMsg],
-        signer: &osmosis_test_tube::SigningAccount,
+        signer: &test_tube::SigningAccount,
     ) -> test_tube::RunnerExecuteResult<S>
     where
         S: prost::Message + Default,
@@ -147,9 +146,8 @@ impl Runner<'_> for MultiTestRunner<'_> {
 mod tests {
     use cosmrs::proto::cosmos::bank::v1beta1::MsgSendResponse;
     use cosmwasm_std::coin;
-    use osmosis_test_tube::{
-        osmosis_std::types::cosmos::bank::v1beta1::QueryAllBalancesRequest, Bank, Module,
-    };
+    use osmosis_std::types::cosmos::bank::v1beta1::QueryAllBalancesRequest;
+    use test_tube::{Bank, Module};
 
     use super::*;
 

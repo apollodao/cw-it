@@ -1,5 +1,5 @@
 use cosmwasm_std::{Coin, Uint128};
-use osmosis_test_tube::{Bank, Module, Runner, SigningAccount, Wasm};
+use test_tube::{Bank, Module, Runner, SigningAccount, Wasm};
 
 use crate::helpers::{bank_balance_query, bank_send};
 
@@ -77,6 +77,8 @@ pub trait TestRobot<'a, R: Runner<'a> + 'a> {
     }
 }
 
+// We feature-gate theses tests because they use OsmosisTestApp
+#[cfg(feature = "osmosis")]
 #[cfg(test)]
 mod tests {
     use osmosis_test_tube::{Account, OsmosisTestApp};

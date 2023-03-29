@@ -4,7 +4,7 @@ use cosmwasm_std::{
     Empty, Querier, Storage, SupplyResponse,
 };
 use cw_multi_test::{BankKeeper, Module, StargateKeeper, StargateQueryHandler};
-use osmosis_test_tube::osmosis_std::types::cosmos::bank::v1beta1::{
+use osmosis_std::types::cosmos::bank::v1beta1::{
     QueryAllBalancesRequest, QueryAllBalancesResponse, QueryBalanceRequest, QueryBalanceResponse,
     QuerySupplyOfRequest, QuerySupplyOfResponse,
 };

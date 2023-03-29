@@ -5,7 +5,7 @@ use cosmwasm_std::{
     from_slice, Addr, Api, BankMsg, BankQuery, BlockInfo, Coin, Empty, Event, QueryRequest,
     Storage, SupplyResponse, Uint128,
 };
-use osmosis_test_tube::osmosis_std::types::osmosis::tokenfactory::v1beta1::{
+use osmosis_std::types::osmosis::tokenfactory::v1beta1::{
     MsgBurn, MsgBurnResponse, MsgCreateDenom, MsgCreateDenomResponse, MsgMint, MsgMintResponse,
 };
 use regex::Regex;

@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use apollo_utils::iterators::IntoElementwise;
 use cosmwasm_std::{Coin, Uint128};
-use osmosis_test_tube::osmosis_std::types::osmosis::gamm::{
+use osmosis_std::types::osmosis::gamm::{
     poolmodels::{
         balancer::v1beta1::MsgCreateBalancerPool,
         stableswap::v1beta1::{MsgCreateStableswapPool, PoolParams as StableSwapPoolParams},
