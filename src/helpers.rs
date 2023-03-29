@@ -1,9 +1,9 @@
 use std::env;
 use std::{collections::HashMap, str::FromStr};
 
-use cosmrs::proto::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
-use cosmrs::proto::cosmos::base::v1beta1::Coin as ProtoCoin;
 use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
+use osmosis_std::types::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
+use osmosis_std::types::cosmos::base::v1beta1::Coin as ProtoCoin;
 use osmosis_test_tube::{Bank, Wasm};
 use serde::Serialize;
 use test_tube::{Account, Module, Runner, RunnerExecuteResult, RunnerResult, SigningAccount};

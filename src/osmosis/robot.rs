@@ -6,10 +6,11 @@ use osmosis_test_tube::osmosis_std::{
     types::osmosis::{
         gamm::v1beta1::{
             MsgJoinSwapExternAmountIn, MsgJoinSwapExternAmountInResponse, MsgSwapExactAmountIn,
-            MsgSwapExactAmountInResponse, SwapAmountInRoute,
+            MsgSwapExactAmountInResponse,
         },
         lockup::Params as LockupParams,
         lockup::{MsgLockTokens, MsgLockTokensResponse},
+        poolmanager::v1beta1::SwapAmountInRoute,
     },
 };
 use osmosis_test_tube::{Account, OsmosisTestApp, Runner, SigningAccount};
@@ -177,8 +178,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
 #[cfg(test)]
 mod tests {
     use apollo_utils::iterators::IntoElementwise;
-    use cosmwasm_std::testing::mock_env;
-    use cosmwasm_std::{Coin, Uint128};
+    use cosmwasm_std::Coin;
     use osmosis_test_tube::{Gamm, Module, OsmosisTestApp};
 
     use crate::const_coin::ConstCoin;

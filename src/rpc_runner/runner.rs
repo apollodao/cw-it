@@ -2,12 +2,12 @@ use std::num::ParseIntError;
 
 use cosmos_sdk_proto::cosmos::auth::v1beta1::{QueryAccountRequest, QueryAccountResponse};
 use cosmrs::proto::cosmos::auth::v1beta1::BaseAccount;
-use cosmrs::proto::cosmwasm::wasm::v1::{
-    QuerySmartContractStateRequest, QuerySmartContractStateResponse,
-};
 use cosmwasm_std::{
     from_binary, Coin, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
     WasmQuery,
+};
+use osmosis_std::types::cosmwasm::wasm::v1::{
+    QuerySmartContractStateRequest, QuerySmartContractStateResponse,
 };
 use test_tube::{
     account::FeeSetting, Account, DecodeError, EncodeError, Runner, RunnerError,

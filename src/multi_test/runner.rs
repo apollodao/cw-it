@@ -1,7 +1,8 @@
 use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
-use cosmwasm_std::{coin, Addr, Binary, Coin, Empty, QueryRequest};
+use cosmwasm_std::{coin, Addr, Coin, Empty, QueryRequest};
 use cw_multi_test::{BankKeeper, BankSudo, BasicAppBuilder, StargateKeeper, StargateQueryHandler};
-use osmosis_test_tube::{DecodeError, RunnerResult};
+use osmosis_test_tube::{RunnerError, RunnerResult};
+use serde::de::DeserializeOwned;
 use test_tube::{Account, FeeSetting, Runner, SigningAccount};
 
 use super::modules::BankModule;
@@ -129,18 +130,16 @@ impl Runner<'_> for MultiTestRunner<'_> {
     fn query<Q, R>(&self, path: &str, query: &Q) -> test_tube::RunnerResult<R>
     where
         Q: prost::Message,
-        R: prost::Message + Default,
+        R: prost::Message + DeserializeOwned + Default,
     {
         let querier = self.app.wrap();
 
-        let bin_res = querier
-            .query::<Binary>(&QueryRequest::Stargate {
+        querier
+            .query::<R>(&QueryRequest::Stargate {
                 path: path.to_string(),
                 data: query.encode_to_vec().into(),
             })
-            .unwrap();
-
-        Ok(R::decode(bin_res.as_slice()).map_err(DecodeError::ProtoDecodeError)?)
+            .map_err(|e| RunnerError::GenericError(e.to_string()))
     }
 }
 
@@ -149,10 +148,7 @@ mod tests {
     use cosmrs::proto::cosmos::bank::v1beta1::MsgSendResponse;
     use cosmwasm_std::coin;
     use osmosis_test_tube::{
-        osmosis_std::types::cosmos::bank::v1beta1::{
-            QueryAllBalancesRequest, QueryAllBalancesResponse,
-        },
-        Bank, Module,
+        osmosis_std::types::cosmos::bank::v1beta1::QueryAllBalancesRequest, Bank, Module,
     };
 
     use super::*;
@@ -185,23 +181,14 @@ mod tests {
         let mut app = MultiTestRunner::new("osmo");
         let alice = app.init_account(&[coin(1000, "uatom")]).unwrap();
 
-        let res = QueryAllBalancesRequest {
-            address: alice.address(),
-            pagination: None,
-        }
-        .query(&app.app.wrap())
-        .unwrap();
+        let bank = Bank::new(&app);
 
-        // let bank = Bank::new(&app);
-
-        // let res = bank
-        //     .query_all_balances(
-        //         &cosmrs::proto::cosmos::bank::v1beta1::QueryAllBalancesRequest {
-        //             address: alice.address(),
-        //             pagination: None,
-        //         },
-        //     )
-        //     .unwrap();
+        let res = bank
+            .query_all_balances(&QueryAllBalancesRequest {
+                address: alice.address(),
+                pagination: None,
+            })
+            .unwrap();
 
         assert_eq!(res.balances.len(), 1);
         assert_eq!(res.balances[0].denom, "uatom".to_string());

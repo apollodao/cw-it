@@ -737,6 +737,7 @@ dependencies = [
  "futures-time",
  "git2",
  "git2_credentials",
+ "osmosis-std 0.13.2",
  "osmosis-test-tube",
  "proptest",
  "prost 0.11.8",
@@ -2051,12 +2052,11 @@ checksum = "ceedf44fb00f2d1984b0bc98102627ce622e083e49a5bacdb3e514fa4238e267"
 [[package]]
 name = "osmosis-std"
 version = "0.13.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10d6fe6ac7fcba45ed61d738091d33c838c4cabbcf4892dc7aa56d19d39cc976"
+source = "git+https://github.com/apollodao/osmosis-rust.git?rev=a438e6b477ae75de538af3926847a689477d29f1#a438e6b477ae75de538af3926847a689477d29f1"
 dependencies = [
  "chrono",
  "cosmwasm-std",
- "osmosis-std-derive",
+ "osmosis-std-derive 0.13.2 (git+https://github.com/apollodao/osmosis-rust.git?rev=a438e6b477ae75de538af3926847a689477d29f1)",
  "prost 0.11.8",
  "prost-types",
  "schemars",
@@ -2072,7 +2072,7 @@ checksum = "28caa72cf26c0e4c2977ffa975fe31630fc18367b31d180630037aa5b7bd5a27"
 dependencies = [
  "chrono",
  "cosmwasm-std",
- "osmosis-std-derive",
+ "osmosis-std-derive 0.13.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost 0.11.8",
  "prost-types",
  "schemars",
@@ -2093,9 +2093,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "osmosis-std-derive"
+version = "0.13.2"
+source = "git+https://github.com/apollodao/osmosis-rust.git?rev=a438e6b477ae75de538af3926847a689477d29f1#a438e6b477ae75de538af3926847a689477d29f1"
+dependencies = [
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "osmosis-test-tube"
 version = "14.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?rev=932b5c97c2edf8c2a25fc3ad09b4fb072468239c#932b5c97c2edf8c2a25fc3ad09b4fb072468239c"
+source = "git+https://github.com/apollodao/test-tube.git?rev=472ca6b2880db5554e95f0c72182762593d06d1f#472ca6b2880db5554e95f0c72182762593d06d1f"
 dependencies = [
  "base64",
  "bindgen",
@@ -3197,7 +3208,7 @@ dependencies = [
 [[package]]
 name = "test-tube"
 version = "0.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?rev=932b5c97c2edf8c2a25fc3ad09b4fb072468239c#932b5c97c2edf8c2a25fc3ad09b4fb072468239c"
+source = "git+https://github.com/apollodao/test-tube.git?rev=472ca6b2880db5554e95f0c72182762593d06d1f#472ca6b2880db5554e95f0c72182762593d06d1f"
 dependencies = [
  "base64",
  "cosmrs",
