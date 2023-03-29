@@ -1,8 +1,29 @@
-use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
-use cosmwasm_std::{coin, Addr, Coin, Empty, QueryRequest};
+use cosmrs::{
+    crypto::secp256k1::SigningKey,
+    proto::cosmos::{base::abci::v1beta1::GasInfo, gov::v1beta1::MsgVote},
+};
+use cosmwasm_std::{
+    coin, Addr, BankMsg, Binary, Coin, CosmosMsg, Empty, QueryRequest, StakingMsg, WasmMsg,
+};
 use cw_multi_test::{BankKeeper, BankSudo, BasicAppBuilder, StargateKeeper, StargateQueryHandler};
+use osmosis_std::types::{
+    cosmos::{
+        bank::v1beta1::MsgSend,
+        staking::v1beta1::{MsgBeginRedelegate, MsgDelegate, MsgUndelegate},
+    },
+    cosmwasm::wasm::v1::{
+        MsgClearAdmin, MsgExecuteContract, MsgInstantiateContract, MsgMigrateContract,
+        MsgUpdateAdmin,
+    },
+    osmosis::tokenfactory::v1beta1::MsgBurn,
+};
+use prost::Message;
 use serde::de::DeserializeOwned;
-use test_tube::{Account, FeeSetting, Runner, RunnerError, RunnerResult, SigningAccount};
+use std::str::FromStr;
+use test_tube::{
+    Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerResult,
+    SigningAccount,
+};
 
 use super::modules::BankModule;
 
@@ -112,7 +133,20 @@ impl Runner<'_> for MultiTestRunner<'_> {
         M: prost::Message,
         R: prost::Message + Default,
     {
-        unimplemented!("cannot execute prost messages with MultiTestRunner")
+        let encoded_msgs = msgs
+            .iter()
+            .map(|(msg, type_url)| {
+                let mut buf = Vec::new();
+                M::encode(msg, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
+
+                Ok(cosmrs::Any {
+                    type_url: type_url.to_string(),
+                    value: buf,
+                })
+            })
+            .collect::<Result<Vec<cosmrs::Any>, RunnerError>>()?;
+
+        self.execute_multiple_raw(encoded_msgs, signer)
     }
 
     fn execute_multiple_raw<R>(
@@ -123,7 +157,134 @@ impl Runner<'_> for MultiTestRunner<'_> {
     where
         R: prost::Message + Default,
     {
-        unimplemented!("cannot execute cosmrs::Any messages with MultiTestRunner")
+        for msg in msgs {
+            match msg.type_url.as_str() {
+                // WasmMsg
+                MsgExecuteContract::TYPE_URL => {
+                    let msg = MsgExecuteContract::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    CosmosMsg::<Empty>::Wasm(WasmMsg::Execute {
+                        contract_addr: msg.contract,
+                        msg: Binary(msg.msg),
+                        funds: msg
+                            .funds
+                            .into_iter()
+                            .map(|c| coin(u128::from_str(&c.amount).unwrap(), c.denom))
+                            .collect(),
+                    });
+                }
+                MsgInstantiateContract::TYPE_URL => {
+                    let msg = MsgInstantiateContract::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    CosmosMsg::<Empty>::Wasm(WasmMsg::Instantiate {
+                        code_id: msg.code_id,
+                        admin: Some(msg.admin),
+                        msg: Binary(msg.msg),
+                        funds: msg
+                            .funds
+                            .into_iter()
+                            .map(|c| coin(u128::from_str(&c.amount).unwrap(), c.denom))
+                            .collect(),
+                        label: msg.label,
+                    });
+                }
+                MsgMigrateContract::TYPE_URL => {
+                    let msg = MsgMigrateContract::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    CosmosMsg::<Empty>::Wasm(WasmMsg::Migrate {
+                        contract_addr: msg.contract,
+                        new_code_id: msg.code_id,
+                        msg: Binary(msg.msg),
+                    });
+                }
+                MsgUpdateAdmin::TYPE_URL => {
+                    let msg = MsgUpdateAdmin::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    CosmosMsg::<Empty>::Wasm(WasmMsg::UpdateAdmin {
+                        contract_addr: msg.contract,
+                        admin: msg.new_admin,
+                    });
+                }
+                MsgClearAdmin::TYPE_URL => {
+                    let msg = MsgClearAdmin::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    CosmosMsg::<Empty>::Wasm(WasmMsg::ClearAdmin {
+                        contract_addr: msg.contract,
+                    });
+                }
+                // BankMsg
+                MsgSend::TYPE_URL => {
+                    let msg = MsgSend::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    CosmosMsg::<Empty>::Bank(BankMsg::Send {
+                        to_address: msg.to_address,
+                        amount: msg
+                            .amount
+                            .into_iter()
+                            .map(|c| coin(u128::from_str(&c.amount).unwrap(), c.denom))
+                            .collect(),
+                    });
+                }
+                MsgBurn::TYPE_URL => {
+                    let msg = MsgBurn::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    CosmosMsg::<Empty>::Bank(BankMsg::Burn {
+                        amount: msg
+                            .amount
+                            .into_iter()
+                            .map(|c| coin(u128::from_str(&c.amount).unwrap(), c.denom))
+                            .collect(),
+                    });
+                }
+                // StakingMsg
+                MsgDelegate::TYPE_URL => {
+                    let msg = MsgDelegate::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    let proto_coin = msg.amount.unwrap_or_default();
+                    CosmosMsg::<Empty>::Staking(StakingMsg::Delegate {
+                        validator: msg.validator_address,
+                        amount: coin(
+                            u128::from_str(&proto_coin.amount).unwrap(),
+                            proto_coin.denom,
+                        ),
+                    });
+                }
+                MsgUndelegate::TYPE_URL => {
+                    let msg = MsgUndelegate::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    let proto_coin = msg.amount.unwrap_or_default();
+                    CosmosMsg::<Empty>::Staking(StakingMsg::Undelegate {
+                        validator: msg.validator_address,
+                        amount: coin(
+                            u128::from_str(&proto_coin.amount).unwrap(),
+                            proto_coin.denom,
+                        ),
+                    });
+                }
+                MsgBeginRedelegate::TYPE_URL => {
+                    let msg = MsgBeginRedelegate::decode(msg.value.as_slice())
+                        .map_err(DecodeError::ProtoDecodeError)?;
+                    let proto_coin = msg.amount.unwrap_or_default();
+                    CosmosMsg::<Empty>::Staking(StakingMsg::Redelegate {
+                        src_validator: msg.validator_src_address,
+                        dst_validator: msg.validator_dst_address,
+                        amount: coin(
+                            u128::from_str(&proto_coin.amount).unwrap(),
+                            proto_coin.denom,
+                        ),
+                    });
+                }
+                _ => {
+                    // Else assume StargateMsg
+                    CosmosMsg::<Empty>::Stargate {
+                        type_url: msg.type_url,
+                        value: Binary(msg.value),
+                    };
+                }
+            }
+        }
+
+        todo!();
     }
 
     fn query<Q, R>(&self, path: &str, query: &Q) -> test_tube::RunnerResult<R>
