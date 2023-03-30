@@ -26,11 +26,8 @@ panic = 'abort'
 incremental = false
 overflow-checks = true
 
-[profile.test]
-default = ["chain-download", "rpc-runner"]
-
 [features]
-default = ["astroport"]
+default = []
 # for more explicit tests, cargo test --features=backtraces
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
