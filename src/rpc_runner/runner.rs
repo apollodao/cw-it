@@ -50,11 +50,14 @@ pub struct RpcRunner<'a> {
 }
 
 impl<'a> RpcRunner<'a> {
-    pub fn new(mut test_config: TestConfig, docker: &'a Cli) -> Result<Self, RpcRunnerError> {
+    pub fn new(
+        mut test_config: TestConfig,
+        docker: Option<&'a Cli>,
+    ) -> Result<Self, RpcRunnerError> {
         // Setup test container
         let container = match &test_config.rpc_runner_config.container {
             Some(container_info) => {
-                let container: Container<GenericImage> = docker.run(
+                let container: Container<GenericImage> = docker.unwrap().run(
                     container_info
                         .get_container_image()
                         .map_err(RpcRunnerError::Generic)?,
@@ -73,6 +76,23 @@ impl<'a> RpcRunner<'a> {
         Ok(Self {
             chain,
             _container: container,
+            test_config,
+        })
+    }
+
+    pub fn from_container(
+        mut test_config: TestConfig,
+        container: Container<'a, GenericImage>,
+    ) -> Result<Self, RpcRunnerError> {
+        test_config
+            .rpc_runner_config
+            .bind_chain_to_container(&container);
+
+        let chain = Chain::new(test_config.rpc_runner_config.chain_config.clone())?;
+
+        Ok(Self {
+            chain,
+            _container: Some(container),
             test_config,
         })
     }
@@ -186,7 +206,7 @@ impl<'a> Application for RpcRunner<'a> {
         );
 
         let tx_raw = self.create_signed_tx(msgs, signer, zero_fee)?;
-        println!("tx_raw size = {:?}", tx_raw.len());
+        // println!("tx_raw size = {:?}", tx_raw.len());
 
         let simulate_msg = SimulateRequest {
             tx: None,
@@ -304,7 +324,7 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
         M: ::prost::Message,
         R: ::prost::Message + Default,
     {
-        println!("execute_multiple called");
+        // println!("execute_multiple called");
         let encoded_msgs = msgs
             .iter()
             .map(|(msg, type_url)| {
