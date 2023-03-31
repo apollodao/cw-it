@@ -28,8 +28,8 @@ overflow-checks = true
 
 [features]
 default = []
-astroport = ["dep:cw20", "dep:astroport-types"]
-osmosis = ["dep:proptest"]
+astroport = ["cw20", "astroport-types"]
+osmosis = ["proptest"]
 rpc-runner = ["testcontainers", "tonic", "tokio", "cosmos-sdk-proto"]
 git = ["git2", "git2_credentials"]
 chain-download = ["tokio"]
