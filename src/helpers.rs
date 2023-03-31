@@ -11,6 +11,17 @@ use test_tube::{Account, Module, Runner, RunnerExecuteResult, RunnerResult, Sign
 use crate::artifact::Artifact;
 use crate::error::CwItError;
 
+#[cfg(feature = "tokio")]
+use std::future::Future;
+#[cfg(feature = "tokio")]
+pub fn block_on<F: Future>(f: F) -> F::Output {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(f)
+}
+
 pub fn upload_wasm_files<'a, R: Runner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,

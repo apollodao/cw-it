@@ -21,6 +21,7 @@ use thiserror::Error;
 use super::chain::Chain;
 use crate::application::Application;
 use crate::config::TestConfig;
+use crate::helpers::block_on;
 
 use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
 use cosmos_sdk_proto::cosmos::tx::v1beta1::SimulateRequest;
@@ -194,22 +195,20 @@ impl<'a> Application for RpcRunner<'a> {
 
         // println!("Init GRpc ServiceClient (port 9090)");
 
-        let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo =
-            futures::executor::block_on(async {
-                let mut service =
-                    ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
-                        .await
-                        .map_err(|e| RunnerError::GenericError(e.to_string()))?;
-                service
-                    .simulate(simulate_msg)
-                    .await
-                    .map_err(|e| RunnerError::GenericError(e.to_string()))
-            })?
-            .into_inner()
-            .gas_info
-            .ok_or(RunnerError::QueryError {
-                msg: "No gas_info returned from simulate".into(),
-            })?;
+        let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo = block_on(async {
+            let mut service = ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
+                .await
+                .map_err(|e| RunnerError::GenericError(e.to_string()))?;
+            service
+                .simulate(simulate_msg)
+                .await
+                .map_err(|e| RunnerError::GenericError(e.to_string()))
+        })?
+        .into_inner()
+        .gas_info
+        .ok_or(RunnerError::QueryError {
+            msg: "No gas_info returned from simulate".into(),
+        })?;
 
         Ok(cosmrs::proto::cosmos::base::abci::v1beta1::GasInfo {
             gas_wanted: gas_info.gas_wanted,
@@ -286,11 +285,12 @@ impl<'a> Application for RpcRunner<'a> {
         let mut buf = Vec::with_capacity(req.encoded_len());
         req.encode(&mut buf)
             .map_err(EncodeError::ProtoEncodeError)?;
-        Ok(futures::executor::block_on(
-            self.chain
-                .client()
-                .abci_query(Some(path.parse()?), buf, None, false),
-        )?)
+        Ok(block_on(self.chain.client().abci_query(
+            Some(path.parse()?),
+            buf,
+            None,
+            false,
+        ))?)
     }
 }
 
@@ -357,7 +357,7 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
         let tx_raw = self.create_signed_tx(msgs, signer, fee)?;
 
         let tx_commit_response: TxCommitResponse =
-            futures::executor::block_on(self.chain.client().broadcast_tx_commit(tx_raw.into()))?;
+            block_on(self.chain.client().broadcast_tx_commit(tx_raw.into()))?;
 
         if tx_commit_response.check_tx.code.is_err() {
             return Err(RunnerError::ExecuteError {
@@ -381,7 +381,7 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
         msg.encode(&mut base64_query_msg_bytes)
             .map_err(EncodeError::ProtoEncodeError)?;
 
-        let res = futures::executor::block_on(self.chain.client().abci_query(
+        let res = block_on(self.chain.client().abci_query(
             Some(path.parse()?),
             base64_query_msg_bytes,
             None,
