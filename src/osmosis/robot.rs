@@ -177,9 +177,8 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
 #[cfg(test)]
 mod tests {
     use apollo_utils::iterators::IntoElementwise;
-    use cosmwasm_std::testing::mock_env;
-    use cosmwasm_std::{Coin, Uint128};
-    use osmosis_test_tube::{Gamm, Module, OsmosisTestApp};
+    use cosmwasm_std::Coin;
+    use osmosis_test_tube::{FeeSetting, Gamm, Module, OsmosisTestApp};
 
     use crate::const_coin::ConstCoin;
 
@@ -261,12 +260,25 @@ mod tests {
     #[test]
     fn test_swap_exact_amount_in() {
         let app = OsmosisTestApp::new();
+
+        // Set fixed gas amount for easy calculations
+        const GAS_AMOUNT: u128 = 1_000_000;
+        let fee_setting: FeeSetting = FeeSetting::Custom {
+            amount: Coin {
+                denom: "uosmo".to_string(),
+                amount: GAS_AMOUNT.into(),
+            },
+            gas_limit: 20_000_000,
+        };
+
         let account1 = app
             .init_account(&INITIAL_BALANCES.into_elementwise())
-            .unwrap();
+            .unwrap()
+            .with_fee_setting(fee_setting.clone());
         let account2 = app
             .init_account(&INITIAL_BALANCES.into_elementwise())
-            .unwrap();
+            .unwrap()
+            .with_fee_setting(fee_setting.clone());
 
         let initial_balance = INITIAL_BALANCES
             .iter()
@@ -303,7 +315,7 @@ mod tests {
                 // We should have swapped swap_amount of our uosmo
                 account2.address(),
                 "uosmo",
-                initial_balance - swap_amount,
+                initial_balance - swap_amount - GAS_AMOUNT,
             )
             .assert_native_token_balance_gt(
                 // We should have more than the initial balance
