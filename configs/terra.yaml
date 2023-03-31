@@ -1,5 +1,6 @@
 folder: "./configs"
 artifacts_folder: "./artifacts"
+accounts_folder: "./configs"
 chain_config:
   name: "terra"
   chain_id: "localterra"
