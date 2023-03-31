@@ -349,7 +349,6 @@ pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String) 
     }
     (pair_addr, lp_token)
 }
-
 #[cfg(test)]
 mod tests {
     use astroport_types::{
@@ -362,9 +361,6 @@ mod tests {
     use osmosis_test_tube::{Account, Bank, OsmosisTestApp, Wasm};
     use test_tube::Module;
 
-    #[cfg(feature = "rpc-runner")]
-    use testcontainers::clients::Cli;
-
     use crate::{
         artifact::Artifact,
         astroport::utils::{create_astroport_pair, setup_astroport},
@@ -372,6 +368,15 @@ mod tests {
     };
     use astroport_types::pair::ExecuteMsg as PairExecuteMsg;
     use std::{collections::HashMap, str::FromStr};
+
+    #[cfg(feature = "rpc-runner")]
+    use {
+        crate::rpc_runner::{config::RpcRunnerConfig, RpcRunner},
+        testcontainers::clients::Cli,
+    };
+
+    #[cfg(feature = "rpc-runner")]
+    pub const TEST_CONFIG_PATH: &str = "configs/terra.yaml";
 
     pub const ARTIFACTS: [(&str, &str); 10] = [
         ("astroport_factory", "artifacts/astroport_factory.wasm"),
@@ -391,11 +396,15 @@ mod tests {
 
     #[test]
     pub fn test_instantiate_astroport_with_osmosis_test_app() {
+        #[cfg(feature = "rpc-runner")]
+        let rpc_runner_config = RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH);
         let test_config = TestConfig {
             artifacts: ARTIFACTS
                 .iter()
                 .map(|(name, path)| (name.to_string(), Artifact::Local(path.to_string())))
                 .collect::<HashMap<String, Artifact>>(),
+            #[cfg(feature = "rpc-runner")]
+            rpc_runner_config,
         };
 
         let app = OsmosisTestApp::new();
@@ -511,12 +520,19 @@ mod tests {
     #[cfg(feature = "rpc-runner")]
     #[test]
     pub fn test_instantiate_astroport_with_localterra() {
-        // let _ = env_logger::builder().is_test(true).try_init();
         let docker: Cli = Cli::default();
-        let test_config = TestConfig::from_yaml(TEST_CONFIG_PATH);
-        let app = RpcRunner::new(test_config.clone(), &docker);
+        let rpc_runner_config = RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH);
+        let test_config = TestConfig {
+            artifacts: ARTIFACTS
+                .iter()
+                .map(|(name, path)| (name.to_string(), Artifact::Local(path.to_string())))
+                .collect::<HashMap<String, Artifact>>(),
+            rpc_runner_config,
+        };
+        let app = RpcRunner::new(test_config.clone(), &docker).unwrap();
         let accs = app
             .test_config
+            .rpc_runner_config
             .import_all_accounts()
             .into_values()
             .collect::<Vec<_>>();

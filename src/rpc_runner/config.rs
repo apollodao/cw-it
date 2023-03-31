@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fs};
 
+use config::Config;
 use cosmrs::bip32;
 use cosmwasm_std::Coin;
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,7 @@ use test_tube::{account::FeeSetting, SigningAccount};
 use testcontainers::{images::generic::GenericImage, Container};
 
 use super::chain::ChainConfig;
-use crate::config::ConfigError;
+use crate::{config::ConfigError, helpers::get_current_working_dir};
 
 use super::container::ContainerInfo;
 
@@ -27,6 +28,16 @@ pub struct RpcRunnerConfig {
 }
 
 impl RpcRunnerConfig {
+    pub fn from_yaml(file: &str) -> Self {
+        println!("Working directory [{}]", get_current_working_dir());
+        println!("Reading {}", file);
+        let settings = Config::builder()
+            .add_source(config::File::with_name(file))
+            .build()
+            .unwrap();
+        settings.try_deserialize::<Self>().unwrap()
+    }
+
     pub fn bind_chain_to_container(&mut self, container: &Container<GenericImage>) {
         // We inject here the endpoint since containers have a life time
         self.chain_config.rpc_endpoint =
