@@ -18,6 +18,9 @@ pub mod osmosis;
 #[cfg_attr(docsrs, doc(cfg(feature = "astroport")))]
 pub mod astroport;
 
+pub mod test_runner;
+pub use test_runner::TestRunner;
+
 pub use osmosis_test_tube;
 
 #[cfg(feature = "rpc-runner")]
