@@ -754,7 +754,6 @@ dependencies = [
 [[package]]
 name = "cw-multi-test"
 version = "0.16.2"
-source = "git+https://github.com/pacmanifold/cw-multi-test.git?rev=4b5fc99ab4c6cb96020251fbd27bda90d6971814#4b5fc99ab4c6cb96020251fbd27bda90d6971814"
 dependencies = [
  "anyhow",
  "cosmwasm-std",
@@ -2106,7 +2105,7 @@ dependencies = [
 [[package]]
 name = "osmosis-test-tube"
 version = "14.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?rev=2abe55589ce8408d640477cf7f479f400142a881#2abe55589ce8408d640477cf7f479f400142a881"
+source = "git+https://github.com/apollodao/test-tube.git?rev=3c86329438b9c98f304c92357418bca94086358a#3c86329438b9c98f304c92357418bca94086358a"
 dependencies = [
  "base64",
  "bindgen",
@@ -3208,7 +3207,7 @@ dependencies = [
 [[package]]
 name = "test-tube"
 version = "0.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?rev=2abe55589ce8408d640477cf7f479f400142a881#2abe55589ce8408d640477cf7f479f400142a881"
+source = "git+https://github.com/apollodao/test-tube.git?rev=3c86329438b9c98f304c92357418bca94086358a#3c86329438b9c98f304c92357418bca94086358a"
 dependencies = [
  "base64",
  "cosmrs",

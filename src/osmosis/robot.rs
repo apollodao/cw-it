@@ -189,7 +189,7 @@ mod tests {
 
     impl<'a> TestRobot<'a, OsmosisTestApp> for TestingRobot<'a> {
         fn app(&self) -> &'a OsmosisTestApp {
-            &self.0
+            self.0
         }
     }
 

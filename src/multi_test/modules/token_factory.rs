@@ -78,7 +78,7 @@ impl TokenFactory<'_> {
             bail!("Invalid creator address, creator address cannot contains '/'");
         }
         // Validate sender is the creator
-        if msg.sender != sender.to_string() {
+        if msg.sender != sender {
             bail!("Invalid creator address, creator address must be the same as the sender");
         }
 
@@ -140,10 +140,10 @@ impl TokenFactory<'_> {
 
         // Validate sender
         let parts = denom.split('/').collect::<Vec<_>>();
-        if parts[1] != sender.to_string() {
+        if parts[1] != sender {
             bail!("Unauthorized mint. Not the creator of the denom.");
         }
-        if sender.to_string() != msg.sender {
+        if sender != msg.sender {
             bail!("Invalid sender. Sender in msg must be same as sender of transaction.");
         }
 
@@ -192,10 +192,10 @@ impl TokenFactory<'_> {
         // Validate sender
         let denom = msg.amount.clone().unwrap().denom;
         let parts = denom.split('/').collect::<Vec<_>>();
-        if parts[1] != sender.to_string() {
+        if parts[1] != sender {
             bail!("Unauthorized burn. Not the creator of the denom.");
         }
-        if sender.to_string() != msg.sender {
+        if sender != msg.sender {
             bail!("Invalid sender. Sender in msg must be same as sender of transaction.");
         }
 
@@ -307,7 +307,7 @@ mod tests {
         let mut stargate_keeper = StargateKeeper::new();
         TOKEN_FACTORY.register_msgs(&mut stargate_keeper);
 
-        let mut app = BasicAppBuilder::<Empty, Empty>::new()
+        let app = BasicAppBuilder::<Empty, Empty>::new()
             .with_stargate(stargate_keeper)
             .build(|router, _, storage| {
                 router
@@ -357,7 +357,7 @@ mod tests {
         let mut stargate_keeper = StargateKeeper::new();
         TOKEN_FACTORY.register_msgs(&mut stargate_keeper);
 
-        let mut app = BasicAppBuilder::<Empty, Empty>::new()
+        let app = BasicAppBuilder::<Empty, Empty>::new()
             .with_stargate(stargate_keeper)
             .build(|_, _, _| {});
 
@@ -419,7 +419,7 @@ mod tests {
             TOKEN_FACTORY.module_denom_prefix, creator, "subdenom"
         );
 
-        let mut app = BasicAppBuilder::<Empty, Empty>::new()
+        let app = BasicAppBuilder::<Empty, Empty>::new()
             .with_stargate(stargate_keeper)
             .build(|router, _, storage| {
                 router
@@ -462,7 +462,7 @@ mod tests {
         // Query bank balance
         let balance_query = BankQuery::Balance {
             address: sender.to_string(),
-            denom: tf_denom.clone(),
+            denom: tf_denom,
         };
         let balance = app
             .wrap()

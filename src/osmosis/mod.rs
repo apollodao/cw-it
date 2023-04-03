@@ -1,3 +1,4 @@
+pub mod app;
 pub mod robot;
 mod test_pool;
 pub mod utils;

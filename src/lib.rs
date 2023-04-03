@@ -5,6 +5,10 @@ pub mod const_coin;
 pub mod error;
 pub mod helpers;
 pub mod robot;
+pub mod traits;
+
+#[cfg(test)]
+mod test_helpers;
 
 #[cfg(feature = "multi-test")]
 pub mod multi_test;
