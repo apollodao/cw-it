@@ -642,17 +642,15 @@ mod tests {
                 .iter()
                 .map(|name| (name.to_string(), Artifact::Local(get_wasm_path(name))))
                 .collect::<HashMap<String, Artifact>>(),
-            rpc_runner_config: rpc_runner_config.clone(),
         };
 
         let runner = if let Some(cli) = cli {
-            RpcRunner::new(test_config, Some(cli)).unwrap()
+            RpcRunner::new(test_config, rpc_runner_config, Some(cli)).unwrap()
         } else {
-            RpcRunner::new(test_config, None).unwrap()
+            RpcRunner::new(test_config, rpc_runner_config, None).unwrap()
         };
 
         let accs = runner
-            .test_config
             .rpc_runner_config
             .import_all_accounts()
             .into_values()
@@ -680,12 +678,8 @@ mod tests {
         (app, accs, native_denom): (TestRunner<'a>, Vec<SigningAccount>, &'a str),
         get_artifacts: impl Fn() -> HashMap<String, Artifact>,
     ) {
-        #[cfg(feature = "rpc-runner")]
-        let rpc_runner_config = RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH);
         let test_config = TestConfig {
             artifacts: get_artifacts(),
-            #[cfg(feature = "rpc-runner")]
-            rpc_runner_config,
         };
 
         let wasm = Wasm::new(&app);
@@ -804,8 +798,6 @@ mod tests {
 
         let test_config = TestConfig {
             artifacts: get_local_artifacts(),
-            #[cfg(feature = "rpc-runner")]
-            rpc_runner_config: RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH),
         };
 
         // Instantiate contracts
@@ -845,8 +837,6 @@ mod tests {
 
         let test_config = TestConfig {
             artifacts: get_local_artifacts(),
-            #[cfg(feature = "rpc-runner")]
-            rpc_runner_config: RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH),
         };
 
         // Instantiate contracts
@@ -862,7 +852,7 @@ mod tests {
             },
         ];
 
-        let (pool, lp) = create_astroport_pair(
+        let (pool, _lp) = create_astroport_pair(
             &app,
             &contracts.factory.address,
             PairType::Xyk {},

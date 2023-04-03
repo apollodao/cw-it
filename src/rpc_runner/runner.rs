@@ -19,6 +19,7 @@ use testcontainers::Container;
 use thiserror::Error;
 
 use super::chain::Chain;
+use super::config::RpcRunnerConfig;
 use crate::application::Application;
 use crate::config::TestConfig;
 use crate::helpers::block_on;
@@ -47,53 +48,54 @@ pub struct RpcRunner<'a> {
     chain: Chain,
     _container: Option<Container<'a, GenericImage>>,
     pub test_config: TestConfig,
+    pub rpc_runner_config: RpcRunnerConfig,
 }
 
 impl<'a> RpcRunner<'a> {
     pub fn new(
-        mut test_config: TestConfig,
+        test_config: TestConfig,
+        mut rpc_runner_config: RpcRunnerConfig,
         docker: Option<&'a Cli>,
     ) -> Result<Self, RpcRunnerError> {
         // Setup test container
-        let container = match &test_config.rpc_runner_config.container {
+        let container = match &rpc_runner_config.container {
             Some(container_info) => {
                 let container: Container<GenericImage> = docker.unwrap().run(
                     container_info
                         .get_container_image()
                         .map_err(RpcRunnerError::Generic)?,
                 );
-                test_config
-                    .rpc_runner_config
-                    .bind_chain_to_container(&container);
+                rpc_runner_config.bind_chain_to_container(&container);
                 Some(container)
             }
             None => None,
         };
 
         // Setup chain and app
-        let chain = Chain::new(test_config.rpc_runner_config.chain_config.clone())?;
+        let chain = Chain::new(rpc_runner_config.chain_config.clone())?;
 
         Ok(Self {
             chain,
             _container: container,
             test_config,
+            rpc_runner_config,
         })
     }
 
     pub fn from_container(
-        mut test_config: TestConfig,
+        test_config: TestConfig,
+        mut rpc_runner_config: RpcRunnerConfig,
         container: Container<'a, GenericImage>,
     ) -> Result<Self, RpcRunnerError> {
-        test_config
-            .rpc_runner_config
-            .bind_chain_to_container(&container);
+        rpc_runner_config.bind_chain_to_container(&container);
 
-        let chain = Chain::new(test_config.rpc_runner_config.chain_config.clone())?;
+        let chain = Chain::new(rpc_runner_config.chain_config.clone())?;
 
         Ok(Self {
             chain,
             _container: Some(container),
             test_config,
+            rpc_runner_config,
         })
     }
 
@@ -105,7 +107,6 @@ impl<'a> RpcRunner<'a> {
         let mut accounts = vec![];
         for i in 0..count {
             let account = self
-                .test_config
                 .rpc_runner_config
                 .import_account(&format!("test{}", i))
                 .unwrap();
