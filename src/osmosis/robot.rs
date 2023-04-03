@@ -19,7 +19,7 @@ use crate::robot::TestRobot;
 
 /// Implements a collection of common interactions with the `OsmosisTestApp`, that are
 /// specific to the osmosis chain
-pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
+pub trait OsmosisTestAppRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     /// Increases the block time by the given number of seconds
     ///
     /// ## Args:
@@ -80,7 +80,9 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
         self.app().add_superfluid_lp_share(&denom);
         self
     }
+}
 
+pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     /// Provide single sided liquidity to a pool. If the resulting number of LP shares is less than
     /// `min_out`, the transaction will fail. If `min_out` is `None`, the minimum amount of LP shares
     /// is set to 1. This is required by Osmosis which does not allow min_out to be non-positive.
@@ -193,6 +195,7 @@ mod tests {
     }
 
     impl<'a> OsmosisTestRobot<'a> for TestingRobot<'a> {}
+    impl<'a> OsmosisTestAppRobot<'a> for TestingRobot<'a> {}
 
     const INITIAL_BALANCES: &[ConstCoin] = &[
         ConstCoin::new(100_000_000_000_000_000u128, "uatom"),
