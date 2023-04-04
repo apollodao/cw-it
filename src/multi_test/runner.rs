@@ -125,8 +125,6 @@ impl Runner<'_> for MultiTestRunner<'_> {
         M: prost::Message,
         R: prost::Message + Default,
     {
-        println!("execute multiple");
-        println!("msgs: {:?}", msgs);
         let encoded_msgs = msgs
             .iter()
             .map(|(msg, type_url)| {
@@ -169,7 +167,6 @@ impl Runner<'_> for MultiTestRunner<'_> {
                     }))
                 }
                 MsgInstantiateContract::TYPE_URL => {
-                    println!("execute multiple raw instantiate");
                     let msg = MsgInstantiateContract::decode(msg.value.as_slice())
                         .map_err(DecodeError::ProtoDecodeError)?;
                     Ok(CosmosMsg::<Empty>::Wasm(WasmMsg::Instantiate {
@@ -307,7 +304,7 @@ mod tests {
     use cosmwasm_std::{coin, Event, Uint128};
 
     use cw20::MinterResponse;
-    use cw_multi_test::{ContractWrapper, WasmKeeper};
+    use cw_multi_test::ContractWrapper;
     use osmosis_std::types::cosmos::bank::v1beta1::{
         QueryBalanceRequest, QuerySupplyOfRequest, QueryTotalSupplyRequest,
     };
@@ -324,8 +321,6 @@ mod tests {
     use crate::test_helpers::*;
 
     use super::*;
-
-    const ASTRO_TOKEN_WASM_PATH: &str = "artifacts/astro_token.wasm";
 
     fn instantiate_astro_token(
         app: &MultiTestRunner,
@@ -374,7 +369,7 @@ mod tests {
     #[should_panic]
     // This test should panic because we are trying to upload a wasm contract to a MultiTestRunner
     // which does not support wasm contracts.
-    fn wasm_upload_artifact() {
+    fn upload_wasm_artifact() {
         let app = MultiTestRunner::new("osmo");
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
@@ -428,7 +423,7 @@ mod tests {
         assert_eq!(
             wasm_event,
             &Event::new("wasm")
-                .add_attribute("_contract_addr", contract_addr.to_string())
+                .add_attribute("_contract_addr", contract_addr)
                 .add_attribute("action", "mint")
                 .add_attribute("to", alice.address())
                 .add_attribute("amount", "100")

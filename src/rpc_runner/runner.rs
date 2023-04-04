@@ -304,7 +304,6 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
         M: ::prost::Message,
         R: ::prost::Message + Default,
     {
-        println!("execute_multiple called");
         let encoded_msgs = msgs
             .iter()
             .map(|(msg, type_url)| {
