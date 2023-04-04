@@ -22,7 +22,7 @@ use test_tube::{
     SigningAccount,
 };
 
-use crate::traits::{ContractType, WasmRunner};
+use crate::traits::{ContractType, CwItRunner};
 
 pub struct MultiTestRunner<'a> {
     pub app: cw_multi_test::App,
@@ -38,35 +38,6 @@ impl<'a> MultiTestRunner<'a> {
             app,
             address_prefix,
         }
-    }
-
-    // TODO: move to trait
-    pub fn init_account(&self, initial_balance: &[Coin]) -> RunnerResult<SigningAccount> {
-        // Create a random signing account
-        let signing_key = SigningKey::random();
-        let account = SigningAccount::new(
-            self.address_prefix.to_string(),
-            signing_key,
-            FeeSetting::Auto {
-                gas_price: coin(0, "coin"),
-                gas_adjustment: 1.0,
-            },
-        );
-
-        // Mint the initial balances to the account
-        if !initial_balance.is_empty() {
-            self.app
-                .sudo(
-                    BankSudo::Mint {
-                        to_address: account.address(),
-                        amount: initial_balance.to_vec(),
-                    }
-                    .into(),
-                )
-                .unwrap();
-        }
-
-        Ok(account)
     }
 }
 
@@ -285,7 +256,7 @@ impl Runner<'_> for MultiTestRunner<'_> {
     }
 }
 
-impl<'a> WasmRunner<'a> for MultiTestRunner<'a> {
+impl<'a> CwItRunner<'a> for MultiTestRunner<'a> {
     fn store_code(
         &self,
         code: ContractType,
@@ -295,6 +266,46 @@ impl<'a> WasmRunner<'a> for MultiTestRunner<'a> {
             ContractType::MultiTestContract(contract) => Ok(self.app.store_code(contract)),
             ContractType::Artifact(_) => bail!("Artifact not supported for MultiTestRunner"),
         }
+    }
+
+    fn init_account(&self, initial_balance: &[Coin]) -> Result<SigningAccount, anyhow::Error> {
+        // Create a random signing account
+        let signing_key = SigningKey::random();
+        let account = SigningAccount::new(
+            self.address_prefix.to_string(),
+            signing_key,
+            FeeSetting::Auto {
+                gas_price: coin(0, "coin"),
+                gas_adjustment: 1.0,
+            },
+        );
+
+        // Mint the initial balances to the account
+        if !initial_balance.is_empty() {
+            self.app
+                .sudo(
+                    BankSudo::Mint {
+                        to_address: account.address(),
+                        amount: initial_balance.to_vec(),
+                    }
+                    .into(),
+                )
+                .unwrap();
+        }
+
+        Ok(account)
+    }
+
+    fn init_accounts(
+        &self,
+        initial_balance: &[Coin],
+        num_accounts: usize,
+    ) -> Result<Vec<SigningAccount>, anyhow::Error> {
+        let mut accounts = vec![];
+        for _ in 0..num_accounts {
+            accounts.push(self.init_account(initial_balance)?);
+        }
+        Ok(accounts)
     }
 }
 

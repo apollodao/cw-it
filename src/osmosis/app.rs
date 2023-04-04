@@ -1,9 +1,10 @@
 use anyhow::{bail, Error};
+use cosmwasm_std::Coin;
 use osmosis_test_tube::{Module, OsmosisTestApp, SigningAccount, Wasm};
 
-use crate::traits::{ContractType, WasmRunner};
+use crate::traits::{ContractType, CwItRunner};
 
-impl WasmRunner<'_> for OsmosisTestApp {
+impl CwItRunner<'_> for OsmosisTestApp {
     fn store_code(&self, code: ContractType, signer: &SigningAccount) -> Result<u64, Error> {
         match code {
             ContractType::MultiTestContract(_) => {
@@ -16,6 +17,18 @@ impl WasmRunner<'_> for OsmosisTestApp {
                 Ok(code_id)
             }
         }
+    }
+
+    fn init_account(&self, initial_balance: &[Coin]) -> Result<SigningAccount, Error> {
+        Ok(self.init_account(initial_balance)?)
+    }
+
+    fn init_accounts(
+        &self,
+        initial_balance: &[Coin],
+        num_accounts: usize,
+    ) -> Result<Vec<SigningAccount>, Error> {
+        Ok(self.init_accounts(initial_balance, num_accounts as u64)?)
     }
 }
 

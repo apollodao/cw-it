@@ -10,9 +10,9 @@ use test_tube::{Account, Module, Runner, RunnerExecuteResult, RunnerResult, Sign
 use test_tube::{Bank, Wasm};
 
 use crate::error::CwItError;
-use crate::traits::{ContractType, WasmRunner};
+use crate::traits::{ContractType, CwItRunner};
 
-pub fn upload_wasm_files<'a, R: WasmRunner<'a>>(
+pub fn upload_wasm_files<'a, R: CwItRunner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
     contracts: HashMap<String, ContractType>,
@@ -69,7 +69,7 @@ where
 }
 
 /// Uploads a wasm file to the chain and returns the code_id
-pub fn upload_wasm_file<'a, R: WasmRunner<'a>>(
+pub fn upload_wasm_file<'a, R: CwItRunner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
     contract: ContractType,
