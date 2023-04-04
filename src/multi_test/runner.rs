@@ -18,8 +18,7 @@ use prost::Message;
 use serde::de::DeserializeOwned;
 use std::str::FromStr;
 use test_tube::{
-    Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, RunnerResult,
-    SigningAccount,
+    Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, SigningAccount,
 };
 
 use crate::traits::{ContractType, CwItRunner};

@@ -756,6 +756,7 @@ dependencies = [
 [[package]]
 name = "cw-multi-test"
 version = "0.16.2"
+source = "git+https://github.com/pacmanifold/cw-multi-test.git?rev=2021e162ff3aabfc89a7be12b99b7e2619a2fc11#2021e162ff3aabfc89a7be12b99b7e2619a2fc11"
 dependencies = [
  "anyhow",
  "cosmwasm-std",
