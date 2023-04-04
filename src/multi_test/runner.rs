@@ -1,12 +1,9 @@
 use anyhow::bail;
-use cosmrs::{
-    crypto::secp256k1::SigningKey,
-    proto::cosmos::{base::abci::v1beta1::GasInfo},
-};
+use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
 use cosmwasm_std::{
     coin, Addr, BankMsg, Binary, Coin, CosmosMsg, Empty, QueryRequest, StakingMsg, WasmMsg,
 };
-use cw_multi_test::{BankKeeper, BankSudo, BasicAppBuilder, StargateKeeper, StargateQueryHandler};
+use cw_multi_test::{BankSudo, BasicAppBuilder};
 use osmosis_std::types::{
     cosmos::{
         bank::v1beta1::MsgSend,
@@ -27,25 +24,15 @@ use test_tube::{
 
 use crate::traits::{ContractType, WasmRunner};
 
-use super::modules::BankModule;
-
 pub struct MultiTestRunner<'a> {
     pub app: cw_multi_test::App,
     pub address_prefix: &'a str,
 }
 
-const BANK_MODULE: BankModule = BankModule(BankKeeper {});
-
 impl<'a> MultiTestRunner<'a> {
     pub fn new(address_prefix: &'a str) -> Self {
-        // Setup stargate keeper with bank module support
-        let mut stargate_keeper = StargateKeeper::new();
-        BANK_MODULE.register_queries(&mut stargate_keeper);
-
         // Construct app
-        let app = BasicAppBuilder::<Empty, Empty>::new()
-            .with_stargate(stargate_keeper)
-            .build(|_, _, _| {});
+        let app = BasicAppBuilder::<Empty, Empty>::new().build(|_, _, _| {});
 
         Self {
             app,
@@ -138,6 +125,8 @@ impl Runner<'_> for MultiTestRunner<'_> {
         M: prost::Message,
         R: prost::Message + Default,
     {
+        println!("execute multiple");
+        println!("msgs: {:?}", msgs);
         let encoded_msgs = msgs
             .iter()
             .map(|(msg, type_url)| {
@@ -180,6 +169,7 @@ impl Runner<'_> for MultiTestRunner<'_> {
                     }))
                 }
                 MsgInstantiateContract::TYPE_URL => {
+                    println!("execute multiple raw instantiate");
                     let msg = MsgInstantiateContract::decode(msg.value.as_slice())
                         .map_err(DecodeError::ProtoDecodeError)?;
                     Ok(CosmosMsg::<Empty>::Wasm(WasmMsg::Instantiate {
@@ -314,99 +304,63 @@ impl<'a> WasmRunner<'a> for MultiTestRunner<'a> {
 #[cfg(test)]
 mod tests {
     use cosmrs::proto::cosmos::bank::v1beta1::MsgSendResponse;
-    use cosmwasm_std::{coin, to_binary, Event};
-    
+    use cosmwasm_std::{coin, Event, Uint128};
+
+    use cw20::MinterResponse;
+    use cw_multi_test::{ContractWrapper, WasmKeeper};
+    use osmosis_std::types::cosmos::bank::v1beta1::{
+        QueryBalanceRequest, QuerySupplyOfRequest, QueryTotalSupplyRequest,
+    };
+    use osmosis_std::types::cosmwasm::wasm::v1::QueryContractInfoRequest;
     use osmosis_std::types::{
         cosmos::bank::v1beta1::QueryAllBalancesRequest,
         cosmwasm::wasm::v1::MsgInstantiateContractResponse,
     };
+    use osmosis_test_tube::{RunnerExecuteResult, Wasm};
     use test_tube::{Bank, Module};
 
     use crate::{artifact::Artifact, helpers::upload_wasm_file};
 
+    use crate::test_helpers::*;
+
     use super::*;
 
-    mod counter {
-        use cosmwasm_schema::{cw_serde, QueryResponses};
+    const ASTRO_TOKEN_WASM_PATH: &str = "artifacts/astro_token.wasm";
 
-        #[cw_serde]
-        pub struct InstantiateMsg {
-            pub count: i32,
-        }
+    fn instantiate_astro_token(
+        app: &MultiTestRunner,
+        signer: &SigningAccount,
+    ) -> RunnerExecuteResult<MsgInstantiateContractResponse> {
+        let code_id = upload_wasm_file(
+            app,
+            signer,
+            ContractType::MultiTestContract(Box::new(ContractWrapper::new(
+                cw20_base::contract::execute,
+                cw20_base::contract::instantiate,
+                cw20_base::contract::query,
+            ))),
+        )
+        .unwrap();
 
-        #[cw_serde]
-        pub enum ExecuteMsg {
-            Increment {},
-            Reset { count: i32 },
-        }
-
-        #[cw_serde]
-        #[derive(QueryResponses)]
-        pub enum QueryMsg {
-            // GetCount returns the current count as a json-encoded number
-            #[returns(GetCountResponse)]
-            GetCount {},
-        }
-
-        // We define a custom struct for each query response
-        #[cw_serde]
-        pub struct GetCountResponse {
-            pub count: i32,
-        }
-
-        pub const WASM_PATH: &str = "artifacts/counter.wasm";
-    }
-
-    mod test_contract {
-        use std::fmt;
-
-        use cosmwasm_schema::{cw_serde, schemars::JsonSchema};
-        use cosmwasm_std::{
-            Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, SubMsg, WasmMsg,
+        let init_msg = cw20_base::msg::InstantiateMsg {
+            name: "Astro Token".to_string(),
+            symbol: "ASTRO".to_string(),
+            decimals: 6,
+            initial_balances: vec![],
+            mint: Some(MinterResponse {
+                minter: signer.address(),
+                cap: None,
+            }),
+            marketing: None,
         };
-        use cw_multi_test::{Contract, ContractWrapper};
 
-        #[cw_serde]
-        pub struct EmptyMsg {}
-
-        fn instantiate(
-            _deps: DepsMut,
-            _env: Env,
-            _info: MessageInfo,
-            _msg: EmptyMsg,
-        ) -> Result<Response, StdError> {
-            Ok(Response::default())
-        }
-
-        fn execute(
-            _deps: DepsMut,
-            _env: Env,
-            _info: MessageInfo,
-            msg: WasmMsg,
-        ) -> Result<Response, StdError> {
-            let message = SubMsg::new(msg);
-
-            Ok(Response::new().add_submessage(message))
-        }
-
-        fn query(_deps: Deps, _env: Env, _msg: EmptyMsg) -> Result<Binary, StdError> {
-            Err(StdError::generic_err(
-                "query not implemented for the `test_contract` contract",
-            ))
-        }
-
-        pub fn test_contract<C>() -> Box<dyn Contract<C>>
-        where
-            C: Clone + fmt::Debug + PartialEq + JsonSchema + 'static,
-        {
-            let contract = ContractWrapper::new_with_empty(execute, instantiate, query);
-            Box::new(contract)
-        }
+        let wasm = Wasm::new(app);
+        wasm.instantiate(code_id, &init_msg, None, Some("counter"), &[], signer)
     }
 
     #[test]
     fn upload_contract() {
-        let contract = ContractType::MultiTestContract(test_contract::test_contract());
+        let contract = ContractType::MultiTestContract(test_contract::contract());
 
         let app = MultiTestRunner::new("osmo");
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
@@ -420,34 +374,121 @@ mod tests {
     #[should_panic]
     // This test should panic because we are trying to upload a wasm contract to a MultiTestRunner
     // which does not support wasm contracts.
-    fn wasm_instantiate_contract() {
+    fn wasm_upload_artifact() {
         let app = MultiTestRunner::new("osmo");
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
-        let code_id = upload_wasm_file(
+        let _code_id = upload_wasm_file(
             &app,
             &alice,
             ContractType::Artifact(Artifact::Local(counter::WASM_PATH.to_string())),
         )
         .unwrap();
+    }
 
-        let init_msg = counter::InstantiateMsg { count: 17 };
-        let msgs = vec![cosmwasm_std::CosmosMsg::Wasm(
-            cosmwasm_std::WasmMsg::Instantiate {
-                code_id,
-                msg: to_binary(&init_msg).unwrap(),
-                funds: vec![],
-                admin: Some(alice.address()),
-                label: "counter".to_string(),
-            },
-        )];
+    #[test]
+    // This test should panic because we are trying to upload a wasm contract to a MultiTestRunner
+    // which does not support wasm contracts.
+    fn wasm_instantiate_contract() {
+        let app = MultiTestRunner::new("osmo");
+        let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
-        let res = app
-            .execute_cosmos_msgs::<MsgInstantiateContractResponse>(&msgs, &alice)
-            .unwrap();
-
+        // Instantiate with test_tube::Wasm
+        let res = instantiate_astro_token(&app, &alice).unwrap();
         assert_eq!(res.events.len(), 1);
         assert_eq!(res.events[0].ty, "instantiate".to_string());
+    }
+
+    #[test]
+    fn wasm_execute_contract() {
+        // start the keeper
+        let app = MultiTestRunner::new("osmo");
+
+        let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
+
+        let res = instantiate_astro_token(&app, &alice).unwrap();
+
+        let contract_addr = res.data.address;
+
+        let wasm = Wasm::new(&app);
+        let res = wasm
+            .execute(
+                &contract_addr,
+                &cw20_base::msg::ExecuteMsg::Mint {
+                    recipient: alice.address(),
+                    amount: 100u128.into(),
+                },
+                &[],
+                &alice,
+            )
+            .unwrap();
+        assert_eq!(res.events.len(), 2);
+
+        let wasm_event = res.events.iter().find(|e| e.ty == "wasm").unwrap();
+        assert_eq!(
+            wasm_event,
+            &Event::new("wasm")
+                .add_attribute("_contract_addr", contract_addr.to_string())
+                .add_attribute("action", "mint")
+                .add_attribute("to", alice.address())
+                .add_attribute("amount", "100")
+        );
+    }
+
+    #[test]
+    fn wasm_smart_query_contract() {
+        let app = MultiTestRunner::new("osmo");
+        let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
+
+        let res = instantiate_astro_token(&app, &alice).unwrap();
+
+        let contract_addr = res.data.address;
+
+        let wasm = Wasm::new(&app);
+
+        let _code_id = upload_wasm_file(
+            &app,
+            &alice,
+            ContractType::MultiTestContract(Box::new(ContractWrapper::new(
+                cw20_base::contract::execute,
+                cw20_base::contract::instantiate,
+                cw20_base::contract::query,
+            ))),
+        )
+        .unwrap();
+
+        let res = wasm
+            .query::<_, cw20::BalanceResponse>(
+                &contract_addr,
+                &cw20_base::msg::QueryMsg::Balance {
+                    address: alice.address(),
+                },
+            )
+            .unwrap();
+
+        assert_eq!(res.balance, Uint128::zero());
+    }
+
+    #[test]
+    fn wasm_contract_info_query() {
+        let app = MultiTestRunner::new("osmo");
+        let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
+
+        let res = instantiate_astro_token(&app, &alice).unwrap();
+
+        let contract_addr = res.data.address;
+
+        let res = QueryContractInfoRequest {
+            address: contract_addr.clone(),
+        }
+        .query(&app.app.wrap())
+        .unwrap();
+
+        assert_eq!(res.address, contract_addr);
+        let info = res.contract_info.unwrap();
+        assert_eq!(info.code_id, 1);
+        assert_eq!(info.creator, alice.address());
+        assert_eq!(info.label, "");
     }
 
     #[test]
@@ -476,6 +517,73 @@ mod tests {
                 .add_attribute("sender", alice.address())
                 .add_attribute("amount", "100uatom")
         );
+
+        let bank = Bank::new(&app);
+        let res = bank
+            .send(
+                MsgSend {
+                    from_address: alice.address(),
+                    to_address: bob.address(),
+                    amount: vec![coin(100, "uatom").into()],
+                },
+                &alice,
+            )
+            .unwrap();
+        assert_eq!(res.events.len(), 1);
+        assert_eq!(
+            res.events[0],
+            Event::new("transfer")
+                .add_attribute("recipient", bob.address())
+                .add_attribute("sender", alice.address())
+                .add_attribute("amount", "100uatom")
+        );
+    }
+
+    #[test]
+    fn bank_queries() {
+        let app = MultiTestRunner::new("osmo");
+        let alice = app.init_account(&[coin(1000, "uatom")]).unwrap();
+
+        let bank = Bank::new(&app);
+
+        // Query all balances
+        let res = bank
+            .query_all_balances(&QueryAllBalancesRequest {
+                address: alice.address(),
+                pagination: None,
+            })
+            .unwrap();
+        assert_eq!(res.balances.len(), 1);
+        assert_eq!(res.balances[0].denom, "uatom".to_string());
+        assert_eq!(res.balances[0].amount, "1000");
+
+        // Query balance
+        let res = bank
+            .query_balance(&QueryBalanceRequest {
+                address: alice.address(),
+                denom: "uatom".to_string(),
+            })
+            .unwrap()
+            .balance
+            .unwrap();
+        assert_eq!(res.denom, "uatom".to_string());
+        assert_eq!(res.amount, "1000");
+
+        // Query total supply should fail since there is no cosmwasm bank query for it
+        let _res = bank
+            .query_total_supply(&QueryTotalSupplyRequest { pagination: None })
+            .unwrap_err();
+
+        // Query supply of
+        let supply = QuerySupplyOfRequest {
+            denom: "uatom".to_string(),
+        }
+        .query(&app.app.wrap())
+        .unwrap()
+        .amount
+        .unwrap();
+        assert_eq!(supply.denom, "uatom".to_string());
+        assert_eq!(supply.amount, "1000");
     }
 
     #[test]

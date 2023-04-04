@@ -115,7 +115,10 @@ mod tests {
         let robot = OsmosisTestAppRobot(&app);
 
         let account1 = app
-            .init_account(&[Coin::new(100_000_000_000_000_000u128, "uatom")])
+            .init_account(&[
+                Coin::new(100_000_000_000_000_000u128, "uatom"),
+                Coin::new(10000000000, "uosmo"),
+            ])
             .unwrap();
         let account2 = app.init_account(&[]).unwrap();
 
