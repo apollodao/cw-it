@@ -358,16 +358,16 @@ mod tests {
     }
     impl<'a> AstroportTestRobot<'a, TestRunner<'a>> for TestingRobot<'a> {}
 
-    /// Whether or not your used cw-optimizoor to compile artifacts
-    /// (adds cpu architecture to wasm file name).
-    pub const USE_CW_OPTIMIZOOR: bool = true;
+    /// cw-optimizoor adds the CPU architecture to the wasm file name
+    pub const APPEND_ARCH: bool = true;
+    pub const ARCH: Option<&str> = Some("aarch64");
 
     /// The path to the artifacts folder
     pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/042b076");
 
     /// Get astroport artifacts already from disk
     pub fn get_local_artifacts() -> ArtifactMap {
-        crate::astroport::utils::get_local_artifacts(&ARTIFACTS_PATH, USE_CW_OPTIMIZOOR)
+        crate::astroport::utils::get_local_artifacts(&ARTIFACTS_PATH, APPEND_ARCH, ARCH)
     }
 
     /// Creates an Osmosis test runner

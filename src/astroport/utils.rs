@@ -487,10 +487,16 @@ where
 /// * `name` - The name of the contract
 /// * `path` - The path to the artifacts folder
 /// * `append_arch` - If true, the architecture will be appended to the filename
-pub fn get_wasm_path(name: &str, path: &Option<&str>, append_arch: bool) -> String {
+pub fn get_wasm_path(
+    name: &str,
+    path: &Option<&str>,
+    append_arch: bool,
+    arch: Option<&str>,
+) -> String {
     // If using cw-optimizoor, it prepends the cpu architecture to the wasm file name
     let name = if append_arch {
-        format!("{}-{}.wasm", name, std::env::consts::ARCH)
+        let arch = arch.unwrap_or_else(|| std::env::consts::ARCH);
+        format!("{}-{}.wasm", name, arch)
     } else {
         format!("{}.wasm", name)
     };
@@ -499,13 +505,17 @@ pub fn get_wasm_path(name: &str, path: &Option<&str>, append_arch: bool) -> Stri
 }
 
 /// Get astroport artifacts already from disk
-pub fn get_local_artifacts(path: &Option<&str>, append_arch: bool) -> HashMap<String, Artifact> {
+pub fn get_local_artifacts(
+    path: &Option<&str>,
+    append_arch: bool,
+    arch: Option<&str>,
+) -> HashMap<String, Artifact> {
     ASTROPORT_CONTRACT_NAMES
         .into_iter()
         .map(|name| {
             (
                 name.to_string(),
-                Artifact::Local(get_wasm_path(name, path, append_arch)),
+                Artifact::Local(get_wasm_path(name, path, append_arch, arch)),
             )
         })
         .collect::<HashMap<String, Artifact>>()
@@ -547,9 +557,9 @@ mod tests {
     #[cfg(feature = "rpc-runner")]
     pub const TEST_CONFIG_PATH: &str = "configs/terra.yaml";
 
-    /// Whether or not you used cw-optimizoor to compile artifacts
-    /// (adds cpu architecture to wasm file name).
-    pub const USE_CW_OPTIMIZOOR: bool = true;
+    /// cw-optimizoor adds the CPU architecture to the wasm file name
+    pub const APPEND_ARCH: bool = true;
+    pub const ARCH: Option<&str> = Some("aarch64");
 
     /// The path to the artifacts folder
     pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/042b076");
@@ -611,7 +621,7 @@ mod tests {
 
     /// Get astroport artifacts already from disk
     pub fn get_local_artifacts() -> HashMap<String, Artifact> {
-        super::get_local_artifacts(&ARTIFACTS_PATH, USE_CW_OPTIMIZOOR)
+        super::get_local_artifacts(&ARTIFACTS_PATH, APPEND_ARCH, ARCH)
     }
 
     #[cfg(feature = "chain-download")]
@@ -632,7 +642,8 @@ mod tests {
             Artifact::Local(get_wasm_path(
                 "astroport_staking",
                 &ARTIFACTS_PATH,
-                USE_CW_OPTIMIZOOR,
+                APPEND_ARCH,
+                ARCH,
             )),
         );
         artifacts
