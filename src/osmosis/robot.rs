@@ -6,10 +6,11 @@ use osmosis_test_tube::osmosis_std::{
     types::osmosis::{
         gamm::v1beta1::{
             MsgJoinSwapExternAmountIn, MsgJoinSwapExternAmountInResponse, MsgSwapExactAmountIn,
-            MsgSwapExactAmountInResponse, SwapAmountInRoute,
+            MsgSwapExactAmountInResponse,
         },
         lockup::Params as LockupParams,
         lockup::{MsgLockTokens, MsgLockTokensResponse},
+        poolmanager::v1beta1::SwapAmountInRoute,
     },
 };
 use osmosis_test_tube::{Account, OsmosisTestApp, Runner, SigningAccount};

@@ -1923,7 +1923,22 @@ checksum = "10d6fe6ac7fcba45ed61d738091d33c838c4cabbcf4892dc7aa56d19d39cc976"
 dependencies = [
  "chrono",
  "cosmwasm-std",
- "osmosis-std-derive",
+ "osmosis-std-derive 0.13.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost",
+ "prost-types",
+ "schemars",
+ "serde",
+ "serde-cw-value",
+]
+
+[[package]]
+name = "osmosis-std"
+version = "0.13.2"
+source = "git+https://github.com/osmosis-labs/osmosis-rust.git?branch=main#6841a23fc9a0b11649acdb7eb436f564b1a87cbb"
+dependencies = [
+ "chrono",
+ "cosmwasm-std",
+ "osmosis-std-derive 0.13.2 (git+https://github.com/osmosis-labs/osmosis-rust.git?branch=main)",
  "prost",
  "prost-types",
  "schemars",
@@ -1944,15 +1959,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "osmosis-std-derive"
+version = "0.13.2"
+source = "git+https://github.com/osmosis-labs/osmosis-rust.git?branch=main#6841a23fc9a0b11649acdb7eb436f564b1a87cbb"
+dependencies = [
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "osmosis-test-tube"
 version = "14.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?rev=b599c5c#b599c5c1697e5f8ab2d915c3a8ce33c1a4b9d738"
+source = "git+https://github.com/apollodao/test-tube.git?rev=b82afce00946993d689550736104cafc8bc893cf#b82afce00946993d689550736104cafc8bc893cf"
 dependencies = [
  "base64",
  "bindgen",
  "cosmrs",
  "cosmwasm-std",
- "osmosis-std",
+ "osmosis-std 0.13.2 (git+https://github.com/osmosis-labs/osmosis-rust.git?branch=main)",
  "prost",
  "serde",
  "serde_json",
@@ -2998,12 +3024,12 @@ dependencies = [
 [[package]]
 name = "test-tube"
 version = "0.1.1"
-source = "git+https://github.com/apollodao/test-tube.git?rev=b599c5c#b599c5c1697e5f8ab2d915c3a8ce33c1a4b9d738"
+source = "git+https://github.com/apollodao/test-tube.git?rev=b82afce00946993d689550736104cafc8bc893cf#b82afce00946993d689550736104cafc8bc893cf"
 dependencies = [
  "base64",
  "cosmrs",
  "cosmwasm-std",
- "osmosis-std",
+ "osmosis-std 0.13.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost",
  "serde",
  "serde_json",
