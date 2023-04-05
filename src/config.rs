@@ -8,15 +8,10 @@ use thiserror::Error;
 
 use crate::{artifact::Artifact, helpers::get_current_working_dir};
 
-#[cfg(feature = "rpc-runner")]
-use crate::rpc_runner::config::RpcRunnerConfig;
-
 pub const DEFAULT_PROJECTS_FOLDER: &str = "cloned_repos";
 #[derive(Clone, Debug, Deserialize)]
 pub struct TestConfig {
     pub artifacts: HashMap<String, Artifact>,
-    #[cfg(feature = "rpc-runner")]
-    pub rpc_runner_config: RpcRunnerConfig,
 }
 
 #[derive(Clone, Debug, Deserialize)]

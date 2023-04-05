@@ -380,7 +380,7 @@ proptest! {
 
     #[test]
     fn test_denoms_one_common(denoms in vec(2..8usize,2).prop_flat_map(|counts| pool_denoms(counts[0]).prop_flat_map(move |base_denoms| {
-        (Just(base_denoms.clone()), pool_denoms_with_one_common(counts[1], base_denoms.clone()))
+        (Just(base_denoms.clone()), pool_denoms_with_one_common(counts[1], base_denoms))
     }))) {
         let (base_denoms, other_denoms) = denoms;
         assert!(base_denoms.iter().any(|denom| other_denoms.contains(denom)));
