@@ -6,14 +6,14 @@ use crate::helpers::{bank_balance_query, bank_send};
 /// Implements a collection of common interactions with a `Runner`, that are all applicable to any
 /// cosmos chain.
 pub trait TestRobot<'a, R: Runner<'a> + 'a> {
-    fn app(&self) -> &'a R;
+    fn runner(&self) -> &'a R;
 
     fn wasm(&self) -> Wasm<'a, R> {
-        Wasm::new(self.app())
+        Wasm::new(self.runner())
     }
 
     fn bank(&self) -> Bank<'a, R> {
-        Bank::new(self.app())
+        Bank::new(self.runner())
     }
 
     fn query_native_token_balance(
@@ -21,7 +21,7 @@ pub trait TestRobot<'a, R: Runner<'a> + 'a> {
         account: impl Into<String>,
         denom: impl Into<String>,
     ) -> Uint128 {
-        bank_balance_query(self.app(), account.into(), denom.into()).unwrap()
+        bank_balance_query(self.runner(), account.into(), denom.into()).unwrap()
     }
 
     fn assert_native_token_balance_eq(
@@ -71,7 +71,7 @@ pub trait TestRobot<'a, R: Runner<'a> + 'a> {
             amount: amount.into(),
             denom: denom.into(),
         };
-        bank_send(self.app(), from, &to.into(), vec![coin]).unwrap();
+        bank_send(self.runner(), from, &to.into(), vec![coin]).unwrap();
 
         self
     }
@@ -88,7 +88,7 @@ mod tests {
     struct OsmosisTestAppRobot<'a>(&'a OsmosisTestApp);
 
     impl<'a> TestRobot<'a, OsmosisTestApp> for OsmosisTestAppRobot<'a> {
-        fn app(&self) -> &'a OsmosisTestApp {
+        fn runner(&self) -> &'a OsmosisTestApp {
             self.0
         }
     }
@@ -117,7 +117,7 @@ mod tests {
         let account1 = app
             .init_account(&[
                 Coin::new(100_000_000_000_000_000u128, "uatom"),
-                Coin::new(10000000000, "uosmo"),
+                Coin::new(100_000_000_000_000_000u128, "uosmo"), //uosmo needed to pay gas
             ])
             .unwrap();
         let account2 = app.init_account(&[]).unwrap();

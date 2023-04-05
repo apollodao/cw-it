@@ -12,16 +12,27 @@ use test_tube::{Bank, Wasm};
 use crate::error::CwItError;
 use crate::traits::{ContractType, CwItRunner};
 
+#[cfg(feature = "tokio")]
+use std::future::Future;
+#[cfg(feature = "tokio")]
+pub fn block_on<F: Future>(f: F) -> F::Output {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(f)
+}
+
 pub fn upload_wasm_files<'a, R: CwItRunner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
-    contracts: HashMap<String, ContractType>,
+    contracts: &HashMap<String, ContractType>,
 ) -> Result<HashMap<String, u64>, CwItError> {
     contracts
-        .into_iter()
+        .iter()
         .map(|(name, contract)| {
-            let code_id = runner.store_code(contract, signer)?;
-            Ok((name, code_id))
+            let code_id = runner.store_code(contract.clone(), signer)?;
+            Ok((name.clone(), code_id))
         })
         .collect()
 }

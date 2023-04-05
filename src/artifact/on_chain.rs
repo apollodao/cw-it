@@ -1,4 +1,3 @@
-use cosmrs::rpc::error::Error as RpcError;
 use cosmrs::{
     proto::cosmwasm::wasm::v1::{
         QueryCodeRequest, QueryCodeResponse, QueryContractInfoRequest, QueryContractInfoResponse,
@@ -6,6 +5,8 @@ use cosmrs::{
     rpc::{endpoint::abci_query::AbciQuery, Client, HttpClient},
 };
 use prost::Message;
+
+use crate::helpers::block_on;
 
 use super::ArtifactError;
 
@@ -54,13 +55,26 @@ pub fn download_wasm_from_contract_address(
     download_wasm_from_code_id(rpc_endpoint, code_id)
 }
 
-fn rpc_query<T: Message>(client: &HttpClient, req: T, path: &str) -> Result<AbciQuery, RpcError> {
+fn rpc_query<T: Message>(
+    client: &HttpClient,
+    req: T,
+    path: &str,
+) -> Result<AbciQuery, ArtifactError> {
     let mut buf = Vec::with_capacity(req.encoded_len());
     req.encode(&mut buf).unwrap();
-    Ok(futures::executor::block_on(client.abci_query(
+    Ok(block_on(client.abci_query(
         Some(path.parse().unwrap()),
         buf,
         None,
         false,
     ))?)
+}
+
+#[test]
+fn test_rpc_query() {
+    let rpc_endpoint = "https://rpc.osmosis.zone/".to_string();
+    let http_client = HttpClient::new(rpc_endpoint.as_str()).unwrap();
+    let req = QueryCodeRequest { code_id: 1 };
+    let res = rpc_query(&http_client, req, "/cosmwasm.wasm.v1.Query/ContractInfo").unwrap();
+    println!("{:?}", res);
 }

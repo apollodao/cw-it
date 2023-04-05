@@ -1,6 +1,8 @@
+use std::time::Duration;
+
 use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
 use cosmrs::rpc::{Client, HttpClient};
-use futures_time::{task::sleep, time::Duration};
+// use futures_time::{task::sleep, time::Duration};
 use serde::Deserialize;
 use thiserror::Error;
 use tonic::transport::Channel;
@@ -8,6 +10,8 @@ use tonic::transport::Channel;
 use cosmrs::rpc::error::Error as RpcError;
 
 use config::Config;
+
+use crate::helpers::block_on;
 
 #[derive(Debug, Error)]
 pub enum ChainError {
@@ -66,7 +70,7 @@ impl Chain {
         let http_client = HttpClient::new(chain_cfg.rpc_endpoint.as_str())?;
 
         let grpc_client: ServiceClient<Channel> =
-            futures::executor::block_on(ServiceClient::connect(chain_cfg.grpc_endpoint.clone()))?;
+            block_on(ServiceClient::connect(chain_cfg.grpc_endpoint.clone()))?;
 
         Ok(Self {
             http_client,
@@ -88,12 +92,11 @@ impl Chain {
     }
 
     pub fn current_height(&self) -> Result<u64, RpcError> {
-        futures::executor::block_on(self.http_client.latest_block())
-            .map(|res| res.block.header.height.into())
+        block_on(self.http_client.latest_block()).map(|res| res.block.header.height.into())
     }
 
     pub fn wait(&self, n_block: u64) -> Result<(), RpcError> {
-        futures::executor::block_on(self.poll_for_n_blocks(n_block, false))
+        block_on(self.poll_for_n_blocks(n_block, false))
     }
 
     pub async fn poll_for_n_blocks(&self, n: u64, is_first_block: bool) -> Result<(), RpcError> {
@@ -107,7 +110,7 @@ impl Chain {
                 if !matches!(e.detail(), cosmrs::rpc::error::ErrorDetail::Serde(_)) {
                     return Err(e);
                 }
-                sleep(Duration::from_millis(500)).await;
+                tokio::time::sleep(Duration::from_millis(500)).await;
             }
         }
 
@@ -123,7 +126,7 @@ impl Chain {
         let target_height: u64 = curr_height + n;
 
         while curr_height < target_height {
-            sleep(Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(500)).await;
 
             curr_height = self
                 .client()

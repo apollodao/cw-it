@@ -20,13 +20,13 @@ use crate::robot::TestRobot;
 
 /// Implements a collection of common interactions with the `OsmosisTestApp`, that are
 /// specific to the osmosis chain
-pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
+pub trait OsmosisTestAppRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     /// Increases the block time by the given number of seconds
     ///
     /// ## Args:
     ///   - `seconds`: The number of seconds to increase the block time by
     fn increase_time(&self, seconds: u64) -> &Self {
-        self.app().increase_time(seconds);
+        self.runner().increase_time(seconds);
         self
     }
 
@@ -44,7 +44,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
                 force_unlock_allowed_addresses: whitelist,
             };
 
-            self.app()
+            self.runner()
                 .set_param_set(
                     "lockup",
                     Any {
@@ -64,7 +64,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     ///  - `Vec<String>`: The addresses whitelisted for force unlocking
     fn get_force_unlock_whitelisted_addresses(&self) -> Vec<String> {
         let pset: LockupParams = self
-            .app()
+            .runner()
             .get_param_set("lockup", LockupParams::TYPE_URL)
             .unwrap();
         pset.force_unlock_allowed_addresses
@@ -78,10 +78,12 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
         if !is_osmosis_lp_token(&denom) {
             panic!("Denom must be an LP share to be whitelisted as a superfluid LP share");
         }
-        self.app().add_superfluid_lp_share(&denom);
+        self.runner().add_superfluid_lp_share(&denom);
         self
     }
+}
 
+pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     /// Provide single sided liquidity to a pool. If the resulting number of LP shares is less than
     /// `min_out`, the transaction will fail. If `min_out` is `None`, the minimum amount of LP shares
     /// is set to 1. This is required by Osmosis which does not allow min_out to be non-positive.
@@ -106,7 +108,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
             share_out_min_amount: format!("{min_out}"),
         };
 
-        self.app()
+        self.runner()
             .execute::<_, MsgJoinSwapExternAmountInResponse>(
                 msg,
                 MsgJoinSwapExternAmountIn::TYPE_URL,
@@ -146,7 +148,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
             token_out_min_amount: format!("{min_out}"),
         };
 
-        self.app()
+        self.runner()
             .execute::<_, MsgSwapExactAmountInResponse>(msg, MsgSwapExactAmountIn::TYPE_URL, signer)
             .unwrap();
 
@@ -168,7 +170,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
             owner: signer.address(),
         };
 
-        self.app()
+        self.runner()
             .execute::<_, MsgLockTokensResponse>(msg, MsgLockTokens::TYPE_URL, signer)
             .unwrap();
         self
@@ -179,7 +181,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
 mod tests {
     use apollo_utils::iterators::IntoElementwise;
     use cosmwasm_std::Coin;
-    use osmosis_test_tube::{Gamm, Module, OsmosisTestApp};
+    use osmosis_test_tube::{FeeSetting, Gamm, Module, OsmosisTestApp};
 
     use crate::const_coin::ConstCoin;
 
@@ -188,12 +190,13 @@ mod tests {
     struct TestingRobot<'a>(&'a OsmosisTestApp);
 
     impl<'a> TestRobot<'a, OsmosisTestApp> for TestingRobot<'a> {
-        fn app(&self) -> &'a OsmosisTestApp {
+        fn runner(&self) -> &'a OsmosisTestApp {
             self.0
         }
     }
 
     impl<'a> OsmosisTestRobot<'a> for TestingRobot<'a> {}
+    impl<'a> OsmosisTestAppRobot<'a> for TestingRobot<'a> {}
 
     const INITIAL_BALANCES: &[ConstCoin] = &[
         ConstCoin::new(100_000_000_000_000_000u128, "uatom"),
@@ -261,12 +264,25 @@ mod tests {
     #[test]
     fn test_swap_exact_amount_in() {
         let app = OsmosisTestApp::new();
+
+        // Set fixed gas amount for easy calculations
+        const GAS_AMOUNT: u128 = 1_000_000;
+        let fee_setting: FeeSetting = FeeSetting::Custom {
+            amount: Coin {
+                denom: "uosmo".to_string(),
+                amount: GAS_AMOUNT.into(),
+            },
+            gas_limit: 20_000_000,
+        };
+
         let account1 = app
             .init_account(&INITIAL_BALANCES.into_elementwise())
-            .unwrap();
+            .unwrap()
+            .with_fee_setting(fee_setting.clone());
         let account2 = app
             .init_account(&INITIAL_BALANCES.into_elementwise())
-            .unwrap();
+            .unwrap()
+            .with_fee_setting(fee_setting);
 
         let initial_balance = INITIAL_BALANCES
             .iter()
@@ -303,7 +319,7 @@ mod tests {
                 // We should have swapped swap_amount of our uosmo
                 account2.address(),
                 "uosmo",
-                initial_balance - swap_amount,
+                initial_balance - swap_amount - GAS_AMOUNT,
             )
             .assert_native_token_balance_gt(
                 // We should have more than the initial balance

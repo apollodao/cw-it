@@ -1,6 +1,6 @@
 use std::fs;
 
-use serde::Deserialize;
+use cosmwasm_schema::cw_serde;
 use thiserror::Error;
 
 #[cfg(feature = "chain-download")]
@@ -13,7 +13,7 @@ mod on_chain;
 /// - Local: A local file path
 /// - Url: A url to download the artifact from
 /// - Chain: A chain id to download the artifact from
-#[derive(Clone, Debug, Deserialize)]
+#[cw_serde]
 pub enum Artifact {
     Local(String),
     #[cfg(feature = "url-download")]
@@ -36,6 +36,34 @@ pub enum Artifact {
     },
 }
 
+/// Convenience type to map contract names to artifacts
+pub type ArtifactMap = std::collections::HashMap<String, Artifact>;
+
+/// A const-safe helper enum to specify where to get the a remote wasm file
+#[cw_serde]
+#[derive(Copy)]
+#[cfg(feature = "chain-download")]
+pub enum ChainArtifact {
+    Addr(&'static str),
+    CodeId(u64),
+}
+
+#[cfg(feature = "chain-download")]
+impl ChainArtifact {
+    pub fn into_artifact(self, rpc_endpoint: String) -> Artifact {
+        match self {
+            ChainArtifact::Addr(addr) => Artifact::ChainContractAddress {
+                rpc_endpoint,
+                contract_address: addr.to_string(),
+            },
+            ChainArtifact::CodeId(id) => Artifact::ChainCodeId {
+                rpc_endpoint,
+                code_id: id,
+            },
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum ArtifactError {
     #[error("{0}")]
@@ -54,7 +82,7 @@ pub enum ArtifactError {
 }
 
 impl Artifact {
-    pub fn get_wasm_byte_code(self) -> Result<Vec<u8>, ArtifactError> {
+    pub fn get_wasm_byte_code(&self) -> Result<Vec<u8>, ArtifactError> {
         match self {
             Artifact::Local(path) => Ok(fs::read(path)?),
             #[cfg(feature = "url-download")]
@@ -63,12 +91,12 @@ impl Artifact {
             Artifact::ChainCodeId {
                 rpc_endpoint,
                 code_id,
-            } => download_wasm_from_code_id(&rpc_endpoint, code_id),
+            } => download_wasm_from_code_id(rpc_endpoint, *code_id),
             #[cfg(feature = "chain-download")]
             Artifact::ChainContractAddress {
                 rpc_endpoint,
                 contract_address,
-            } => download_wasm_from_contract_address(&rpc_endpoint, contract_address),
+            } => download_wasm_from_contract_address(rpc_endpoint, contract_address),
             #[cfg(feature = "git")]
             Artifact::Git {
                 url: _,

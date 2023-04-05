@@ -19,8 +19,9 @@ use testcontainers::Container;
 use thiserror::Error;
 
 use super::chain::Chain;
+use super::config::RpcRunnerConfig;
 use crate::application::Application;
-use crate::config::TestConfig;
+use crate::helpers::block_on;
 
 use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
 use cosmos_sdk_proto::cosmos::tx::v1beta1::SimulateRequest;
@@ -45,38 +46,54 @@ pub enum RpcRunnerError {
 pub struct RpcRunner<'a> {
     chain: Chain,
     _container: Option<Container<'a, GenericImage>>,
-    pub test_config: TestConfig,
+    pub rpc_runner_config: RpcRunnerConfig,
 }
 
 impl<'a> RpcRunner<'a> {
-    pub fn new(mut test_config: TestConfig, docker: &'a Cli) -> Result<Self, RpcRunnerError> {
+    pub fn new(
+        mut rpc_runner_config: RpcRunnerConfig,
+        docker: Option<&'a Cli>,
+    ) -> Result<Self, RpcRunnerError> {
         // Setup test container
-        let container = match &test_config.rpc_runner_config.container {
+        let container = match &rpc_runner_config.container {
             Some(container_info) => {
-                let container: Container<GenericImage> = docker.run(
+                let container: Container<GenericImage> = docker.unwrap().run(
                     container_info
                         .get_container_image()
                         .map_err(RpcRunnerError::Generic)?,
                 );
-                test_config
-                    .rpc_runner_config
-                    .bind_chain_to_container(&container);
+                rpc_runner_config.bind_chain_to_container(&container);
                 Some(container)
             }
             None => None,
         };
 
         // Setup chain and app
-        let chain = Chain::new(test_config.rpc_runner_config.chain_config.clone())?;
+        let chain = Chain::new(rpc_runner_config.chain_config.clone())?;
 
         Ok(Self {
             chain,
             _container: container,
-            test_config,
+            rpc_runner_config,
         })
     }
 
-    pub fn init_accounts(&self, _coins: &[Coin], count: u64) -> Vec<SigningAccount> {
+    pub fn from_container(
+        mut rpc_runner_config: RpcRunnerConfig,
+        container: Container<'a, GenericImage>,
+    ) -> Result<Self, RpcRunnerError> {
+        rpc_runner_config.bind_chain_to_container(&container);
+
+        let chain = Chain::new(rpc_runner_config.chain_config.clone())?;
+
+        Ok(Self {
+            chain,
+            _container: Some(container),
+            rpc_runner_config,
+        })
+    }
+
+    pub fn init_accounts(&self, _coins: &[Coin], count: u8) -> Vec<SigningAccount> {
         if count > 10 {
             panic!("cannot create more than 10 accounts");
         }
@@ -84,7 +101,6 @@ impl<'a> RpcRunner<'a> {
         let mut accounts = vec![];
         for i in 0..count {
             let account = self
-                .test_config
                 .rpc_runner_config
                 .import_account(&format!("test{}", i))
                 .unwrap();
@@ -185,7 +201,7 @@ impl<'a> Application for RpcRunner<'a> {
         );
 
         let tx_raw = self.create_signed_tx(msgs, signer, zero_fee)?;
-        println!("tx_raw size = {:?}", tx_raw.len());
+        // println!("tx_raw size = {:?}", tx_raw.len());
 
         let simulate_msg = SimulateRequest {
             tx: None,
@@ -194,22 +210,20 @@ impl<'a> Application for RpcRunner<'a> {
 
         // println!("Init GRpc ServiceClient (port 9090)");
 
-        let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo =
-            futures::executor::block_on(async {
-                let mut service =
-                    ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
-                        .await
-                        .map_err(|e| RunnerError::GenericError(e.to_string()))?;
-                service
-                    .simulate(simulate_msg)
-                    .await
-                    .map_err(|e| RunnerError::GenericError(e.to_string()))
-            })?
-            .into_inner()
-            .gas_info
-            .ok_or(RunnerError::QueryError {
-                msg: "No gas_info returned from simulate".into(),
-            })?;
+        let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo = block_on(async {
+            let mut service = ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
+                .await
+                .map_err(|e| RunnerError::GenericError(e.to_string()))?;
+            service
+                .simulate(simulate_msg)
+                .await
+                .map_err(|e| RunnerError::GenericError(e.to_string()))
+        })?
+        .into_inner()
+        .gas_info
+        .ok_or(RunnerError::QueryError {
+            msg: "No gas_info returned from simulate".into(),
+        })?;
 
         Ok(cosmrs::proto::cosmos::base::abci::v1beta1::GasInfo {
             gas_wanted: gas_info.gas_wanted,
@@ -286,11 +300,12 @@ impl<'a> Application for RpcRunner<'a> {
         let mut buf = Vec::with_capacity(req.encoded_len());
         req.encode(&mut buf)
             .map_err(EncodeError::ProtoEncodeError)?;
-        Ok(futures::executor::block_on(
-            self.chain
-                .client()
-                .abci_query(Some(path.parse()?), buf, None, false),
-        )?)
+        Ok(block_on(self.chain.client().abci_query(
+            Some(path.parse()?),
+            buf,
+            None,
+            false,
+        ))?)
     }
 }
 
@@ -356,7 +371,7 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
         let tx_raw = self.create_signed_tx(msgs, signer, fee)?;
 
         let tx_commit_response: TxCommitResponse =
-            futures::executor::block_on(self.chain.client().broadcast_tx_commit(tx_raw.into()))?;
+            block_on(self.chain.client().broadcast_tx_commit(tx_raw.into()))?;
 
         if tx_commit_response.check_tx.code.is_err() {
             return Err(RunnerError::ExecuteError {
@@ -380,7 +395,7 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
         msg.encode(&mut base64_query_msg_bytes)
             .map_err(EncodeError::ProtoEncodeError)?;
 
-        let res = futures::executor::block_on(self.chain.client().abci_query(
+        let res = block_on(self.chain.client().abci_query(
             Some(path.parse()?),
             base64_query_msg_bytes,
             None,
