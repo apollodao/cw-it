@@ -77,8 +77,6 @@ pub trait TestRobot<'a, R: Runner<'a> + 'a> {
     }
 }
 
-// We feature-gate theses tests because they use OsmosisTestApp
-#[cfg(feature = "osmosis")]
 #[cfg(test)]
 mod tests {
     use osmosis_test_tube::{Account, OsmosisTestApp};
