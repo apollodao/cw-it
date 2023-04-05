@@ -1,3 +1,4 @@
+#[cfg(feature = "multi-test")]
 pub mod test_contract {
     use std::fmt;
 

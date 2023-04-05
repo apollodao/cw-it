@@ -1,6 +1,5 @@
 pub mod application;
 pub mod artifact;
-pub mod config;
 pub mod const_coin;
 pub mod error;
 pub mod helpers;
@@ -26,10 +25,12 @@ pub mod osmosis;
 pub mod astroport;
 
 pub mod test_runner;
+pub use artifact::*;
 pub use test_runner::TestRunner;
 
 // Re-exports for convenience
 pub use cosmrs;
+#[cfg(feature = "osmosis")]
 pub use osmosis_test_tube;
 pub use test_tube;
 

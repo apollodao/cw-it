@@ -10,7 +10,8 @@ use test_tube::{Account, Module, Runner, RunnerExecuteResult, RunnerResult, Sign
 use test_tube::{Bank, Wasm};
 
 use crate::error::CwItError;
-use crate::traits::{ContractType, CwItRunner};
+use crate::traits::CwItRunner;
+use crate::ContractType;
 
 #[cfg(feature = "tokio")]
 use std::future::Future;
@@ -26,12 +27,12 @@ pub fn block_on<F: Future>(f: F) -> F::Output {
 pub fn upload_wasm_files<'a, R: CwItRunner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
-    contracts: &HashMap<String, ContractType>,
+    contracts: HashMap<String, ContractType>,
 ) -> Result<HashMap<String, u64>, CwItError> {
     contracts
-        .iter()
+        .into_iter()
         .map(|(name, contract)| {
-            let code_id = runner.store_code(contract.clone(), signer)?;
+            let code_id = runner.store_code(contract, signer)?;
             Ok((name.clone(), code_id))
         })
         .collect()

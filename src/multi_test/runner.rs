@@ -21,7 +21,7 @@ use test_tube::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, SigningAccount,
 };
 
-use crate::traits::{ContractType, CwItRunner};
+use crate::{traits::CwItRunner, ContractType};
 
 pub struct MultiTestRunner<'a> {
     pub app: cw_multi_test::App,

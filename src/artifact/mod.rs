@@ -1,7 +1,9 @@
-use std::fs;
-
 use cosmwasm_schema::cw_serde;
+use std::fs;
 use thiserror::Error;
+
+#[cfg(feature = "multi-test")]
+use {cosmwasm_std::Empty, cw_multi_test::Contract};
 
 #[cfg(feature = "chain-download")]
 use self::on_chain::{download_wasm_from_code_id, download_wasm_from_contract_address};
@@ -36,8 +38,15 @@ pub enum Artifact {
     },
 }
 
-/// Convenience type to map contract names to artifacts
-pub type ArtifactMap = std::collections::HashMap<String, Artifact>;
+/// Enum to represent different ways of representing a contract in tests
+pub enum ContractType {
+    Artifact(Artifact),
+    #[cfg(feature = "multi-test")]
+    MultiTestContract(Box<dyn Contract<Empty, Empty>>),
+}
+
+/// Convenience type to map contract names to implementations
+pub type ContractMap = std::collections::HashMap<String, ContractType>;
 
 /// A const-safe helper enum to specify where to get the a remote wasm file
 #[cw_serde]

@@ -2,7 +2,7 @@ use anyhow::{bail, Error};
 use cosmwasm_std::Coin;
 use osmosis_test_tube::{Module, OsmosisTestApp, SigningAccount, Wasm};
 
-use crate::traits::{ContractType, CwItRunner};
+use crate::{traits::CwItRunner, ContractType};
 
 impl CwItRunner<'_> for OsmosisTestApp {
     fn store_code(&self, code: ContractType, signer: &SigningAccount) -> Result<u64, Error> {
@@ -63,6 +63,7 @@ mod tests {
 
     #[test]
     #[should_panic]
+    #[cfg(feature = "multi-test")]
     fn osmosis_test_app_store_code_multi_test_contract() {
         let app = OsmosisTestApp::new();
         let admin = app
