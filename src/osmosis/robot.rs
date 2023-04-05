@@ -25,7 +25,7 @@ pub trait OsmosisTestAppRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     /// ## Args:
     ///   - `seconds`: The number of seconds to increase the block time by
     fn increase_time(&self, seconds: u64) -> &Self {
-        self.app().increase_time(seconds);
+        self.runner().increase_time(seconds);
         self
     }
 
@@ -43,7 +43,7 @@ pub trait OsmosisTestAppRobot<'a>: TestRobot<'a, OsmosisTestApp> {
                 force_unlock_allowed_addresses: whitelist,
             };
 
-            self.app()
+            self.runner()
                 .set_param_set(
                     "lockup",
                     Any {
@@ -63,7 +63,7 @@ pub trait OsmosisTestAppRobot<'a>: TestRobot<'a, OsmosisTestApp> {
     ///  - `Vec<String>`: The addresses whitelisted for force unlocking
     fn get_force_unlock_whitelisted_addresses(&self) -> Vec<String> {
         let pset: LockupParams = self
-            .app()
+            .runner()
             .get_param_set("lockup", LockupParams::TYPE_URL)
             .unwrap();
         pset.force_unlock_allowed_addresses
@@ -77,7 +77,7 @@ pub trait OsmosisTestAppRobot<'a>: TestRobot<'a, OsmosisTestApp> {
         if !is_osmosis_lp_token(&denom) {
             panic!("Denom must be an LP share to be whitelisted as a superfluid LP share");
         }
-        self.app().add_superfluid_lp_share(&denom);
+        self.runner().add_superfluid_lp_share(&denom);
         self
     }
 }
@@ -107,7 +107,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
             share_out_min_amount: format!("{min_out}"),
         };
 
-        self.app()
+        self.runner()
             .execute::<_, MsgJoinSwapExternAmountInResponse>(
                 msg,
                 MsgJoinSwapExternAmountIn::TYPE_URL,
@@ -147,7 +147,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
             token_out_min_amount: format!("{min_out}"),
         };
 
-        self.app()
+        self.runner()
             .execute::<_, MsgSwapExactAmountInResponse>(msg, MsgSwapExactAmountIn::TYPE_URL, signer)
             .unwrap();
 
@@ -169,7 +169,7 @@ pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {
             owner: signer.address(),
         };
 
-        self.app()
+        self.runner()
             .execute::<_, MsgLockTokensResponse>(msg, MsgLockTokens::TYPE_URL, signer)
             .unwrap();
         self
@@ -189,7 +189,7 @@ mod tests {
     struct TestingRobot<'a>(&'a OsmosisTestApp);
 
     impl<'a> TestRobot<'a, OsmosisTestApp> for TestingRobot<'a> {
-        fn app(&self) -> &'a OsmosisTestApp {
+        fn runner(&self) -> &'a OsmosisTestApp {
             &self.0
         }
     }

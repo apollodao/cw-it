@@ -36,6 +36,9 @@ pub enum Artifact {
     },
 }
 
+/// Convenience type to map contract names to artifacts
+pub type ArtifactMap = std::collections::HashMap<String, Artifact>;
+
 /// A const-safe helper enum to specify where to get the a remote wasm file
 #[cw_serde]
 #[derive(Copy)]
@@ -79,7 +82,7 @@ pub enum ArtifactError {
 }
 
 impl Artifact {
-    pub fn get_wasm_byte_code(self) -> Result<Vec<u8>, ArtifactError> {
+    pub fn get_wasm_byte_code(&self) -> Result<Vec<u8>, ArtifactError> {
         match self {
             Artifact::Local(path) => Ok(fs::read(path)?),
             #[cfg(feature = "url-download")]
@@ -88,7 +91,7 @@ impl Artifact {
             Artifact::ChainCodeId {
                 rpc_endpoint,
                 code_id,
-            } => download_wasm_from_code_id(&rpc_endpoint, code_id),
+            } => download_wasm_from_code_id(&rpc_endpoint, *code_id),
             #[cfg(feature = "chain-download")]
             Artifact::ChainContractAddress {
                 rpc_endpoint,

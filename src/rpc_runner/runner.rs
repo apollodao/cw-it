@@ -21,7 +21,6 @@ use thiserror::Error;
 use super::chain::Chain;
 use super::config::RpcRunnerConfig;
 use crate::application::Application;
-use crate::config::TestConfig;
 use crate::helpers::block_on;
 
 use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
@@ -47,13 +46,11 @@ pub enum RpcRunnerError {
 pub struct RpcRunner<'a> {
     chain: Chain,
     _container: Option<Container<'a, GenericImage>>,
-    pub test_config: TestConfig,
     pub rpc_runner_config: RpcRunnerConfig,
 }
 
 impl<'a> RpcRunner<'a> {
     pub fn new(
-        test_config: TestConfig,
         mut rpc_runner_config: RpcRunnerConfig,
         docker: Option<&'a Cli>,
     ) -> Result<Self, RpcRunnerError> {
@@ -77,13 +74,11 @@ impl<'a> RpcRunner<'a> {
         Ok(Self {
             chain,
             _container: container,
-            test_config,
             rpc_runner_config,
         })
     }
 
     pub fn from_container(
-        test_config: TestConfig,
         mut rpc_runner_config: RpcRunnerConfig,
         container: Container<'a, GenericImage>,
     ) -> Result<Self, RpcRunnerError> {
@@ -94,12 +89,11 @@ impl<'a> RpcRunner<'a> {
         Ok(Self {
             chain,
             _container: Some(container),
-            test_config,
             rpc_runner_config,
         })
     }
 
-    pub fn init_accounts(&self, _coins: &[Coin], count: u64) -> Vec<SigningAccount> {
+    pub fn init_accounts(&self, _coins: &[Coin], count: u8) -> Vec<SigningAccount> {
         if count > 10 {
             panic!("cannot create more than 10 accounts");
         }

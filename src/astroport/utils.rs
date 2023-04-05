@@ -1,3 +1,4 @@
+use crate::artifact::Artifact;
 use crate::config::TestConfig;
 use crate::helpers::upload_wasm_files;
 use ap_native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
@@ -72,7 +73,7 @@ where
     R: Runner<'a>,
 {
     // Upload contracts
-    let code_ids = upload_wasm_files(app, admin, test_config.artifacts.clone()).unwrap();
+    let code_ids = upload_wasm_files(app, admin, &test_config.artifacts).unwrap();
 
     // Instantiate contracts
     instantiate_astroport(app, admin, &code_ids)
@@ -480,6 +481,36 @@ where
     lp_token_balance_after - lp_token_balance_before
 }
 
+/// Get the wasm path for the contract with the given name.
+///
+/// # Arguments:
+/// * `name` - The name of the contract
+/// * `path` - The path to the artifacts folder
+/// * `append_arch` - If true, the architecture will be appended to the filename
+pub fn get_wasm_path(name: &str, path: &Option<&str>, append_arch: bool) -> String {
+    // If using cw-optimizoor, it prepends the cpu architecture to the wasm file name
+    let name = if append_arch {
+        format!("{}-{}.wasm", name, std::env::consts::ARCH)
+    } else {
+        format!("{}.wasm", name)
+    };
+
+    format!("{}/{}", path.unwrap_or_else(|| "artifacts"), name)
+}
+
+/// Get astroport artifacts already from disk
+pub fn get_local_artifacts(path: &Option<&str>, append_arch: bool) -> HashMap<String, Artifact> {
+    ASTROPORT_CONTRACT_NAMES
+        .into_iter()
+        .map(|name| {
+            (
+                name.to_string(),
+                Artifact::Local(get_wasm_path(name, path, append_arch)),
+            )
+        })
+        .collect::<HashMap<String, Artifact>>()
+}
+
 #[cfg(test)]
 mod tests {
     use astroport::{
@@ -494,9 +525,10 @@ mod tests {
     use test_case::test_case;
     use test_tube::Module;
 
+    use super::get_wasm_path;
     use crate::{
         artifact::Artifact,
-        astroport::utils::{create_astroport_pair, setup_astroport, ASTROPORT_CONTRACT_NAMES},
+        astroport::utils::{create_astroport_pair, setup_astroport},
         config::TestConfig,
         test_runner::TestRunner,
     };
@@ -515,38 +547,12 @@ mod tests {
     #[cfg(feature = "rpc-runner")]
     pub const TEST_CONFIG_PATH: &str = "configs/terra.yaml";
 
-    /// Whether or not your used cw-optimizoor to compile artifacts
+    /// Whether or not you used cw-optimizoor to compile artifacts
     /// (adds cpu architecture to wasm file name).
     pub const USE_CW_OPTIMIZOOR: bool = true;
 
-    /// The commit hash from where the contracts were compiled. If set, the artifacts should be in
-    /// a subfolder with this name.
-    pub const COMMIT: Option<&str> = Some("042b076");
-
-    /// Get the wasm path for the contract depending on above consts
-    fn get_wasm_path(name: &str) -> String {
-        // If using cw-optimizoor, it prepends the cpu architecture to the wasm file name
-        let name = if USE_CW_OPTIMIZOOR {
-            format!("{}-{}.wasm", name, std::env::consts::ARCH)
-        } else {
-            format!("{}.wasm", name)
-        };
-        // If commit is set, use the relevant folder
-        let folder = format!(
-            "{}/{}",
-            std::env::var("ARTIFACTS_DIR").unwrap_or_else(|_| "artifacts".to_string()),
-            COMMIT.unwrap_or("")
-        );
-        format!("{}/{}", folder, name)
-    }
-
-    /// Get artifacts already on the disk
-    fn get_local_artifacts() -> HashMap<String, Artifact> {
-        ASTROPORT_CONTRACT_NAMES
-            .into_iter()
-            .map(|name| (name.to_string(), Artifact::Local(get_wasm_path(name))))
-            .collect::<HashMap<String, Artifact>>()
-    }
+    /// The path to the artifacts folder
+    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/042b076");
 
     #[cfg(feature = "chain-download")]
     /// The Neutron testnet RPC to use to download wasm files
@@ -603,6 +609,11 @@ mod tests {
         ),
     ];
 
+    /// Get astroport artifacts already from disk
+    pub fn get_local_artifacts() -> HashMap<String, Artifact> {
+        super::get_local_artifacts(&ARTIFACTS_PATH, USE_CW_OPTIMIZOOR)
+    }
+
     #[cfg(feature = "chain-download")]
     /// Get articacts from Neutron testnet
     fn get_neutron_testnet_artifacts() -> HashMap<String, Artifact> {
@@ -618,7 +629,11 @@ mod tests {
         // Staking contract not deployed on Neutron testnet
         artifacts.insert(
             "astroport_staking".to_string(),
-            Artifact::Local(get_wasm_path("astroport_staking")),
+            Artifact::Local(get_wasm_path(
+                "astroport_staking",
+                &ARTIFACTS_PATH,
+                USE_CW_OPTIMIZOOR,
+            )),
         );
         artifacts
     }
@@ -637,17 +652,11 @@ mod tests {
     #[cfg(feature = "rpc-runner")]
     fn get_rpc_runner<'a>(cli: Option<&'a Cli>) -> (TestRunner<'a>, Vec<SigningAccount>, &'a str) {
         let rpc_runner_config = RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH);
-        let test_config = TestConfig {
-            artifacts: ASTROPORT_CONTRACT_NAMES
-                .iter()
-                .map(|name| (name.to_string(), Artifact::Local(get_wasm_path(name))))
-                .collect::<HashMap<String, Artifact>>(),
-        };
 
         let runner = if let Some(cli) = cli {
-            RpcRunner::new(test_config, rpc_runner_config, Some(cli)).unwrap()
+            RpcRunner::new(rpc_runner_config, Some(cli)).unwrap()
         } else {
-            RpcRunner::new(test_config, rpc_runner_config, None).unwrap()
+            RpcRunner::new(rpc_runner_config, None).unwrap()
         };
 
         let accs = runner

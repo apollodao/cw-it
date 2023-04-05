@@ -25,16 +25,16 @@ pub fn block_on<F: Future>(f: F) -> F::Output {
 pub fn upload_wasm_files<'a, R: Runner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
-    contracts: HashMap<String, Artifact>,
+    contracts: &HashMap<String, Artifact>,
 ) -> Result<HashMap<String, u64>, CwItError> {
     let wasm = Wasm::new(runner);
     contracts
-        .into_iter()
+        .iter()
         .map(|(name, artifact)| {
             println!("Uploading wasm file for contract {}, {:?}", name, artifact);
             let wasm_byte_code = artifact.get_wasm_byte_code()?;
             let code_id = wasm.store_code(&wasm_byte_code, None, signer)?.data.code_id;
-            Ok((name, code_id))
+            Ok((name.clone(), code_id))
         })
         .collect()
 }
