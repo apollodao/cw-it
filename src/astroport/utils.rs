@@ -495,7 +495,7 @@ pub fn get_wasm_path(
 ) -> String {
     // If using cw-optimizoor, it prepends the cpu architecture to the wasm file name
     let name = if append_arch {
-        let arch = arch.unwrap_or_else(|| std::env::consts::ARCH);
+        let arch = arch.unwrap_or(std::env::consts::ARCH);
         format!("{}-{}.wasm", name, arch)
     } else {
         format!("{}.wasm", name)
