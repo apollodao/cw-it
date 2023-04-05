@@ -675,7 +675,9 @@ mod tests {
     }
 
     #[cfg(feature = "chain-download")]
-    #[test_case(get_osmosis_test_app() => (); "Neutron testnet artifacts, osmosis test app")]
+    // Commenting out test-case because Neutron's RPC node is down and it's breaking CI.
+    // #[test_case(get_osmosis_test_app() => (); "Neutron testnet artifacts, osmosis test app")]
+    #[allow(dead_code)]
     pub fn test_with_neutron_testnet_artifacts<'a>(
         (app, accs, native_denom): (TestRunner<'a>, Vec<SigningAccount>, &'a str),
     ) {
