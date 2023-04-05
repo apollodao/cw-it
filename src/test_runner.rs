@@ -1,5 +1,6 @@
 #[cfg(feature = "rpc-runner")]
 use crate::rpc_runner::RpcRunner;
+
 use crate::{traits::CwItRunner, ContractType};
 
 use cosmwasm_std::coin;

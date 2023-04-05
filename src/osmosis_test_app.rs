@@ -1,12 +1,16 @@
-use anyhow::{bail, Error};
+use anyhow::Error;
 use cosmwasm_std::Coin;
 use osmosis_test_tube::{Module, OsmosisTestApp, SigningAccount, Wasm};
 
 use crate::{traits::CwItRunner, ContractType};
 
+#[cfg(feature = "multi-test")]
+use anyhow::bail;
+
 impl CwItRunner<'_> for OsmosisTestApp {
     fn store_code(&self, code: ContractType, signer: &SigningAccount) -> Result<u64, Error> {
         match code {
+            #[cfg(feature = "multi-test")]
             ContractType::MultiTestContract(_) => {
                 bail!("MultiTestContract not supported for OsmosisTestApp")
             }
@@ -39,8 +43,6 @@ mod tests {
 
     use crate::artifact::Artifact;
 
-    use crate::test_helpers::*;
-
     use super::*;
 
     const TEST_ARTIFACT: &str = "artifacts/counter.wasm";
@@ -65,6 +67,8 @@ mod tests {
     #[should_panic]
     #[cfg(feature = "multi-test")]
     fn osmosis_test_app_store_code_multi_test_contract() {
+        use crate::test_helpers::test_contract;
+
         let app = OsmosisTestApp::new();
         let admin = app
             .init_account(&[Coin::new(1000000000000, "uosmo")])

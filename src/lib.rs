@@ -3,9 +3,11 @@ pub mod artifact;
 pub mod const_coin;
 pub mod error;
 pub mod helpers;
+pub mod osmosis_test_app;
 pub mod robot;
 pub mod traits;
 
+#[cfg(feature = "multi-test")]
 #[cfg(test)]
 mod test_helpers;
 
@@ -30,7 +32,6 @@ pub use test_runner::TestRunner;
 
 // Re-exports for convenience
 pub use cosmrs;
-#[cfg(feature = "osmosis")]
 pub use osmosis_test_tube;
 pub use test_tube;
 

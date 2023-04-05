@@ -33,7 +33,7 @@ pub fn upload_wasm_files<'a, R: CwItRunner<'a>>(
         .into_iter()
         .map(|(name, contract)| {
             let code_id = runner.store_code(contract, signer)?;
-            Ok((name.clone(), code_id))
+            Ok((name, code_id))
         })
         .collect()
 }
@@ -125,7 +125,7 @@ pub fn bank_send<'a>(
     )
 }
 
-pub(crate) fn get_current_working_dir() -> String {
+pub fn get_current_working_dir() -> String {
     let res = env::current_dir();
     match res {
         Ok(path) => path.into_os_string().into_string().unwrap(),
