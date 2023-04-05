@@ -51,6 +51,45 @@ where
         }
     }
 
+    /// Asserts that the balance of an Astroport AssetInfo for the given address is less than the
+    /// expected amount.
+    fn assert_asset_balance_lt(
+        &self,
+        asset: &AssetInfo,
+        address: &str,
+        expected: impl Into<Uint128>,
+    ) -> &Self {
+        let actual = self.query_asset_balance(asset, address);
+        assert!(actual < expected.into());
+        self
+    }
+
+    /// Asserts that the balance of an Astroport AssetInfo for the given address is greater than the
+    /// expected amount.
+    fn assert_asset_balance_gt(
+        &self,
+        asset: &AssetInfo,
+        address: &str,
+        expected: impl Into<Uint128>,
+    ) -> &Self {
+        let actual = self.query_asset_balance(asset, address);
+        assert!(actual > expected.into());
+        self
+    }
+
+    /// Asserts that the balance of an Astroport AssetInfo for the given address is equal to the
+    /// expected amount.
+    fn assert_asset_balance_eq(
+        &self,
+        asset: &AssetInfo,
+        address: &str,
+        expected: impl Into<Uint128>,
+    ) -> &Self {
+        let actual = self.query_asset_balance(asset, address);
+        assert_eq!(actual, expected.into());
+        self
+    }
+
     /// Queries the LP token balance given the pair's address and the address of the account.
     fn query_lp_token_balance(&self, pair_addr: &str, address: &str) -> Uint128 {
         // Get lp token address
@@ -449,6 +488,7 @@ mod tests {
     }
 
     #[test_case(get_osmosis_test_app(),get_local_artifacts(),PairType::Xyk {},AssetChoice::NativeNative,None; "Swap on XYK, native-native")]
+    #[test_case(get_osmosis_test_app(),get_local_artifacts(),PairType::Xyk {},AssetChoice::NativeCw20,None; "Swap on XYK, native-cw20")]
     fn test_swap_on_pair(
         runner: TestRunner,
         artifacts: ArtifactMap,
@@ -461,6 +501,7 @@ mod tests {
 
         let contracts = &robot.astroport_contracts;
         let admin = &robot.accs[0];
+        let admin_addr = &admin.address();
 
         let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
         let initial_liquidity = Some([Uint128::from(420420u128), Uint128::from(696969u128)]);
@@ -474,11 +515,12 @@ mod tests {
         );
 
         let swap_amount = Uint128::from(1000u128);
+        let offer_asset_info = &asset_infos[0];
         let offer_asset = Asset {
-            info: asset_infos[0].clone(),
+            info: offer_asset_info.clone(),
             amount: swap_amount,
         };
-        let ask_asset_info = asset_infos[1].clone();
+        let ask_asset_info = &asset_infos[1];
 
         // First simulate
         let simulation = robot.query_simulate_swap(
@@ -488,30 +530,28 @@ mod tests {
         );
 
         // Query balance before swap
-        let offer_balance_before = robot.query_asset_balance(&offer_asset.info, &admin.address());
-        let ask_balance_before = robot.query_asset_balance(&ask_asset_info, &admin.address());
+        let offer_balance_before = robot.query_asset_balance(&offer_asset.info, admin_addr);
+        let ask_balance_before = robot.query_asset_balance(&ask_asset_info, admin_addr);
 
-        //Perform swap
-        robot.swap_on_astroport_pair(
-            &pair_addr,
-            offer_asset.clone(),
-            Some(ask_asset_info.clone()),
-            None,
-            None,
-            admin,
-        );
-
-        // Check result
-        let offer_balance_after = robot.query_asset_balance(&offer_asset.info, &admin.address());
-        let ask_balance_after = robot.query_asset_balance(&ask_asset_info, &admin.address());
-
-        assert_eq!(
-            offer_balance_after,
-            offer_balance_before - offer_asset.amount
-        );
-        assert_eq!(
-            ask_balance_after,
-            ask_balance_before + simulation.return_amount
-        );
+        //Perform swap and assert result
+        robot
+            .swap_on_astroport_pair(
+                &pair_addr,
+                offer_asset.clone(),
+                Some(ask_asset_info.clone()),
+                None,
+                None,
+                admin,
+            )
+            .assert_asset_balance_eq(
+                offer_asset_info,
+                admin_addr,
+                offer_balance_before - swap_amount,
+            )
+            .assert_asset_balance_eq(
+                ask_asset_info,
+                admin_addr,
+                ask_balance_before + simulation.return_amount,
+            );
     }
 }
