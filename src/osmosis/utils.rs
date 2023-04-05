@@ -11,7 +11,7 @@ pub fn is_osmosis_lp_token(denom: &str) -> bool {
 pub fn set_chain_force_unlock_whitelisted_addresses(
     runner: &OsmosisTestApp,
     addresses: &[&str],
-) -> () {
+) {
     let in_pset = lockup::Params {
         force_unlock_allowed_addresses: addresses.iter().map(|x| x.to_string()).collect(),
     };

@@ -173,7 +173,7 @@ where
                         expires: None,
                     };
                     self.wasm()
-                        .execute(&contract_addr.to_string(), &msg, &[], signer)
+                        .execute(contract_addr.as_ref(), &msg, &[], signer)
                         .unwrap();
                 }
                 AssetInfo::NativeToken { denom } => {
@@ -285,7 +285,7 @@ where
                     expires: None,
                 };
                 self.wasm()
-                    .execute(&contract_addr.to_string(), &msg, &[], signer)
+                    .execute(contract_addr.as_ref(), &msg, &[], signer)
                     .unwrap();
                 vec![]
             }
@@ -353,7 +353,7 @@ mod tests {
     }
     impl<'a> TestRobot<'a, TestRunner<'a>> for TestingRobot<'a> {
         fn runner(&self) -> &'a TestRunner<'a> {
-            &self.runner
+            self.runner
         }
     }
     impl<'a> AstroportTestRobot<'a, TestRunner<'a>> for TestingRobot<'a> {}
@@ -415,7 +415,7 @@ mod tests {
     }
 
     #[test_case(get_osmosis_test_app(),get_local_artifacts(); "osmosis")]
-    fn test_upload_and_init_astroport<'a>(runner: TestRunner<'a>, artifacts: ArtifactMap) {
+    fn test_upload_and_init_astroport(runner: TestRunner, artifacts: ArtifactMap) {
         let test_config = TestConfig { artifacts };
         TestingRobot::new(&runner, test_config);
     }
@@ -460,7 +460,7 @@ mod tests {
             asset_infos.clone(),
             init_params,
             admin,
-            initial_liquidity.map(|liq| liq.map(|l| Uint128::from(l))),
+            initial_liquidity.map(|liq| liq.map(Uint128::from)),
         );
 
         // Check pair info
@@ -507,7 +507,7 @@ mod tests {
         let initial_liquidity = Some([Uint128::from(420420u128), Uint128::from(696969u128)]);
         let (pair_addr, _lp_token_addr) = robot.create_astroport_pair(
             &contracts.factory.address,
-            pair_type.clone(),
+            pair_type,
             asset_infos.clone(),
             init_params,
             admin,
@@ -531,13 +531,13 @@ mod tests {
 
         // Query balance before swap
         let offer_balance_before = robot.query_asset_balance(&offer_asset.info, admin_addr);
-        let ask_balance_before = robot.query_asset_balance(&ask_asset_info, admin_addr);
+        let ask_balance_before = robot.query_asset_balance(ask_asset_info, admin_addr);
 
         //Perform swap and assert result
         robot
             .swap_on_astroport_pair(
                 &pair_addr,
-                offer_asset.clone(),
+                offer_asset,
                 Some(ask_asset_info.clone()),
                 None,
                 None,

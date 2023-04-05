@@ -413,7 +413,7 @@ where
     let msg = Cw20QueryMsg::Balance {
         address: address.to_string(),
     };
-    let res: BalanceResponse = wasm.query(&lp_token_addr.to_string(), &msg).unwrap();
+    let res: BalanceResponse = wasm.query(lp_token_addr.as_ref(), &msg).unwrap();
     res.balance
 }
 
@@ -450,7 +450,7 @@ where
                     amount: asset.amount,
                     expires: None,
                 };
-                wasm.execute(&contract_addr.to_string(), &msg, &[], signer)
+                wasm.execute(contract_addr.as_ref(), &msg, &[], signer)
                     .unwrap();
             }
             AssetInfo::NativeToken { denom } => {
@@ -467,7 +467,7 @@ where
 
     // Provide liquidity
     let msg = astroport::pair::ExecuteMsg::ProvideLiquidity {
-        assets: assets,
+        assets,
         slippage_tolerance: None,
         receiver: None,
         auto_stake: Some(false),
@@ -618,7 +618,7 @@ mod tests {
     /// Get articacts from Neutron testnet
     fn get_neutron_testnet_artifacts() -> HashMap<String, Artifact> {
         let mut artifacts = NEUTRON_CONTRACT_ADDRESSES
-            .into_iter()
+            .iter()
             .map(|(name, chain_artifact)| {
                 (
                     name.to_string(),
@@ -650,7 +650,7 @@ mod tests {
     /// Creates an RPC test runner and accounts. If `cli` is Some, it will attempt to run the tests
     /// against the configured docker container.
     #[cfg(feature = "rpc-runner")]
-    fn get_rpc_runner<'a>(cli: Option<&'a Cli>) -> (TestRunner<'a>, Vec<SigningAccount>, &'a str) {
+    fn get_rpc_runner(cli: Option<&Cli>) -> (TestRunner, Vec<SigningAccount>, &str) {
         let rpc_runner_config = RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH);
 
         let runner = if let Some(cli) = cli {
@@ -669,7 +669,7 @@ mod tests {
 
     #[cfg(feature = "rpc-runner")]
     #[test_case(get_local_artifacts => (); "local artifacts, rpc runner")]
-    pub fn test_with_rpc_runner<'a>(get_artifacts: impl Fn() -> HashMap<String, Artifact>) {
+    pub fn test_with_rpc_runner(get_artifacts: impl Fn() -> HashMap<String, Artifact>) {
         let cli = Cli::default();
         test_instantiate_astroport(get_rpc_runner(Some(&cli)), get_artifacts);
     }
@@ -701,7 +701,7 @@ mod tests {
         let bank = Bank::new(&app);
         let balances = bank
             .query_all_balances(&QueryAllBalancesRequest {
-                address: admin.address().to_string(),
+                address: admin.address(),
                 pagination: None,
             })
             .unwrap()
@@ -724,7 +724,7 @@ mod tests {
             &app,
             &contracts.factory.address,
             PairType::Xyk {},
-            asset_infos.clone(),
+            asset_infos,
             None,
             admin,
             None,
@@ -740,7 +740,7 @@ mod tests {
             .execute(
                 &contracts.astro_token.address,
                 &increase_allowance_msg,
-                &vec![],
+                &[],
                 admin,
             )
             .unwrap();
@@ -750,7 +750,7 @@ mod tests {
             .query(
                 &contracts.astro_token.address,
                 &Cw20QueryMsg::Allowance {
-                    owner: admin.address().to_string(),
+                    owner: admin.address(),
                     spender: uluna_astro_pair_addr.clone(),
                 },
             )
@@ -780,7 +780,7 @@ mod tests {
         let _res = wasm.execute(
             &uluna_astro_pair_addr,
             &provide_liq_msg,
-            &vec![Coin {
+            &[Coin {
                 amount: Uint128::from(420000000u128),
                 denom: native_denom.into(),
             }],
@@ -790,9 +790,9 @@ mod tests {
         // Query LP token balance
         let lp_token_balance: BalanceResponse = wasm
             .query(
-                &uluna_astro_lp_token.to_string(),
+                &uluna_astro_lp_token,
                 &Cw20QueryMsg::Balance {
-                    address: admin.address().to_string(),
+                    address: admin.address(),
                 },
             )
             .unwrap();
@@ -829,7 +829,7 @@ mod tests {
             &app,
             &contracts.factory.address,
             PairType::Xyk {},
-            asset_infos.clone(),
+            asset_infos,
             None,
             &admin,
             None,
@@ -867,7 +867,7 @@ mod tests {
             &app,
             &contracts.factory.address,
             PairType::Xyk {},
-            asset_infos.clone(),
+            asset_infos,
             None,
             &admin,
             Some([1000000u128.into(), 1000000u128.into()]),

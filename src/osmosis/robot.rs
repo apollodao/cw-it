@@ -191,7 +191,7 @@ mod tests {
 
     impl<'a> TestRobot<'a, OsmosisTestApp> for TestingRobot<'a> {
         fn runner(&self) -> &'a OsmosisTestApp {
-            &self.0
+            self.0
         }
     }
 
@@ -282,7 +282,7 @@ mod tests {
         let account2 = app
             .init_account(&INITIAL_BALANCES.into_elementwise())
             .unwrap()
-            .with_fee_setting(fee_setting.clone());
+            .with_fee_setting(fee_setting);
 
         let initial_balance = INITIAL_BALANCES
             .iter()

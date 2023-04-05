@@ -91,12 +91,12 @@ impl Artifact {
             Artifact::ChainCodeId {
                 rpc_endpoint,
                 code_id,
-            } => download_wasm_from_code_id(&rpc_endpoint, *code_id),
+            } => download_wasm_from_code_id(rpc_endpoint, *code_id),
             #[cfg(feature = "chain-download")]
             Artifact::ChainContractAddress {
                 rpc_endpoint,
                 contract_address,
-            } => download_wasm_from_contract_address(&rpc_endpoint, contract_address),
+            } => download_wasm_from_contract_address(rpc_endpoint, contract_address),
             #[cfg(feature = "git")]
             Artifact::Git {
                 url: _,
