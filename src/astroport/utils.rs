@@ -1,6 +1,7 @@
 use crate::artifact::Artifact;
-use crate::config::TestConfig;
 use crate::helpers::upload_wasm_files;
+use crate::traits::CwItRunner;
+use crate::ContractMap;
 use ap_native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
 use astroport::asset::{Asset, AssetInfo};
 use astroport::factory::{
@@ -21,7 +22,7 @@ use astroport::vesting::{
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
-use osmosis_test_tube::{Account, Module, Runner, SigningAccount, Wasm};
+use test_tube::{Account, Module, Runner, SigningAccount, Wasm};
 
 pub const ASTROPORT_CONTRACT_NAMES: [&str; 11] = [
     "astroport_token",
@@ -64,16 +65,13 @@ pub struct AstroportContracts {
     pub whitelist: Contract,
 }
 
-pub fn setup_astroport<'a, R>(
+pub fn setup_astroport<'a, R: CwItRunner<'a>>(
     app: &'a R,
-    test_config: &TestConfig,
+    contracts: ContractMap,
     admin: &SigningAccount,
-) -> AstroportContracts
-where
-    R: Runner<'a>,
-{
+) -> AstroportContracts {
     // Upload contracts
-    let code_ids = upload_wasm_files(app, admin, &test_config.artifacts).unwrap();
+    let code_ids = upload_wasm_files(app, admin, contracts).unwrap();
 
     // Instantiate contracts
     instantiate_astroport(app, admin, &code_ids)
@@ -528,19 +526,19 @@ mod tests {
         factory::PairType,
         pair::PoolResponse,
     };
-    use cosmrs::proto::cosmos::bank::v1beta1::QueryAllBalancesRequest;
     use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
     use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
-    use osmosis_test_tube::{Account, Bank, OsmosisTestApp, SigningAccount, Wasm};
+    use osmosis_std::types::cosmos::bank::v1beta1::QueryAllBalancesRequest;
+    use osmosis_test_tube::OsmosisTestApp;
     use test_case::test_case;
-    use test_tube::Module;
+    use test_tube::{Account, Bank, Module, SigningAccount, Wasm};
 
     use super::get_wasm_path;
     use crate::{
         artifact::Artifact,
         astroport::utils::{create_astroport_pair, setup_astroport},
-        config::TestConfig,
         test_runner::TestRunner,
+        ContractType,
     };
     use astroport::pair::ExecuteMsg as PairExecuteMsg;
     use std::{collections::HashMap, str::FromStr};
@@ -700,10 +698,6 @@ mod tests {
         (app, accs, native_denom): (TestRunner<'a>, Vec<SigningAccount>, &'a str),
         get_artifacts: impl Fn() -> HashMap<String, Artifact>,
     ) {
-        let test_config = TestConfig {
-            artifacts: get_artifacts(),
-        };
-
         let wasm = Wasm::new(&app);
 
         let admin = &accs[0];
@@ -719,8 +713,13 @@ mod tests {
             .balances;
         println!("Balances of admin: {:?}", balances);
 
+        let contract_types = get_artifacts()
+            .into_iter()
+            .map(|(name, artifact)| (name, ContractType::Artifact(artifact)))
+            .collect();
+
         // Instantiate contracts
-        let contracts = setup_astroport(&app, &test_config, admin);
+        let contracts = setup_astroport(&app, contract_types, admin);
 
         // Create XYK pool
         let asset_infos: [AssetInfo; 2] = [
@@ -818,12 +817,13 @@ mod tests {
             .init_account(&[Coin::new(100000000000000000u128, "uosmo")])
             .unwrap();
 
-        let test_config = TestConfig {
-            artifacts: get_local_artifacts(),
-        };
+        let contract_types = get_local_artifacts()
+            .into_iter()
+            .map(|(name, artifact)| (name, ContractType::Artifact(artifact)))
+            .collect();
 
         // Instantiate contracts
-        let contracts = setup_astroport(&app, &test_config, &admin);
+        let contracts = setup_astroport(&app, contract_types, &admin);
 
         // Create XYK pool
 
@@ -857,12 +857,13 @@ mod tests {
             ])
             .unwrap();
 
-        let test_config = TestConfig {
-            artifacts: get_local_artifacts(),
-        };
+        let contract_types = get_local_artifacts()
+            .into_iter()
+            .map(|(name, artifact)| (name, ContractType::Artifact(artifact)))
+            .collect();
 
         // Instantiate contracts
-        let contracts = setup_astroport(&app, &test_config, &admin);
+        let contracts = setup_astroport(&app, contract_types, &admin);
 
         // Create XYK pool
         let asset_infos: [AssetInfo; 2] = [

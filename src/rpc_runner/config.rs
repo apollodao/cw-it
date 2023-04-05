@@ -3,12 +3,13 @@ use std::{collections::HashMap, fs};
 use config::Config;
 use cosmrs::bip32;
 use cosmwasm_std::Coin;
+use osmosis_test_tube::RunnerError;
 use serde::{Deserialize, Serialize};
 use test_tube::{account::FeeSetting, SigningAccount};
 use testcontainers::{images::generic::GenericImage, Container};
 
 use super::chain::ChainConfig;
-use crate::{config::ConfigError, helpers::get_current_working_dir};
+use crate::helpers::get_current_working_dir;
 
 use super::container::ContainerInfo;
 
@@ -46,7 +47,7 @@ impl RpcRunnerConfig {
             format!("http://localhost:{}/", container.get_host_port_ipv4(9090));
     }
 
-    pub fn import_account(&self, name: &str) -> Result<SigningAccount, ConfigError> {
+    pub fn import_account(&self, name: &str) -> Result<SigningAccount, RunnerError> {
         let path = format!(
             "{}/{}/accounts.json",
             self.accounts_folder, self.chain_config.name
@@ -57,7 +58,7 @@ impl RpcRunnerConfig {
         let imported_account = accounts.iter().find(|e| e.name.contains(name));
         imported_account.map_or_else(
             || {
-                Err(ConfigError::QueryError {
+                Err(RunnerError::QueryError {
                     msg: format!("Account not found [{}]", name),
                 })
             },

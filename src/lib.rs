@@ -1,10 +1,18 @@
 pub mod application;
 pub mod artifact;
-pub mod config;
 pub mod const_coin;
 pub mod error;
 pub mod helpers;
+pub mod osmosis_test_app;
 pub mod robot;
+pub mod traits;
+
+#[cfg(feature = "multi-test")]
+#[cfg(test)]
+mod test_helpers;
+
+#[cfg(feature = "multi-test")]
+pub mod multi_test;
 
 #[cfg(feature = "rpc-runner")]
 #[cfg_attr(docsrs, doc(cfg(feature = "rpc-runner")))]
@@ -19,6 +27,7 @@ pub mod osmosis;
 pub mod astroport;
 
 pub mod test_runner;
+pub use artifact::*;
 pub use test_runner::TestRunner;
 
 // Re-exports for convenience

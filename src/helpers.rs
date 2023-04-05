@@ -1,15 +1,17 @@
 use std::env;
 use std::{collections::HashMap, str::FromStr};
 
-use cosmrs::proto::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
-use cosmrs::proto::cosmos::base::v1beta1::Coin as ProtoCoin;
+use anyhow::Error;
 use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
-use osmosis_test_tube::{Bank, Wasm};
+use osmosis_std::types::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
+use osmosis_std::types::cosmos::base::v1beta1::Coin as ProtoCoin;
 use serde::Serialize;
 use test_tube::{Account, Module, Runner, RunnerExecuteResult, RunnerResult, SigningAccount};
+use test_tube::{Bank, Wasm};
 
-use crate::artifact::Artifact;
 use crate::error::CwItError;
+use crate::traits::CwItRunner;
+use crate::ContractType;
 
 #[cfg(feature = "tokio")]
 use std::future::Future;
@@ -22,19 +24,16 @@ pub fn block_on<F: Future>(f: F) -> F::Output {
         .block_on(f)
 }
 
-pub fn upload_wasm_files<'a, R: Runner<'a>>(
+pub fn upload_wasm_files<'a, R: CwItRunner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
-    contracts: &HashMap<String, Artifact>,
+    contracts: HashMap<String, ContractType>,
 ) -> Result<HashMap<String, u64>, CwItError> {
-    let wasm = Wasm::new(runner);
     contracts
-        .iter()
-        .map(|(name, artifact)| {
-            println!("Uploading wasm file for contract {}, {:?}", name, artifact);
-            let wasm_byte_code = artifact.get_wasm_byte_code()?;
-            let code_id = wasm.store_code(&wasm_byte_code, None, signer)?.data.code_id;
-            Ok((name.clone(), code_id))
+        .into_iter()
+        .map(|(name, contract)| {
+            let code_id = runner.store_code(contract, signer)?;
+            Ok((name, code_id))
         })
         .collect()
 }
@@ -82,19 +81,12 @@ where
 }
 
 /// Uploads a wasm file to the chain and returns the code_id
-pub fn upload_wasm_file<'a, R: Runner<'a>>(
+pub fn upload_wasm_file<'a, R: CwItRunner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
-    wasm_file_path: &str,
-) -> StdResult<u64> {
-    let wasm = Wasm::new(runner);
-    let wasm_byte_code = std::fs::read(wasm_file_path).unwrap();
-    let code_id = wasm
-        .store_code(&wasm_byte_code, None, signer)
-        .map_err(|e| StdError::generic_err(format!("{:?}", e)))?
-        .data
-        .code_id;
-    Ok(code_id)
+    contract: ContractType,
+) -> Result<u64, Error> {
+    runner.store_code(contract, signer)
 }
 
 pub fn bank_balance_query<'a>(
@@ -133,7 +125,7 @@ pub fn bank_send<'a>(
     )
 }
 
-pub(crate) fn get_current_working_dir() -> String {
+pub fn get_current_working_dir() -> String {
     let res = env::current_dir();
     match res {
         Ok(path) => path.into_os_string().into_string().unwrap(),

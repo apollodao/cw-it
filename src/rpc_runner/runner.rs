@@ -1,17 +1,18 @@
 use std::num::ParseIntError;
 
+use anyhow::bail;
 use cosmos_sdk_proto::cosmos::auth::v1beta1::{QueryAccountRequest, QueryAccountResponse};
 use cosmrs::proto::cosmos::auth::v1beta1::BaseAccount;
-use cosmrs::proto::cosmwasm::wasm::v1::{
-    QuerySmartContractStateRequest, QuerySmartContractStateResponse,
-};
 use cosmwasm_std::{
     from_binary, Coin, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
     WasmQuery,
 };
+use osmosis_std::types::cosmwasm::wasm::v1::{
+    QuerySmartContractStateRequest, QuerySmartContractStateResponse,
+};
 use test_tube::{
-    account::FeeSetting, Account, DecodeError, EncodeError, Runner, RunnerError,
-    RunnerExecuteResult, RunnerResult, SigningAccount,
+    account::FeeSetting, Account, DecodeError, EncodeError, Module, Runner, RunnerError,
+    RunnerExecuteResult, RunnerResult, SigningAccount, Wasm,
 };
 use testcontainers::clients::Cli;
 use testcontainers::images::generic::GenericImage;
@@ -22,6 +23,8 @@ use super::chain::Chain;
 use super::config::RpcRunnerConfig;
 use crate::application::Application;
 use crate::helpers::block_on;
+use crate::traits::CwItRunner;
+use crate::ContractType;
 
 use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
 use cosmos_sdk_proto::cosmos::tx::v1beta1::SimulateRequest;
@@ -93,21 +96,24 @@ impl<'a> RpcRunner<'a> {
         })
     }
 
-    pub fn init_accounts(&self, _coins: &[Coin], count: u8) -> Vec<SigningAccount> {
+    pub fn init_account(&self, id: usize) -> Result<SigningAccount, anyhow::Error> {
+        Ok(self
+            .rpc_runner_config
+            .import_account(&format!("test{}", id))?)
+    }
+
+    pub fn init_accounts(&self, count: usize) -> Result<Vec<SigningAccount>, anyhow::Error> {
         if count > 10 {
             panic!("cannot create more than 10 accounts");
         }
 
         let mut accounts = vec![];
         for i in 0..count {
-            let account = self
-                .rpc_runner_config
-                .import_account(&format!("test{}", i))
-                .unwrap();
+            let account = self.init_account(i)?;
             accounts.push(account);
         }
 
-        accounts
+        Ok(accounts)
     }
 }
 
@@ -319,7 +325,6 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
         M: ::prost::Message,
         R: ::prost::Message + Default,
     {
-        // println!("execute_multiple called");
         let encoded_msgs = msgs
             .iter()
             .map(|(msg, type_url)| {
@@ -410,5 +415,38 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
         }
 
         Ok(R::decode(res.value.as_slice()).map_err(DecodeError::ProtoDecodeError)?)
+    }
+}
+
+impl<'a> CwItRunner<'a> for RpcRunner<'a> {
+    fn store_code(
+        &self,
+        code: ContractType,
+        signer: &SigningAccount,
+    ) -> Result<u64, anyhow::Error> {
+        match code {
+            ContractType::MultiTestContract(_) => {
+                bail!("MultiTestContract not supported for RpcRunner")
+            }
+            ContractType::Artifact(artifact) => {
+                let bytes = artifact.get_wasm_byte_code()?;
+                let wasm = Wasm::new(self);
+                let code_id = wasm.store_code(&bytes, None, signer)?.data.code_id;
+                Ok(code_id)
+            }
+        }
+    }
+
+    fn init_account(&self, _initial_balance: &[Coin]) -> Result<SigningAccount, anyhow::Error> {
+        // TODO: how to solve for ID and not using requested balance
+        self.init_account(0)
+    }
+
+    fn init_accounts(
+        &self,
+        _initial_balance: &[Coin],
+        num_accounts: usize,
+    ) -> Result<Vec<SigningAccount>, anyhow::Error> {
+        self.init_accounts(num_accounts)
     }
 }

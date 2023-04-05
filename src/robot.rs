@@ -1,5 +1,5 @@
 use cosmwasm_std::{Coin, Uint128};
-use osmosis_test_tube::{Bank, Module, Runner, SigningAccount, Wasm};
+use test_tube::{Bank, Module, Runner, SigningAccount, Wasm};
 
 use crate::helpers::{bank_balance_query, bank_send};
 
