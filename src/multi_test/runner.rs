@@ -55,7 +55,9 @@ impl Runner<'_> for MultiTestRunner<'_> {
         let app_responses = self
             .app
             .execute_multi(sender, msgs.to_vec())
-            .map_err(|e| RunnerError::GenericError(e.to_string()))?;
+            // NB: Must use this syntax to capture full anyhow message.
+            // to_string() will only give the outermost error context.
+            .map_err(|e| RunnerError::GenericError(format!("{:#}", e)))?;
 
         // Construct test_tube::ExecuteResponse from cw_multi_test::AppResponse
         let events = app_responses
@@ -323,8 +325,7 @@ mod tests {
         cosmos::bank::v1beta1::QueryAllBalancesRequest,
         cosmwasm::wasm::v1::MsgInstantiateContractResponse,
     };
-    use osmosis_test_tube::{RunnerExecuteResult, Wasm};
-    use test_tube::{Bank, Module};
+    use test_tube::{Bank, Module, RunnerExecuteResult, Wasm};
 
     use crate::{artifact::Artifact, helpers::upload_wasm_file};
 
