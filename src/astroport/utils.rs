@@ -1,7 +1,7 @@
 use crate::artifact::Artifact;
 use crate::helpers::upload_wasm_files;
 use crate::traits::CwItRunner;
-use crate::ContractMap;
+use crate::{ContractMap, ContractType, TestRunner};
 use ap_native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
 use astroport::asset::{Asset, AssetInfo};
 use astroport::factory::{
@@ -489,7 +489,7 @@ pub fn get_wasm_path(
     name: &str,
     path: &Option<&str>,
     append_arch: bool,
-    arch: Option<&str>,
+    arch: &Option<&str>,
 ) -> String {
     // If using cw-optimizoor, it prepends the cpu architecture to the wasm file name
     let name = if append_arch {
@@ -506,7 +506,7 @@ pub fn get_wasm_path(
 pub fn get_local_artifacts(
     path: &Option<&str>,
     append_arch: bool,
-    arch: Option<&str>,
+    arch: &Option<&str>,
 ) -> HashMap<String, Artifact> {
     ASTROPORT_CONTRACT_NAMES
         .into_iter()
@@ -519,29 +519,71 @@ pub fn get_local_artifacts(
         .collect::<HashMap<String, Artifact>>()
 }
 
+/// Get astroport contracts as artifacts from disk or as imports for multi-test-runner
+pub fn get_local_contracts(
+    test_runner: &TestRunner,
+    path: &Option<&str>,
+    append_arch: bool,
+    arch: &Option<&str>,
+) -> ContractMap {
+    match test_runner {
+        #[cfg(feature = "astroport-multi-test")]
+        TestRunner::MultiTest(_) => crate::astroport::utils::get_astroport_multitest_contracts(),
+        _ => crate::astroport::utils::get_local_artifacts(path, append_arch, arch)
+            .into_iter()
+            .map(|(name, artifact)| (name, ContractType::Artifact(artifact)))
+            .collect(),
+    }
+}
+
+#[cfg(feature = "astroport-multi-test")]
+pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
+    use crate::create_contract_wrappers;
+    use crate::create_contract_wrappers_with_reply;
+
+    let mut contract_wrappers = create_contract_wrappers!(
+        "astroport_native_coin_registry",
+        "astroport_maker",
+        "astroport_token",
+        "astroport_router",
+        "astroport_vesting",
+        "astroport_whitelist"
+    );
+
+    contract_wrappers.extend(create_contract_wrappers_with_reply!(
+        "astroport_generator",
+        "astroport_staking",
+        "astroport_factory",
+        "astroport_pair_stable",
+        "astroport_pair"
+    ));
+
+    contract_wrappers
+        .into_iter()
+        .map(|(k, v)| (k, ContractType::MultiTestContract(v)))
+        .collect()
+}
+
+#[allow(dead_code)]
 #[cfg(test)]
 mod tests {
     use astroport::{
         asset::{Asset, AssetInfo},
         factory::PairType,
-        pair::PoolResponse,
     };
     use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
     use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
     use osmosis_std::types::cosmos::bank::v1beta1::QueryAllBalancesRequest;
-    use osmosis_test_tube::OsmosisTestApp;
-    use test_case::test_case;
-    use test_tube::{Account, Bank, Module, SigningAccount, Wasm};
 
-    use super::get_wasm_path;
+    use test_tube::{Account, Bank, Module, Wasm};
+
     use crate::{
-        artifact::Artifact,
         astroport::utils::{create_astroport_pair, setup_astroport},
         test_runner::TestRunner,
-        ContractType,
+        ContractMap,
     };
     use astroport::pair::ExecuteMsg as PairExecuteMsg;
-    use std::{collections::HashMap, str::FromStr};
+    use std::str::FromStr;
 
     #[cfg(feature = "rpc-runner")]
     use {
@@ -550,10 +592,16 @@ mod tests {
     };
 
     #[cfg(feature = "chain-download")]
-    use crate::artifact::ChainArtifact;
+    use {
+        super::get_wasm_path, crate::artifact::Artifact, crate::artifact::ChainArtifact,
+        crate::ContractType, std::collections::HashMap,
+    };
 
     #[cfg(feature = "rpc-runner")]
     pub const TEST_CONFIG_PATH: &str = "configs/terra.yaml";
+
+    /// Which test runner to use for the tests
+    pub const TEST_RUNNER: &str = "osmosis-test-app";
 
     /// cw-optimizoor adds the CPU architecture to the wasm file name
     pub const APPEND_ARCH: bool = true;
@@ -618,48 +666,39 @@ mod tests {
     ];
 
     /// Get astroport artifacts already from disk
-    pub fn get_local_artifacts() -> HashMap<String, Artifact> {
-        super::get_local_artifacts(&ARTIFACTS_PATH, APPEND_ARCH, ARCH)
+    pub fn get_local_contracts(test_runner: &TestRunner) -> ContractMap {
+        super::get_local_contracts(test_runner, &ARTIFACTS_PATH, APPEND_ARCH, &ARCH)
     }
 
     #[cfg(feature = "chain-download")]
     /// Get articacts from Neutron testnet
-    fn get_neutron_testnet_artifacts() -> HashMap<String, Artifact> {
+    fn get_neutron_testnet_artifacts() -> HashMap<String, ContractType> {
         let mut artifacts = NEUTRON_CONTRACT_ADDRESSES
             .iter()
             .map(|(name, chain_artifact)| {
                 (
                     name.to_string(),
-                    chain_artifact.into_artifact(NEUTRON_RPC.to_string()),
+                    ContractType::Artifact(chain_artifact.into_artifact(NEUTRON_RPC.to_string())),
                 )
             })
-            .collect::<HashMap<String, Artifact>>();
+            .collect::<HashMap<String, ContractType>>();
         // Staking contract not deployed on Neutron testnet
         artifacts.insert(
             "astroport_staking".to_string(),
-            Artifact::Local(get_wasm_path(
+            ContractType::Artifact(Artifact::Local(get_wasm_path(
                 "astroport_staking",
                 &ARTIFACTS_PATH,
                 APPEND_ARCH,
-                ARCH,
-            )),
+                &ARCH,
+            ))),
         );
         artifacts
-    }
-
-    /// Creates an Osmosis test runner and accounts.
-    fn get_osmosis_test_app<'a>() -> (TestRunner<'a>, Vec<SigningAccount>, &'a str) {
-        let app = OsmosisTestApp::new();
-        let accs = app
-            .init_accounts(&[Coin::new(100000000000000000u128, "uosmo")], 10)
-            .unwrap();
-        (TestRunner::OsmosisTestApp(app), accs, "uosmo")
     }
 
     /// Creates an RPC test runner and accounts. If `cli` is Some, it will attempt to run the tests
     /// against the configured docker container.
     #[cfg(feature = "rpc-runner")]
-    fn get_rpc_runner(cli: Option<&Cli>) -> (TestRunner, Vec<SigningAccount>, &str) {
+    fn get_rpc_runner(cli: Option<&Cli>) -> TestRunner {
         let rpc_runner_config = RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH);
 
         let runner = if let Some(cli) = cli {
@@ -667,37 +706,48 @@ mod tests {
         } else {
             RpcRunner::new(rpc_runner_config, None).unwrap()
         };
-
-        let accs = runner
-            .rpc_runner_config
-            .import_all_accounts()
-            .into_values()
-            .collect::<Vec<_>>();
-        (TestRunner::RpcRunner(runner), accs, "uluna") //TODO: Add native token to config
+        TestRunner::RpcRunner(runner)
     }
 
     #[cfg(feature = "rpc-runner")]
-    #[test_case(get_local_artifacts => (); "local artifacts, rpc runner")]
-    pub fn test_with_rpc_runner(get_artifacts: impl Fn() -> HashMap<String, Artifact>) {
+    #[test]
+    pub fn test_with_rpc_runner() {
         let cli = Cli::default();
-        test_instantiate_astroport(get_rpc_runner(Some(&cli)), get_artifacts);
+        let runner = get_rpc_runner(Some(&cli));
+        let contracts = get_local_contracts(&runner);
+        test_instantiate_astroport(runner, contracts);
     }
 
     #[cfg(feature = "chain-download")]
     // Commenting out test-case because Neutron's RPC node is down and it's breaking CI.
-    // #[test_case(get_osmosis_test_app() => (); "Neutron testnet artifacts, osmosis test app")]
+    // #[test]
     #[allow(dead_code)]
-    pub fn test_with_neutron_testnet_artifacts<'a>(
-        (app, accs, native_denom): (TestRunner<'a>, Vec<SigningAccount>, &'a str),
-    ) {
-        test_instantiate_astroport((app, accs, native_denom), get_neutron_testnet_artifacts);
+    pub fn test_with_neutron_testnet_artifacts() {
+        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let contracts = get_neutron_testnet_artifacts();
+        test_instantiate_astroport(runner, contracts);
     }
 
-    #[test_case(get_osmosis_test_app(),get_local_artifacts => (); "local artifacts, osmosis test app")]
-    pub fn test_instantiate_astroport<'a>(
-        (app, accs, native_denom): (TestRunner<'a>, Vec<SigningAccount>, &'a str),
-        get_artifacts: impl Fn() -> HashMap<String, Artifact>,
-    ) {
+    fn get_fee_denom<'a>(runner: &'a TestRunner) -> &'a str {
+        match runner {
+            #[cfg(feature = "rpc-runner")]
+            TestRunner::RpcRunner(rpc_runner) => rpc_runner.rpc_runner_config.chain_config.denom(),
+            _ => "uosmo",
+        }
+    }
+
+    /// Feature-gated because we use OsmosisTestApp, change the TEST_RUNNER const to use a different runner
+    #[cfg(feature = "osmosis-test-tube")]
+    #[test]
+    fn test_with_local_artifacts() {
+        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let contracts = get_local_contracts(&runner);
+        test_instantiate_astroport(runner, contracts);
+    }
+
+    pub fn test_instantiate_astroport(app: TestRunner, contracts: ContractMap) {
+        let accs = app.init_accounts();
+        let native_denom = get_fee_denom(&app);
         let wasm = Wasm::new(&app);
 
         let admin = &accs[0];
@@ -713,13 +763,8 @@ mod tests {
             .balances;
         println!("Balances of admin: {:?}", balances);
 
-        let contract_types = get_artifacts()
-            .into_iter()
-            .map(|(name, artifact)| (name, ContractType::Artifact(artifact)))
-            .collect();
-
         // Instantiate contracts
-        let contracts = setup_astroport(&app, contract_types, admin);
+        let contracts = setup_astroport(&app, contracts, admin);
 
         // Create XYK pool
         let asset_infos: [AssetInfo; 2] = [
@@ -808,89 +853,5 @@ mod tests {
             .unwrap();
         println!("LP token balance: {:?}", lp_token_balance);
         assert!(lp_token_balance.balance > Uint128::zero());
-    }
-
-    #[test]
-    fn test_create_astroport_pair() {
-        let app = OsmosisTestApp::new();
-        let admin = app
-            .init_account(&[Coin::new(100000000000000000u128, "uosmo")])
-            .unwrap();
-
-        let contract_types = get_local_artifacts()
-            .into_iter()
-            .map(|(name, artifact)| (name, ContractType::Artifact(artifact)))
-            .collect();
-
-        // Instantiate contracts
-        let contracts = setup_astroport(&app, contract_types, &admin);
-
-        // Create XYK pool
-
-        let asset_infos: [AssetInfo; 2] = [
-            AssetInfo::NativeToken {
-                denom: "uosmo".into(),
-            },
-            AssetInfo::NativeToken {
-                denom: "uatom".into(),
-            },
-        ];
-
-        create_astroport_pair(
-            &app,
-            &contracts.factory.address,
-            PairType::Xyk {},
-            asset_infos,
-            None,
-            &admin,
-            None,
-        );
-    }
-
-    #[test]
-    fn test_create_astroport_pair_with_initial_liquidity() {
-        let app = OsmosisTestApp::new();
-        let admin = app
-            .init_account(&[
-                Coin::new(100000000000000000u128, "uosmo"),
-                Coin::new(100000000000000000u128, "uatom"),
-            ])
-            .unwrap();
-
-        let contract_types = get_local_artifacts()
-            .into_iter()
-            .map(|(name, artifact)| (name, ContractType::Artifact(artifact)))
-            .collect();
-
-        // Instantiate contracts
-        let contracts = setup_astroport(&app, contract_types, &admin);
-
-        // Create XYK pool
-        let asset_infos: [AssetInfo; 2] = [
-            AssetInfo::NativeToken {
-                denom: "uosmo".into(),
-            },
-            AssetInfo::NativeToken {
-                denom: "uatom".into(),
-            },
-        ];
-
-        let (pool, _lp) = create_astroport_pair(
-            &app,
-            &contracts.factory.address,
-            PairType::Xyk {},
-            asset_infos,
-            None,
-            &admin,
-            Some([1000000u128.into(), 1000000u128.into()]),
-        );
-
-        // Query pool info
-        let wasm = Wasm::new(&app);
-        let pool_info: PoolResponse = wasm
-            .query(&pool, &astroport::pair::QueryMsg::Pool {})
-            .unwrap();
-        assert_eq!(pool_info.assets[0].amount, Uint128::from(1000000u128));
-        assert_eq!(pool_info.assets[1].amount, Uint128::from(1000000u128));
     }
 }

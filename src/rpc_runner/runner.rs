@@ -108,7 +108,7 @@ impl<'a> RpcRunner<'a> {
         }
 
         let mut accounts = vec![];
-        for i in 0..count {
+        for i in 1..count + 1 {
             let account = self.init_account(i)?;
             accounts.push(account);
         }

@@ -2,8 +2,8 @@ use astroport::asset::{Asset, AssetInfo};
 use astroport::factory::{ConfigResponse, ExecuteMsg as AstroportFactoryExecuteMsg, PairType};
 use cosmwasm_std::{Binary, Coin, Decimal, Uint128};
 use cw20::{BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
-use osmosis_test_tube::{RunnerResult, SigningAccount};
 use std::collections::HashMap;
+use test_tube::{RunnerResult, SigningAccount};
 
 use super::utils::{parse_astroport_create_pair_events, AstroportContracts};
 use crate::robot::TestRobot;
@@ -313,23 +313,23 @@ where
     }
 }
 
+// Feature gated because we use OsmosisTestApp by default
+#[cfg(feature = "osmosis-test-tube")]
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use astroport::{
         asset::{Asset, AssetInfo},
         factory::PairType,
         pair::StablePoolParams,
     };
     use cosmwasm_std::{to_binary, Addr, Binary, Uint128};
-    use osmosis_test_tube::{Account, OsmosisTestApp, SigningAccount};
     use test_case::test_case;
-
-    use crate::{
-        astroport::utils::AstroportContracts, robot::TestRobot, ContractMap, ContractType,
-        TestRunner,
-    };
+    use test_tube::{Account, SigningAccount};
 
     use super::AstroportTestRobot;
+    use crate::{astroport::utils::AstroportContracts, robot::TestRobot, ContractMap, TestRunner};
 
     struct TestingRobot<'a> {
         runner: &'a TestRunner<'a>,
@@ -367,18 +367,23 @@ mod tests {
     /// The path to the artifacts folder
     pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/042b076");
 
+    /// Which TestRunner to use
+    pub const TEST_RUNNER: &str = "osmosis-test-app";
+    // pub const TEST_RUNNER: &str = "multi-test";
+
     /// Get astroport artifacts already from disk
-    pub fn get_local_artifacts() -> ContractMap {
-        crate::astroport::utils::get_local_artifacts(&ARTIFACTS_PATH, APPEND_ARCH, ARCH)
-            .into_iter()
-            .map(|(name, artifact)| (name, ContractType::Artifact(artifact)))
-            .collect()
+    pub fn get_contracts(test_runner: &TestRunner) -> ContractMap {
+        crate::astroport::utils::get_local_contracts(
+            test_runner,
+            &ARTIFACTS_PATH,
+            APPEND_ARCH,
+            &ARCH,
+        )
     }
 
-    /// Creates an Osmosis test runner
-    fn get_osmosis_test_app<'a>() -> TestRunner<'a> {
-        let app = OsmosisTestApp::new();
-        TestRunner::OsmosisTestApp(app)
+    fn get_test_robot<'a>(runner: &'a TestRunner) -> TestingRobot<'a> {
+        let contracts = get_contracts(runner);
+        TestingRobot::new(runner, contracts)
     }
 
     /// Helper to get a native token asset info.
@@ -419,36 +424,34 @@ mod tests {
         Some(to_binary(&StablePoolParams { amp: 10 }).unwrap())
     }
 
-    #[test_case(get_osmosis_test_app(),get_local_artifacts(); "osmosis")]
-    fn test_upload_and_init_astroport(runner: TestRunner, contracts: ContractMap) {
-        TestingRobot::new(&runner, contracts);
+    #[test]
+    fn test_upload_and_init_astroport() {
+        get_test_robot(&TestRunner::from_str(TEST_RUNNER).unwrap());
     }
 
     #[test]
     fn test_query_factory_config() {
-        let runner = get_osmosis_test_app();
-        let contracts = get_local_artifacts();
-        let robot = TestingRobot::new(&runner, contracts);
+        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let robot = get_test_robot(&runner);
 
-        let contracts = &robot.astroport_contracts;
+        let astro_contracts = &robot.astroport_contracts;
 
-        robot.query_factory_config(&contracts.factory.address);
+        robot.query_factory_config(&astro_contracts.factory.address);
     }
 
-    #[test_case(get_osmosis_test_app(),get_local_artifacts(),PairType::Xyk {},AssetChoice::NativeNative,None,None; "XYK, native-native, no liq")]
-    #[test_case(get_osmosis_test_app(),get_local_artifacts(),PairType::Xyk {},AssetChoice::NativeNative,None,Some([420420,696969]); "XYK, native-native, with liq")]
-    #[test_case(get_osmosis_test_app(),get_local_artifacts(),PairType::Xyk {},AssetChoice::NativeCw20,None,Some([420420,696969]); "XYK, native-cw20, with liq")]
-    #[test_case(get_osmosis_test_app(),get_local_artifacts(),PairType::Stable {},AssetChoice::NativeNative,stable_init_params(),None; "Stable, native-native, no liq")]
-    #[test_case(get_osmosis_test_app(),get_local_artifacts(),PairType::Stable {},AssetChoice::NativeNative,stable_init_params(),Some([420420,696969]); "Stable, native-native, with liq")]
+    #[test_case(PairType::Xyk {},AssetChoice::NativeNative,None,None; "XYK, native-native, no liq")]
+    #[test_case(PairType::Xyk {},AssetChoice::NativeNative,None,Some([420420,696969]); "XYK, native-native, with liq")]
+    #[test_case(PairType::Xyk {},AssetChoice::NativeCw20,None,Some([420420,696969]); "XYK, native-cw20, with liq")]
+    #[test_case(PairType::Stable {},AssetChoice::NativeNative,stable_init_params(),None; "Stable, native-native, no liq")]
+    #[test_case(PairType::Stable {},AssetChoice::NativeNative,stable_init_params(),Some([420420,696969]); "Stable, native-native, with liq")]
     fn test_create_astroport_pair(
-        runner: TestRunner,
-        contracts: ContractMap,
         pair_type: PairType,
         asset_info_choice: AssetChoice,
         init_params: Option<Binary>,
         initial_liquidity: Option<[u128; 2]>,
     ) {
-        let robot = TestingRobot::new(&runner, contracts);
+        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let robot = get_test_robot(&runner);
 
         let contracts = &robot.astroport_contracts;
         let admin = &robot.accs[0];
@@ -488,15 +491,15 @@ mod tests {
         }
     }
 
-    #[test_case(get_osmosis_test_app(),get_local_artifacts(),PairType::Xyk {},AssetChoice::NativeNative,None; "Swap on XYK, native-native")]
-    #[test_case(get_osmosis_test_app(),get_local_artifacts(),PairType::Xyk {},AssetChoice::NativeCw20,None; "Swap on XYK, native-cw20")]
+    #[test_case(PairType::Xyk {},AssetChoice::NativeNative,None; "Swap on XYK, native-native")]
+    #[test_case(PairType::Xyk {},AssetChoice::NativeCw20,None; "Swap on XYK, native-cw20")]
     fn test_swap_on_pair(
-        runner: TestRunner,
-        contracts: ContractMap,
         pair_type: PairType,
         asset_info_choice: AssetChoice,
         init_params: Option<Binary>,
     ) {
+        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let contracts = get_contracts(&runner);
         let robot = TestingRobot::new(&runner, contracts);
 
         let contracts = &robot.astroport_contracts;
