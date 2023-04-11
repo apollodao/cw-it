@@ -347,12 +347,16 @@ mod tests {
         factory::PairType,
         pair::StablePoolParams,
     };
-    use cosmwasm_std::{to_binary, Addr, Binary, Uint128};
+    use cosmwasm_std::{to_binary, Binary, Uint128};
     use test_case::test_case;
     use test_tube::{Account, SigningAccount};
 
     use super::AstroportTestRobot;
-    use crate::{astroport::utils::AstroportContracts, robot::TestRobot, ContractMap, TestRunner};
+    use crate::{
+        astroport::utils::{cw20_info, native_info, AstroportContracts},
+        robot::TestRobot,
+        ContractMap, TestRunner,
+    };
 
     struct TestingRobot<'a> {
         runner: &'a TestRunner<'a>,
@@ -407,20 +411,6 @@ mod tests {
     fn get_test_robot<'a>(runner: &'a TestRunner) -> TestingRobot<'a> {
         let contracts = get_contracts(runner);
         TestingRobot::new(runner, contracts)
-    }
-
-    /// Helper to get a native token asset info.
-    fn native_info(denom: &str) -> AssetInfo {
-        AssetInfo::NativeToken {
-            denom: denom.to_string(),
-        }
-    }
-
-    /// Helper to get a cw20 token asset info.
-    fn cw20_info(contract_addr: &str) -> AssetInfo {
-        AssetInfo::Token {
-            contract_addr: Addr::unchecked(contract_addr),
-        }
     }
 
     /// Helper to get a pair of native token asset infos.

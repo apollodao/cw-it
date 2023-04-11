@@ -415,12 +415,43 @@ where
     res.balance
 }
 
+/// Converts a Coin to an Astroport Asset
 pub fn coin_to_astro_asset(coin: &Coin) -> Asset {
     Asset {
         info: AssetInfo::NativeToken {
             denom: coin.denom.clone(),
         },
         amount: coin.amount,
+    }
+}
+
+/// Helper to get a native token Astroport AssetInfo.
+pub fn native_info(denom: &str) -> AssetInfo {
+    AssetInfo::NativeToken {
+        denom: denom.to_string(),
+    }
+}
+
+/// Helper to get a cw20 token Astroport AssetInfo
+pub fn cw20_info(contract_addr: &str) -> AssetInfo {
+    AssetInfo::Token {
+        contract_addr: Addr::unchecked(contract_addr),
+    }
+}
+
+/// Helper to get a native token Astroport Asset
+pub fn native_asset(denom: &str, amount: impl Into<Uint128>) -> Asset {
+    Asset {
+        info: native_info(denom),
+        amount: amount.into(),
+    }
+}
+
+/// Helper to get a cw20 token Astroport Asset
+pub fn cw20_asset(contract_addr: &str, amount: impl Into<Uint128>) -> Asset {
+    Asset {
+        info: cw20_info(contract_addr),
+        amount: amount.into(),
     }
 }
 
