@@ -14,6 +14,8 @@ pub trait AstroportTestRobot<'a, R>: TestRobot<'a, R>
 where
     R: CwItRunner<'a> + 'a,
 {
+    fn astroport_contracts(&self) -> &AstroportContracts;
+
     /// Instantiates the astroport contracts, returning a struct containing the addresses and code
     /// ids of the contracts.
     fn instantiate_astroport_contracts(
@@ -206,13 +208,14 @@ where
     /// Creates a new pair with the given assets and initial liquidity.
     fn create_astroport_pair(
         &self,
-        factory_addr: &str,
         pair_type: PairType,
         asset_infos: [AssetInfo; 2],
         init_params: Option<Binary>,
         signer: &SigningAccount,
         initial_liquidity: Option<[Uint128; 2]>,
     ) -> (String, String) {
+        let factory_addr = &self.astroport_contracts().factory.address;
+
         // If the pair is a stableswap pair, add the native coins to the registry
         if let PairType::Stable {} = pair_type {
             //Query factory for native coin registry address
@@ -308,6 +311,26 @@ where
         };
         self.wasm()
             .execute(pair_addr, &msg, &funds, signer)
+            .unwrap();
+        self
+    }
+
+    fn add_denom_precision_to_coin_registry(
+        &self,
+        denom: impl Into<String>,
+        precision: u8,
+        signer: &SigningAccount,
+    ) -> &Self {
+        let msg = astroport::native_coin_registry::ExecuteMsg::Add {
+            native_coins: vec![(denom.into(), precision)],
+        };
+        self.wasm()
+            .execute(
+                &self.astroport_contracts().coin_registry.address,
+                &msg,
+                &[],
+                signer,
+            )
             .unwrap();
         self
     }
