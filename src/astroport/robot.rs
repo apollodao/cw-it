@@ -385,7 +385,11 @@ mod tests {
             self.runner
         }
     }
-    impl<'a> AstroportTestRobot<'a, TestRunner<'a>> for TestingRobot<'a> {}
+    impl<'a> AstroportTestRobot<'a, TestRunner<'a>> for TestingRobot<'a> {
+        fn astroport_contracts(&self) -> &AstroportContracts {
+            &self.astroport_contracts
+        }
+    }
 
     /// cw-optimizoor adds the CPU architecture to the wasm file name
     pub const APPEND_ARCH: bool = true;
@@ -472,7 +476,6 @@ mod tests {
         let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
 
         let (pair_addr, lp_token_addr) = robot.create_astroport_pair(
-            &contracts.factory.address,
             pair_type.clone(),
             asset_infos.clone(),
             init_params,
@@ -522,7 +525,6 @@ mod tests {
         let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
         let initial_liquidity = Some([Uint128::from(420420u128), Uint128::from(696969u128)]);
         let (pair_addr, _lp_token_addr) = robot.create_astroport_pair(
-            &contracts.factory.address,
             pair_type,
             asset_infos.clone(),
             init_params,

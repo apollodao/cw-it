@@ -741,7 +741,8 @@ mod tests {
     }
 
     #[cfg(feature = "rpc-runner")]
-    #[test]
+    // Commenting out because we have not set up Docker for CI yet.
+    // #[test]
     pub fn test_with_rpc_runner() {
         let cli = Cli::default();
         let runner = get_rpc_runner(Some(&cli));

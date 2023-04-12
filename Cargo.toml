@@ -27,7 +27,7 @@ incremental      = false
 overflow-checks  = true
 
 [features]
-default = ["multi-test"]
+default = []
 astroport = ["cw20", "dep:astroport", "ap-native-coin-registry"]
 osmosis = ["proptest", "apollo-utils", "regex", "osmosis-test-tube"]
 rpc-runner = ["testcontainers", "tonic", "tokio", "cosmos-sdk-proto"]
