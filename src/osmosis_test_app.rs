@@ -36,7 +36,8 @@ impl CwItRunner<'_> for OsmosisTestApp {
     }
 
     fn increase_time(&self, seconds: u64) -> Result<(), Error> {
-        Ok(OsmosisTestApp::increase_time(&self, seconds))
+        OsmosisTestApp::increase_time(self, seconds);
+        Ok(())
     }
 }
 
