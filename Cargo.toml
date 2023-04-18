@@ -125,7 +125,7 @@ git2             = { version = "0.16.1", optional = true }
 git2_credentials = { version = "0.10.0", optional = true }
 
 # Cw-multi-test deps
-cw-multi-test = { git = "https://github.com/pacmanifold/cw-multi-test.git", rev = "2021e162ff3aabfc89a7be12b99b7e2619a2fc11", optional = true }
+cw-multi-test = { git = "https://github.com/pacmanifold/cw-multi-test.git", rev = "092a0642627a6534c03870382c6925b8a2fef4f1", optional = true }
 paste         = { version = "1.0.12", optional = true }
 
 # RPC Runner and chain-download deps
