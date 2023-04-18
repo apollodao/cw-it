@@ -209,7 +209,10 @@ impl<'a> CwItRunner<'a> for TestRunner<'a> {
         match self {
             TestRunner::PhantomData(_) => unimplemented!(),
             #[cfg(feature = "osmosis-test-tube")]
-            TestRunner::OsmosisTestApp(app) => Ok(app.increase_time(seconds)),
+            TestRunner::OsmosisTestApp(app) => {
+                app.increase_time(seconds);
+                Ok(())
+            }
             #[cfg(feature = "rpc-runner")]
             TestRunner::RpcRunner(runner) => runner.increase_time(seconds),
             #[cfg(feature = "multi-test")]
