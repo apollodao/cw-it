@@ -637,11 +637,11 @@ mod tests {
     pub const TEST_RUNNER: &str = "osmosis-test-app";
 
     /// cw-optimizoor adds the CPU architecture to the wasm file name
-    pub const APPEND_ARCH: bool = true;
-    pub const ARCH: Option<&str> = Some("aarch64");
+    pub const APPEND_ARCH: bool = false;
+    pub const ARCH: Option<&str> = None;
 
     /// The path to the artifacts folder
-    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/042b076");
+    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/c73a2db");
 
     #[cfg(feature = "chain-download")]
     /// The Neutron testnet RPC to use to download wasm files
@@ -704,7 +704,7 @@ mod tests {
     }
 
     #[cfg(feature = "chain-download")]
-    /// Get articacts from Neutron testnet
+    /// Get artifacts from Neutron testnet
     fn get_neutron_testnet_artifacts() -> HashMap<String, ContractType> {
         let mut artifacts = NEUTRON_CONTRACT_ADDRESSES
             .iter()
@@ -726,6 +726,20 @@ mod tests {
             ))),
         );
         artifacts
+    }
+
+    // #[test]
+    #[cfg(feature = "chain-download")]
+    fn download_neutron_testnet_artifacts() {
+        for (name, artifact) in NEUTRON_CONTRACT_ADDRESSES {
+            let wasm = artifact
+                .into_artifact(NEUTRON_RPC.to_string())
+                .get_wasm_byte_code()
+                .unwrap();
+            // write wasm to disk
+            let path = get_wasm_path(name, &Some("artifacts"), false, &None);
+            std::fs::write(path, wasm).unwrap();
+        }
     }
 
     /// Creates an RPC test runner and accounts. If `cli` is Some, it will attempt to run the tests

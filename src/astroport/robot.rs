@@ -133,16 +133,13 @@ where
     }
 
     /// Queries the precision of a native denom on the coin registry.
-    fn query_native_coin_registry(
-        &self,
-        registry_addr: &str,
-        denom: &str,
-    ) -> RunnerResult<astroport::native_coin_registry::CoinResponse> {
+    fn query_native_coin_registry(&self, denom: &str) -> RunnerResult<u8> {
+        let contracts = self.astroport_contracts();
+        let registry_addr = contracts.coin_registry.address.as_str();
         let msg = astroport::native_coin_registry::QueryMsg::NativeToken {
             denom: denom.to_string(),
         };
-        self.wasm()
-            .query::<_, astroport::native_coin_registry::CoinResponse>(registry_addr, &msg)
+        self.wasm().query::<_, u8>(registry_addr, &msg)
     }
 
     /// Adds the given native coin denoms and their precisions to the registry.
@@ -392,11 +389,11 @@ mod tests {
     }
 
     /// cw-optimizoor adds the CPU architecture to the wasm file name
-    pub const APPEND_ARCH: bool = true;
-    pub const ARCH: Option<&str> = Some("aarch64");
+    pub const APPEND_ARCH: bool = false;
+    pub const ARCH: Option<&str> = None;
 
     /// The path to the artifacts folder
-    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/042b076");
+    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/c73a2db");
 
     /// Which TestRunner to use
     pub const TEST_RUNNER: &str = "osmosis-test-app";
@@ -577,5 +574,19 @@ mod tests {
                 admin_addr,
                 ask_balance_before + simulation.return_amount,
             );
+    }
+
+    #[test]
+    fn test_query_native_coin_registry() {
+        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let contracts = get_contracts(&runner);
+        let robot = TestingRobot::new(&runner, contracts);
+        let admin = &robot.accs[0];
+
+        let precision = robot
+            .add_denom_precision_to_coin_registry("uatom", 69, admin)
+            .query_native_coin_registry("uatom")
+            .unwrap();
+        assert_eq!(precision, 69);
     }
 }
