@@ -34,6 +34,10 @@ impl CwItRunner<'_> for OsmosisTestApp {
     ) -> Result<Vec<SigningAccount>, Error> {
         Ok(self.init_accounts(initial_balance, num_accounts as u64)?)
     }
+
+    fn increase_time(&self, seconds: u64) -> Result<(), Error> {
+        Ok(OsmosisTestApp::increase_time(&self, seconds))
+    }
 }
 
 #[cfg(test)]
@@ -78,5 +82,14 @@ mod tests {
             &admin,
         )
         .unwrap();
+    }
+
+    #[test]
+    fn test_increase_time() {
+        let app = OsmosisTestApp::new();
+
+        let time = app.get_block_time_nanos();
+        CwItRunner::increase_time(&app, 69).unwrap();
+        assert_eq!(app.get_block_time_nanos(), time + 69000000000);
     }
 }

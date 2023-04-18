@@ -449,4 +449,9 @@ impl<'a> CwItRunner<'a> for RpcRunner<'a> {
     ) -> Result<Vec<SigningAccount>, anyhow::Error> {
         self.init_accounts(num_accounts)
     }
+
+    fn increase_time(&self, _seconds: u64) -> Result<(), anyhow::Error> {
+        // TODO: Figure out best way to sleep tests until `seconds` has passed.
+        todo!()
+    }
 }

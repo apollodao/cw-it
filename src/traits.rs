@@ -15,4 +15,7 @@ pub trait CwItRunner<'a>: Runner<'a> {
         initial_balance: &[Coin],
         num_accounts: usize,
     ) -> Result<Vec<SigningAccount>, Error>;
+
+    /// Increases the time of the blockchain by the given number of seconds.
+    fn increase_time(&self, seconds: u64) -> Result<(), Error>;
 }

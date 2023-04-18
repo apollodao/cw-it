@@ -204,4 +204,16 @@ impl<'a> CwItRunner<'a> for TestRunner<'a> {
             TestRunner::MultiTest(runner) => runner.init_accounts(initial_balance, num_accounts),
         }
     }
+
+    fn increase_time(&self, seconds: u64) -> Result<(), anyhow::Error> {
+        match self {
+            TestRunner::PhantomData(_) => unimplemented!(),
+            #[cfg(feature = "osmosis-test-tube")]
+            TestRunner::OsmosisTestApp(app) => Ok(app.increase_time(seconds)),
+            #[cfg(feature = "rpc-runner")]
+            TestRunner::RpcRunner(runner) => runner.increase_time(seconds),
+            #[cfg(feature = "multi-test")]
+            TestRunner::MultiTest(runner) => runner.increase_time(seconds),
+        }
+    }
 }
