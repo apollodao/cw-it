@@ -28,7 +28,7 @@ overflow-checks  = true
 
 [features]
 default = []
-astroport = ["cw20", "dep:astroport", "ap-native-coin-registry"]
+astroport = ["cw20", "dep:astroport"]
 osmosis = ["proptest", "apollo-utils", "regex", "osmosis-test-tube"]
 rpc-runner = ["testcontainers", "tonic", "tokio", "cosmos-sdk-proto"]
 git = ["git2", "git2_credentials"]
@@ -79,32 +79,31 @@ osmosis-std = { git = "https://github.com/apollodao/osmosis-rust.git", rev = "a4
 osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "93c472a58645c83e514152f34efd4cc4c16fe189", optional = true }
 
 # Astroport deps
-astroport               = { version = "2.3.1", optional = true }
-ap-native-coin-registry = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.0.0", optional = true }
+astroport = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true }
 cw20                    = { version = "0.15", optional = true }
 
 # Astroport contracts for multi-test
-astroport-token = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true, features = [
+astroport-token = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true, features = [
   "library",
 ] }
-astroport-native-coin-registry = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true, features = [
+astroport-native-coin-registry = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true, features = [
   "library",
 ] }
-astroport-factory = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true, features = [
+astroport-factory = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true, features = [
   "library",
 ] }
-astroport-generator = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true }
-astroport-maker = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true }
-astroport-pair-stable = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true, features = [
+astroport-generator = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true }
+astroport-maker = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true }
+astroport-pair-stable = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true, features = [
   "library",
 ] }
-astroport-pair = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true }
-astroport-router = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true }
-astroport-staking = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true }
-astroport-vesting = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true, features = [
+astroport-pair = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true }
+astroport-router = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true }
+astroport-staking = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true }
+astroport-vesting = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true, features = [
   "library",
 ] }
-astroport-whitelist = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.5.0", optional = true, features = [
+astroport-whitelist = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true, features = [
   "library",
 ] }
 

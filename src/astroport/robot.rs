@@ -137,12 +137,12 @@ where
         &self,
         registry_addr: &str,
         denom: &str,
-    ) -> RunnerResult<ap_native_coin_registry::CoinResponse> {
-        let msg = ap_native_coin_registry::QueryMsg::NativeToken {
+    ) -> RunnerResult<astroport::native_coin_registry::CoinResponse> {
+        let msg = astroport::native_coin_registry::QueryMsg::NativeToken {
             denom: denom.to_string(),
         };
         self.wasm()
-            .query::<_, ap_native_coin_registry::CoinResponse>(registry_addr, &msg)
+            .query::<_, astroport::native_coin_registry::CoinResponse>(registry_addr, &msg)
     }
 
     /// Adds the given native coin denoms and their precisions to the registry.
@@ -152,7 +152,7 @@ where
         native_coins: Vec<(String, u8)>,
         signer: &SigningAccount,
     ) -> &Self {
-        let msg = ap_native_coin_registry::ExecuteMsg::Add { native_coins };
+        let msg = astroport::native_coin_registry::ExecuteMsg::Add { native_coins };
         self.wasm()
             .execute(registry_addr, &msg, &[], signer)
             .unwrap();
@@ -438,7 +438,13 @@ mod tests {
 
     /// Returns some stable pool initialization params.
     fn stable_init_params() -> Option<Binary> {
-        Some(to_binary(&StablePoolParams { amp: 10 }).unwrap())
+        Some(
+            to_binary(&StablePoolParams {
+                amp: 10,
+                owner: None,
+            })
+            .unwrap(),
+        )
     }
 
     #[test]
