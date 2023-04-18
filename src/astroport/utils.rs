@@ -2,7 +2,6 @@ use crate::artifact::Artifact;
 use crate::helpers::upload_wasm_files;
 use crate::traits::CwItRunner;
 use crate::{ContractMap, ContractType, TestRunner};
-use ap_native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
 use astroport::asset::{Asset, AssetInfo};
 use astroport::factory::{
     ExecuteMsg as AstroportFactoryExecuteMsg, InstantiateMsg as AstroportFactoryInstantiateMsg,
@@ -10,6 +9,7 @@ use astroport::factory::{
 };
 use astroport::generator::InstantiateMsg as GeneratorInstantiateMsg;
 use astroport::maker::InstantiateMsg as MakerInstantiateMsg;
+use astroport::native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
 use std::collections::HashMap;
 
 use astroport::router::InstantiateMsg as RouterInstantiateMsg;
@@ -210,6 +210,7 @@ where
                 tokens_per_block: Uint128::from(10000000u128),
                 start_block: Uint64::one(),
                 vesting_contract: vesting.clone(),
+                voting_escrow_delegation: None,
             },
             Some(&admin.address()),    // contract admin used for migration
             Some("Astroport Factory"), // contract label
@@ -295,6 +296,7 @@ where
                 default_bridge: Some(AssetInfo::NativeToken {
                     denom: "uosmo".to_string(),
                 }),
+                second_receiver_params: None,
             },
             Some(&admin.address()),  // contract admin used for migration
             Some("Astroport Maker"), // contract label
