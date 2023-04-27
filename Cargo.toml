@@ -28,7 +28,7 @@ overflow-checks  = true
 
 [features]
 default = []
-astroport = ["cw20", "dep:astroport", "ap-native-coin-registry"]
+astroport = ["cw20", "dep:astroport"]
 osmosis = ["proptest", "apollo-utils", "osmosis-test-tube"]
 rpc-runner = ["testcontainers", "tonic", "tokio", "cosmos-sdk-proto"]
 git = ["git2", "git2_credentials"]

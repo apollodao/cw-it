@@ -39,6 +39,10 @@ impl CwItRunner<'_> for OsmosisTestApp {
         OsmosisTestApp::increase_time(self, seconds);
         Ok(())
     }
+
+    fn query_block_time_nanos(&self) -> u64 {
+        self.get_block_time_nanos() as u64
+    }
 }
 
 #[cfg(test)]

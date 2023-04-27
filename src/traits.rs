@@ -18,4 +18,6 @@ pub trait CwItRunner<'a>: Runner<'a> {
 
     /// Increases the time of the blockchain by the given number of seconds.
     fn increase_time(&self, seconds: u64) -> Result<(), Error>;
+
+    fn query_block_time_nanos(&self) -> u64;
 }
