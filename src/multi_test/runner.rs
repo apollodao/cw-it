@@ -317,6 +317,10 @@ impl<'a> CwItRunner<'a> for MultiTestRunner<'a> {
 
         Ok(())
     }
+
+    fn query_block_time_nanos(&self) -> u64 {
+        self.app.block_info().time.nanos()
+    }
 }
 
 #[cfg(test)]
