@@ -45,6 +45,12 @@ pub enum ContractType {
     MultiTestContract(Box<dyn Contract<Empty, Empty>>),
 }
 
+impl From<Artifact> for ContractType {
+    fn from(artifact: Artifact) -> Self {
+        ContractType::Artifact(artifact)
+    }
+}
+
 /// Convenience type to map contract names to implementations
 pub type ContractMap = std::collections::HashMap<String, ContractType>;
 

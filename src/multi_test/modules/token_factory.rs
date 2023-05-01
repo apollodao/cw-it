@@ -14,6 +14,10 @@ use cw_multi_test::{
     AppResponse, BankSudo, CosmosRouter, StargateKeeper, StargateMessageHandler, StargateMsg,
 };
 
+/// This implements the TokenFactory module, as it is defined in the Osmosis go codebase,
+/// as a StargateMessageHandler for use in `cw_multi_test::stargate::StargateKeeper`.
+///
+/// Currently only executions are implemented, not queries.
 #[derive(Clone)]
 pub struct TokenFactory<'a> {
     pub module_denom_prefix: &'a str,

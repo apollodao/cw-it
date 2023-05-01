@@ -23,6 +23,17 @@ use test_tube::{
 
 use crate::{traits::CwItRunner, ContractType};
 
+/// A wrapper around `cw_multi_test::App` that implements `test_tube::Runner`.
+/// This allows us to use `cw_multi_test::App` to run integration tests written for
+/// `test_tube::Runner`. Since the execution in this case never leaves rust it enables
+/// debugging and line based code coverage to be used.
+///
+/// This has support for all the CosmosMsgs and QueryRequests that are supported by `cw_multi_test::App`.
+/// By default no stargate messages are supported. To enable stargate messages you must
+/// create a module struct that implements the `cw_multi_test::stargate::StargateMessageHandler`
+/// and `cw_multi_test::StargateQueryHandler` traits and register that struct as a message
+/// and/or query handler in the multi test app `StargateKeeper`. See `modules/token_factory.rs`
+/// for an example of this.
 pub struct MultiTestRunner<'a> {
     pub app: cw_multi_test::App,
     pub address_prefix: &'a str,

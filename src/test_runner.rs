@@ -14,6 +14,8 @@ use crate::multi_test::MultiTestRunner;
 #[cfg(feature = "osmosis-test-tube")]
 use osmosis_test_tube::OsmosisTestApp;
 
+pub const DEFAULT_RUNNER: &str = "osmosis-test-app";
+
 /// An enum with concrete types implementing the Runner trait. We specify these here because the
 /// Runner trait is not object safe, and we want to be able to run tests against different types of
 /// runners.
@@ -203,5 +205,26 @@ impl<'a> CwItRunner<'a> for TestRunner<'a> {
             #[cfg(feature = "multi-test")]
             TestRunner::MultiTest(runner) => runner.init_accounts(initial_balance, num_accounts),
         }
+    }
+}
+
+impl TestRunner<'_> {
+    pub fn from_env_var(var_name: &str) -> Result<Self, String> {
+        let runner_type = std::env::var(var_name).unwrap_or_else(|_| DEFAULT_RUNNER.to_string());
+        Self::from_str(&runner_type)
+    }
+}
+
+/// Creates an OsmosisTestApp TestRunner
+pub fn get_test_runner<'a>() -> TestRunner<'a> {
+    match option_env!("CW_IT_TEST_RUNNER").unwrap_or("osmosis-test-tube") {
+        #[cfg(feature = "osmosis-test-tube")]
+        "osmosis-test-tube" => {
+            let app = OsmosisTestApp::new();
+            TestRunner::OsmosisTestApp(app)
+        }
+        #[cfg(feature = "multi-test")]
+        "multi-test" => TestRunner::MultiTest(MultiTestRunner::new("osmo")),
+        _ => panic!("Unsupported test runner type"),
     }
 }

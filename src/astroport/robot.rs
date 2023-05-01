@@ -125,36 +125,42 @@ where
     }
 
     /// Queries the Config of the Astroport Factory contract.
-    fn query_factory_config(&self, factory_addr: &str) -> ConfigResponse {
+    fn query_factory_config(&self) -> ConfigResponse {
         let msg = astroport::factory::QueryMsg::Config {};
         self.wasm()
-            .query::<_, ConfigResponse>(factory_addr, &msg)
+            .query::<_, ConfigResponse>(&self.astroport_contracts().factory.address, &msg)
             .unwrap()
     }
 
     /// Queries the precision of a native denom on the coin registry.
     fn query_native_coin_registry(
         &self,
-        registry_addr: &str,
         denom: &str,
     ) -> RunnerResult<ap_native_coin_registry::CoinResponse> {
         let msg = ap_native_coin_registry::QueryMsg::NativeToken {
             denom: denom.to_string(),
         };
         self.wasm()
-            .query::<_, ap_native_coin_registry::CoinResponse>(registry_addr, &msg)
+            .query::<_, ap_native_coin_registry::CoinResponse>(
+                &self.astroport_contracts().coin_registry.address,
+                &msg,
+            )
     }
 
     /// Adds the given native coin denoms and their precisions to the registry.
     fn add_native_coins_to_registry(
         &self,
-        registry_addr: &str,
         native_coins: Vec<(String, u8)>,
         signer: &SigningAccount,
     ) -> &Self {
         let msg = ap_native_coin_registry::ExecuteMsg::Add { native_coins };
         self.wasm()
-            .execute(registry_addr, &msg, &[], signer)
+            .execute(
+                &self.astroport_contracts().coin_registry.address,
+                &msg,
+                &[],
+                signer,
+            )
             .unwrap();
         self
     }
@@ -214,13 +220,9 @@ where
         signer: &SigningAccount,
         initial_liquidity: Option<[Uint128; 2]>,
     ) -> (String, String) {
-        let factory_addr = &self.astroport_contracts().factory.address;
-
         // If the pair is a stableswap pair, add the native coins to the registry
         if let PairType::Stable {} = pair_type {
             //Query factory for native coin registry address
-            let factory_config = self.query_factory_config(factory_addr);
-            let registry_addr = factory_config.coin_registry_address.as_str();
             let native_coins = asset_infos
                 .iter()
                 .filter_map(|info| match info {
@@ -228,7 +230,7 @@ where
                     _ => None,
                 })
                 .collect();
-            self.add_native_coins_to_registry(registry_addr, native_coins, signer);
+            self.add_native_coins_to_registry(native_coins, signer);
         }
 
         let msg = AstroportFactoryExecuteMsg::CreatePair {
@@ -238,7 +240,12 @@ where
         };
         let res = self
             .wasm()
-            .execute(factory_addr, &msg, &[], signer)
+            .execute(
+                &self.astroport_contracts().factory.address,
+                &msg,
+                &[],
+                signer,
+            )
             .unwrap();
 
         // Get pair and lp_token addresses from event
@@ -380,11 +387,13 @@ mod tests {
             }
         }
     }
+
     impl<'a> TestRobot<'a, TestRunner<'a>> for TestingRobot<'a> {
         fn runner(&self) -> &'a TestRunner<'a> {
             self.runner
         }
     }
+
     impl<'a> AstroportTestRobot<'a, TestRunner<'a>> for TestingRobot<'a> {
         fn astroport_contracts(&self) -> &AstroportContracts {
             &self.astroport_contracts
@@ -453,7 +462,7 @@ mod tests {
 
         let astro_contracts = &robot.astroport_contracts;
 
-        robot.query_factory_config(&astro_contracts.factory.address);
+        robot.query_factory_config();
     }
 
     #[test_case(PairType::Xyk {},AssetChoice::NativeNative,None,None; "XYK, native-native, no liq")]
