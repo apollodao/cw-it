@@ -17,10 +17,10 @@ use test_tube::{
 use testcontainers::clients::Cli;
 use testcontainers::images::generic::GenericImage;
 use testcontainers::Container;
-use thiserror::Error;
 
 use super::chain::Chain;
 use super::config::RpcRunnerConfig;
+use super::error::RpcRunnerError;
 use crate::application::Application;
 use crate::helpers::block_on;
 use crate::traits::CwItRunner;
@@ -35,15 +35,6 @@ use cosmrs::tx::{self, Raw};
 use cosmrs::tx::{Fee, SignerInfo};
 use cosmrs::AccountId;
 use prost::Message;
-
-#[derive(Debug, Error)]
-pub enum RpcRunnerError {
-    #[error("{0}")]
-    ChainError(#[from] super::chain::ChainError),
-
-    #[error("{0}")]
-    Generic(String),
-}
 
 #[derive(Debug)]
 pub struct RpcRunner<'a> {
@@ -425,14 +416,15 @@ impl<'a> CwItRunner<'a> for RpcRunner<'a> {
         signer: &SigningAccount,
     ) -> Result<u64, anyhow::Error> {
         match code {
-            ContractType::MultiTestContract(_) => {
-                bail!("MultiTestContract not supported for RpcRunner")
-            }
             ContractType::Artifact(artifact) => {
                 let bytes = artifact.get_wasm_byte_code()?;
                 let wasm = Wasm::new(self);
                 let code_id = wasm.store_code(&bytes, None, signer)?.data.code_id;
                 Ok(code_id)
+            }
+            #[cfg(feature = "multi-test")]
+            ContractType::MultiTestContract(_) => {
+                unimplemented!("cannot use a multi-test contract in RpcRunner")
             }
         }
     }
@@ -452,6 +444,10 @@ impl<'a> CwItRunner<'a> for RpcRunner<'a> {
 
     fn increase_time(&self, _seconds: u64) -> Result<(), anyhow::Error> {
         // TODO: Figure out best way to sleep tests until `seconds` has passed.
+        todo!()
+    }
+
+    fn query_block_time_nanos(&self) -> u64 {
         todo!()
     }
 }

@@ -27,7 +27,7 @@ incremental      = false
 overflow-checks  = true
 
 [features]
-default = []
+default = ["rpc-runner", "multi-test", "osmosis-test-tube"]
 astroport = ["cw20", "dep:astroport"]
 osmosis = ["proptest", "apollo-utils", "regex", "osmosis-test-tube"]
 rpc-runner = ["testcontainers", "tonic", "tokio", "cosmos-sdk-proto"]

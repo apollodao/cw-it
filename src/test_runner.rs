@@ -232,3 +232,28 @@ impl<'a> CwItRunner<'a> for TestRunner<'a> {
         }
     }
 }
+
+mod tests {
+    #[test]
+    fn test_increase_time() {
+        #[cfg(feature = "osmosis-test-tube")]
+        {
+            use crate::traits::CwItRunner;
+            let runner = crate::TestRunner::OsmosisTestApp(
+                crate::osmosis_test_tube::OsmosisTestApp::default(),
+            );
+            let time = runner.query_block_time_nanos();
+            runner.increase_time(100).unwrap();
+            assert_eq!(runner.query_block_time_nanos(), time + 100_000_000_000);
+        }
+        #[cfg(feature = "multi-test")]
+        {
+            use crate::traits::CwItRunner;
+            let runner =
+                crate::TestRunner::MultiTest(crate::multi_test::MultiTestRunner::new("osmo"));
+            let time = runner.query_block_time_nanos();
+            runner.increase_time(100).unwrap();
+            assert_eq!(runner.query_block_time_nanos(), time + 100_000_000_000);
+        }
+    }
+}
