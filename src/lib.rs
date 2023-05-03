@@ -38,6 +38,7 @@ pub use test_runner::TestRunner;
 
 // Re-exports for convenience
 pub use cosmrs;
+pub use osmosis_std;
 pub use test_tube;
 
 #[cfg(feature = "osmosis-test-tube")]
