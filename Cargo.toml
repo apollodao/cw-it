@@ -29,11 +29,11 @@ overflow-checks  = true
 [features]
 default = []
 astroport = ["cw20", "dep:astroport", "ap-native-coin-registry"]
-osmosis = ["proptest", "apollo-utils", "regex", "osmosis-test-tube"]
+osmosis = ["proptest", "apollo-utils", "osmosis-test-tube"]
 rpc-runner = ["testcontainers", "tonic", "tokio", "cosmos-sdk-proto"]
 git = ["git2", "git2_credentials"]
 chain-download = ["tokio"]
-multi-test = ["cw-multi-test", "paste"]
+multi-test = ["cw-multi-test", "paste", "regex"]
 astroport-multi-test = [
   "multi-test",
   "astroport",
