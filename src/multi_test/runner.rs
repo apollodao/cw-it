@@ -323,6 +323,19 @@ impl<'a> CwItRunner<'a> for MultiTestRunner<'a> {
         }
         Ok(accounts)
     }
+
+    fn increase_time(&self, seconds: u64) -> Result<(), anyhow::Error> {
+        self.app.update_block(|block| {
+            block.time = block.time.plus_seconds(seconds);
+            block.height += 1;
+        });
+
+        Ok(())
+    }
+
+    fn query_block_time_nanos(&self) -> u64 {
+        self.app.block_info().time.nanos()
+    }
 }
 
 #[cfg(test)]
@@ -624,5 +637,14 @@ mod tests {
         assert_eq!(res.balances.len(), 1);
         assert_eq!(res.balances[0].denom, "uatom".to_string());
         assert_eq!(res.balances[0].amount, "1000");
+    }
+
+    #[test]
+    fn test_increase_time() {
+        let app = MultiTestRunner::new("osmo");
+
+        let time = app.app.block_info().time;
+        app.increase_time(69).unwrap();
+        assert_eq!(app.app.block_info().time.seconds(), time.seconds() + 69);
     }
 }
