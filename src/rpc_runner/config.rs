@@ -3,8 +3,8 @@ use std::{collections::HashMap, fs};
 use config::Config;
 use cosmrs::bip32;
 use cosmwasm_std::Coin;
-use osmosis_test_tube::RunnerError;
 use serde::{Deserialize, Serialize};
+use test_tube::RunnerError;
 use test_tube::{account::FeeSetting, SigningAccount};
 use testcontainers::{images::generic::GenericImage, Container};
 
