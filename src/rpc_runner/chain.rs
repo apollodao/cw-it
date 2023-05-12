@@ -33,8 +33,8 @@ pub struct Chain {
 #[derive(Clone, Debug, Deserialize)]
 pub struct ChainConfig {
     pub name: String,
-    denom: String,
-    prefix: String,
+    pub denom: String,
+    pub prefix: String,
     pub chain_id: String,
     pub gas_price: u64,
     pub gas_adjustment: f64,

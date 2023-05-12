@@ -3,6 +3,7 @@ use std::num::ParseIntError;
 use anyhow::bail;
 use cosmos_sdk_proto::cosmos::auth::v1beta1::{QueryAccountRequest, QueryAccountResponse};
 use cosmrs::proto::cosmos::auth::v1beta1::BaseAccount;
+use cosmrs::tendermint::Time;
 use cosmwasm_std::{
     from_binary, Coin, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
     WasmQuery,
@@ -454,4 +455,45 @@ impl<'a> CwItRunner<'a> for RpcRunner<'a> {
         // TODO: Figure out best way to sleep tests until `seconds` has passed.
         todo!()
     }
+
+    fn query_block_time_nanos(&self) -> u64 {
+        block_on(self.chain.client().latest_block())
+            .unwrap()
+            .block
+            .header
+            .time
+            .duration_since(Time::unix_epoch())
+            .unwrap()
+            .as_nanos() as u64
+    }
 }
+
+// Commenting out RPC tests so that CI doesn't break randomly when the RPC endpoint is down
+// #[cfg(test)]
+// mod test {
+//     use crate::rpc_runner::{chain::ChainConfig, config::RpcRunnerConfig, RpcRunner};
+//     use crate::traits::CwItRunner;
+
+//     #[test]
+//     fn test_query_block_time_nanos() {
+//         let rpc_runner_config = RpcRunnerConfig {
+//             accounts_folder: "".to_string(),
+//             chain_config: ChainConfig {
+//                 chain_id: "pion-1".to_string(),
+//                 derivation_path: "m/44'/1'/0'/0/0".to_string(),
+//                 gas_adjustment: 1.5,
+//                 gas_price: 0,
+//                 grpc_endpoint: "http://grpc-palvus.pion-1.ntrn.tech:80".to_string(),
+//                 rpc_endpoint: "https://rpc-palvus.pion-1.ntrn.tech:443".to_string(),
+//                 name: "pion-1".to_string(),
+//                 denom: "ntrn".to_string(),
+//                 prefix: "neutron".to_string(),
+//             },
+//             container: None,
+//         };
+//         let rpc_runner = RpcRunner::new(rpc_runner_config, None).unwrap();
+//         let block_time_nanos = rpc_runner.query_block_time_nanos();
+//         println!("block_time_nanos: {}", block_time_nanos);
+//         assert!(block_time_nanos > 1683910796000000000);
+//     }
+// }
