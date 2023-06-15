@@ -70,6 +70,13 @@ impl Display for TestRunner<'_> {
     }
 }
 
+impl TestRunner<'_> {
+    /// Creates a TestRunner instance from an env var, which is the name of the runner.
+    pub fn from_env_var() -> Result<Self, String> {
+        TestRunner::from_str(&std::env::var("TEST_RUNNER").unwrap_or_else(|_| "multi-test".into()))
+    }
+}
+
 #[cfg(feature = "osmosis-test-tube")]
 impl From<OsmosisTestApp> for TestRunner<'_> {
     fn from(app: OsmosisTestApp) -> Self {
