@@ -74,9 +74,9 @@ prost = { version = "0.11.2", default-features = false, features = [
 config = { version = "0.13.2", features = ["yaml"] }
 anyhow = "1.0.66"
 serde_json = "1.0.89"
-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "530144c4264de6f791c388352f57d8b52f9e1dfd" }
-osmosis-std = { git = "https://github.com/apollodao/osmosis-rust.git", rev = "9682deeb2e6869f7d0f9736fbe4e0ceef2d56fb7" }
-osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "530144c4264de6f791c388352f57d8b52f9e1dfd", optional = true }
+osmosis-std = "0.16.0-beta.1"
+test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "a08f7a83231afb499bfdc58e0c2890f110f39bd5" }
+osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "a08f7a83231afb499bfdc58e0c2890f110f39bd5", optional = true }
 
 # Astroport deps
 astroport = { git = "https://github.com/astroport-fi/astroport-core.git", tag = "v2.7.1", optional = true }
