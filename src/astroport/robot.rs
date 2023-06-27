@@ -355,6 +355,19 @@ mod tests {
         ContractMap, TestRunner,
     };
 
+    use crate::traits::CwItRunner;
+
+    use cosmwasm_std::coin;
+
+    fn initial_coins() -> Vec<cosmwasm_std::Coin> {
+        vec![
+            coin(u128::MAX, "uosmo"),
+            coin(u128::MAX, "uion"),
+            coin(u128::MAX, "uatom"),
+            coin(u128::MAX, "stake"),
+        ]
+    }
+
     struct TestingRobot<'a> {
         runner: &'a TestRunner<'a>,
         accs: Vec<SigningAccount>,
@@ -363,7 +376,7 @@ mod tests {
     impl<'a> TestingRobot<'a> {
         fn new(runner: &'a TestRunner<'a>, contracts: ContractMap) -> Self {
             // Initialize accounts
-            let accs = runner.init_accounts();
+            let accs = runner.init_accounts(&initial_coins(), 10).unwrap();
             let admin = &accs[0];
 
             // Upload and initialize contracts

@@ -618,6 +618,10 @@ mod tests {
     use astroport::pair::ExecuteMsg as PairExecuteMsg;
     use std::str::FromStr;
 
+    use crate::traits::CwItRunner;
+
+    use cosmwasm_std::coin;
+
     #[cfg(feature = "rpc-runner")]
     use {
         crate::rpc_runner::{config::RpcRunnerConfig, RpcRunner},
@@ -629,6 +633,15 @@ mod tests {
         super::get_wasm_path, crate::artifact::Artifact, crate::artifact::ChainArtifact,
         crate::ContractType, std::collections::HashMap,
     };
+
+    fn initial_coins() -> Vec<cosmwasm_std::Coin> {
+        vec![
+            coin(u128::MAX, "uosmo"),
+            coin(u128::MAX, "uion"),
+            coin(u128::MAX, "uatom"),
+            coin(u128::MAX, "stake"),
+        ]
+    }
 
     #[cfg(feature = "rpc-runner")]
     pub const TEST_CONFIG_PATH: &str = "configs/terra.yaml";
@@ -794,7 +807,7 @@ mod tests {
     }
 
     pub fn test_instantiate_astroport(app: TestRunner, contracts: ContractMap) {
-        let accs = app.init_accounts();
+        let accs = app.init_accounts(&initial_coins(), 10).unwrap();
         let native_denom = get_fee_denom(&app);
         let wasm = Wasm::new(&app);
 

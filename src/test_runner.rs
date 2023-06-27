@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use crate::{traits::CwItRunner, ContractType};
-use cosmwasm_std::coin;
 use serde::de::DeserializeOwned;
 use test_tube::{Runner, SigningAccount};
 
@@ -28,15 +27,6 @@ pub enum TestRunner<'a> {
     MultiTest(MultiTestRunner<'a>),
 }
 
-fn initial_coins() -> Vec<cosmwasm_std::Coin> {
-    vec![
-        coin(u128::MAX, "uosmo"),
-        coin(u128::MAX, "uion"),
-        coin(u128::MAX, "uatom"),
-        coin(u128::MAX, "stake"),
-    ]
-}
-
 impl FromStr for TestRunner<'_> {
     type Err = String;
 
@@ -57,23 +47,6 @@ impl FromStr for TestRunner<'_> {
             "multi-test" => Self::MultiTest(MultiTestRunner::new("osmo")),
             _ => return Err(format!("Invalid TestRunner: {}", s)),
         })
-    }
-}
-
-impl TestRunner<'_> {
-    /// Initializes 10 accounts with max balance of uosmo, uion, uatom, and stake.
-    ///
-    /// NB: For RpcRunner, this will instead just read the mnemonics from the config file.
-    pub fn init_accounts(&self) -> Vec<SigningAccount> {
-        match self {
-            TestRunner::PhantomData(_) => unreachable!(),
-            #[cfg(feature = "osmosis-test-tube")]
-            TestRunner::OsmosisTestApp(app) => app.init_accounts(&initial_coins(), 10).unwrap(),
-            #[cfg(feature = "rpc-runner")]
-            TestRunner::RpcRunner(runner) => runner.init_accounts(10).unwrap(),
-            #[cfg(feature = "multi-test")]
-            TestRunner::MultiTest(runner) => runner.init_accounts(&initial_coins(), 10).unwrap(),
-        }
     }
 }
 
