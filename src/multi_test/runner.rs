@@ -38,6 +38,21 @@ impl<'a> MultiTestRunner<'a> {
             address_prefix,
         }
     }
+
+    pub fn new_with_stargate(
+        address_prefix: &'a str,
+        stargate_keeper: cw_multi_test::StargateKeeper<Empty, Empty>,
+    ) -> Self {
+        // Construct app
+        let app = BasicAppBuilder::<Empty, Empty>::new()
+            .with_stargate(stargate_keeper)
+            .build(|_, _, _| {});
+
+        Self {
+            app,
+            address_prefix,
+        }
+    }
 }
 
 impl Runner<'_> for MultiTestRunner<'_> {
