@@ -1,7 +1,6 @@
 use std::env;
 use std::{collections::HashMap, str::FromStr};
 
-use anyhow::Error;
 use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
 use osmosis_std::types::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
 use osmosis_std::types::cosmos::base::v1beta1::Coin as ProtoCoin;
@@ -11,7 +10,7 @@ use test_tube::{Bank, Wasm};
 
 use crate::error::CwItError;
 use crate::traits::CwItRunner;
-use crate::ContractType;
+use crate::{ArtifactError, ContractType};
 
 #[cfg(feature = "tokio")]
 use std::future::Future;
@@ -32,7 +31,7 @@ pub fn upload_wasm_files<'a, R: CwItRunner<'a>>(
     contracts
         .into_iter()
         .map(|(name, contract)| {
-            let code_id = runner.store_code(contract, signer)?;
+            let code_id = upload_wasm_file(runner, signer, contract)?;
             Ok((name, code_id))
         })
         .collect()
@@ -85,8 +84,14 @@ pub fn upload_wasm_file<'a, R: CwItRunner<'a>>(
     runner: &'a R,
     signer: &SigningAccount,
     contract: ContractType,
-) -> Result<u64, Error> {
-    runner.store_code(contract, signer)
+) -> Result<u64, CwItError> {
+    let error_msg = format!("Failed to upload wasm file: {:?}", contract);
+    runner.store_code(contract, signer).map_err(|e| {
+        CwItError::ArtifactError(ArtifactError::Generic(format!(
+            "{:?}. Error: {:?}",
+            error_msg, e
+        )))
+    })
 }
 
 pub fn bank_balance_query<'a>(
