@@ -114,6 +114,4 @@ impl Artifact {
             } => todo!(),
         }
     }
-
-    
 }
