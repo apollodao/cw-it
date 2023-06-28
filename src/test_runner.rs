@@ -1,4 +1,7 @@
-use std::str::FromStr;
+use std::{
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 
 use crate::{traits::CwItRunner, ContractType};
 use serde::de::DeserializeOwned;
@@ -16,6 +19,8 @@ use osmosis_test_tube::OsmosisTestApp;
 /// An enum with concrete types implementing the Runner trait. We specify these here because the
 /// Runner trait is not object safe, and we want to be able to run tests against different types of
 /// runners.
+#[derive(strum::EnumVariantNames)]
+#[strum(serialize_all = "kebab_case")]
 pub enum TestRunner<'a> {
     // Needed to keep lifetime when rpc-runner feature is off
     PhantomData(&'a ()),
@@ -47,6 +52,28 @@ impl FromStr for TestRunner<'_> {
             "multi-test" => Self::MultiTest(MultiTestRunner::new("osmo")),
             _ => return Err(format!("Invalid TestRunner: {}", s)),
         })
+    }
+}
+
+impl Display for TestRunner<'_> {
+    /// Returns the name of the runner.
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TestRunner::PhantomData(_) => unreachable!(),
+            #[cfg(feature = "osmosis-test-tube")]
+            TestRunner::OsmosisTestApp(_) => write!(f, "osmosis-test-app"),
+            #[cfg(feature = "rpc-runner")]
+            TestRunner::RpcRunner(_) => write!(f, "rpc-runner"),
+            #[cfg(feature = "multi-test")]
+            TestRunner::MultiTest(_) => write!(f, "multi-test"),
+        }
+    }
+}
+
+impl TestRunner<'_> {
+    /// Creates a TestRunner instance from an env var, which is the name of the runner.
+    pub fn from_env_var() -> Result<Self, String> {
+        TestRunner::from_str(&std::env::var("TEST_RUNNER").unwrap_or_else(|_| "multi-test".into()))
     }
 }
 
@@ -202,6 +229,30 @@ impl<'a> CwItRunner<'a> for TestRunner<'a> {
             TestRunner::RpcRunner(runner) => unimplemented!(),
             #[cfg(feature = "multi-test")]
             TestRunner::MultiTest(runner) => runner.query_block_time_nanos(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use strum::VariantNames;
+
+    use super::*;
+
+    #[test]
+    fn test_runner_from_and_to_str() {
+        for str in TestRunner::VARIANTS {
+            match str {
+                &"phantom-data" => continue,
+                &"rpc-runner" => match TestRunner::from_str(str) {
+                    Ok(_) => panic!("RpcRunner from_str should fail"),
+                    Err(err) => assert_eq!(err, "RpcRunner requires a config file".to_string()),
+                },
+                _ => {
+                    let runner = TestRunner::from_str(str).unwrap();
+                    assert_eq!(&runner.to_string(), str);
+                }
+            }
         }
     }
 }
