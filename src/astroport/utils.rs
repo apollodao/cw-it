@@ -620,7 +620,7 @@ mod tests {
 
     use crate::traits::CwItRunner;
 
-    use cosmwasm_std::coin;
+    use super::super::test_helpers::initial_coins;
 
     #[cfg(feature = "rpc-runner")]
     use {
@@ -633,15 +633,6 @@ mod tests {
         super::get_wasm_path, crate::artifact::Artifact, crate::artifact::ChainArtifact,
         crate::ContractType, std::collections::HashMap,
     };
-
-    fn initial_coins() -> Vec<cosmwasm_std::Coin> {
-        vec![
-            coin(u128::MAX, "uosmo"),
-            coin(u128::MAX, "uion"),
-            coin(u128::MAX, "uatom"),
-            coin(u128::MAX, "stake"),
-        ]
-    }
 
     #[cfg(feature = "rpc-runner")]
     pub const TEST_CONFIG_PATH: &str = "configs/terra.yaml";

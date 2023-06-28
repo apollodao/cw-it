@@ -355,18 +355,8 @@ mod tests {
         ContractMap, TestRunner,
     };
 
+    use super::super::test_helpers::initial_coins;
     use crate::traits::CwItRunner;
-
-    use cosmwasm_std::coin;
-
-    fn initial_coins() -> Vec<cosmwasm_std::Coin> {
-        vec![
-            coin(u128::MAX, "uosmo"),
-            coin(u128::MAX, "uion"),
-            coin(u128::MAX, "uatom"),
-            coin(u128::MAX, "stake"),
-        ]
-    }
 
     struct TestingRobot<'a> {
         runner: &'a TestRunner<'a>,
