@@ -34,7 +34,21 @@ rpc-runner = ["testcontainers", "tonic", "tokio", "cosmos-sdk-proto"]
 git = ["git2", "git2_credentials"]
 chain-download = ["tokio"]
 multi-test = ["cw-multi-test", "paste", "regex"]
-astroport-multi-test = ["multi-test", "astroport", "astroport-token", "astroport-native-coin-registry", "astroport-factory", "astroport-generator", "astroport-maker", "astroport-pair-stable", "astroport-pair", "astroport-router", "astroport-staking", "astroport-vesting", "astroport-whitelist"]
+astroport-multi-test = [
+  "multi-test",
+  "astroport",
+  "astroport-token",
+  "astroport-native-coin-registry",
+  "astroport-factory",
+  "astroport-generator",
+  "astroport-maker",
+  "astroport-pair-stable",
+  "astroport-pair",
+  "astroport-router",
+  "astroport-staking",
+  "astroport-vesting",
+  "astroport-whitelist",
+]
 osmosis-test-tube = ["dep:osmosis-test-tube"]
 
 [package.metadata.scripts]
