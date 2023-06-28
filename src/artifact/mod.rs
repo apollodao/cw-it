@@ -1,5 +1,8 @@
 use cosmwasm_schema::cw_serde;
-use std::fs;
+use std::{
+    fmt::{Debug, Formatter},
+    fs,
+};
 use thiserror::Error;
 
 #[cfg(feature = "multi-test")]
@@ -43,6 +46,16 @@ pub enum ContractType {
     Artifact(Artifact),
     #[cfg(feature = "multi-test")]
     MultiTestContract(Box<dyn Contract<Empty, Empty>>),
+}
+
+impl Debug for ContractType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ContractType::Artifact(artifact) => write!(f, "Artifact({:?})", artifact),
+            #[cfg(feature = "multi-test")]
+            ContractType::MultiTestContract(_) => write!(f, "MultiTestContract"),
+        }
+    }
 }
 
 /// Convenience type to map contract names to implementations
@@ -112,6 +125,56 @@ impl Artifact {
                 branch: _,
                 crate_name: _,
             } => todo!(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn contract_type_debug() {
+        let artifact = Artifact::Local("foo".to_string());
+        let contract_type = ContractType::Artifact(artifact);
+        assert_eq!(format!("{:?}", contract_type), "Artifact(Local(\"foo\"))");
+    }
+
+    #[cfg(feature = "multi-test")]
+    mod multi_test {
+        use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+        use cw_multi_test::ContractWrapper;
+
+        use super::*;
+
+        fn execute(
+            _deps: DepsMut,
+            _env: Env,
+            _info: MessageInfo,
+            _msg: Empty,
+        ) -> StdResult<Response> {
+            Ok(Response::default())
+        }
+
+        fn query(_deps: Deps, _env: Env, _msg: Empty) -> StdResult<Binary> {
+            Ok(Binary::default())
+        }
+
+        fn instantiate(
+            _deps: DepsMut,
+            _env: Env,
+            _info: MessageInfo,
+            _msg: Empty,
+        ) -> StdResult<Response> {
+            Ok(Response::default())
+        }
+
+        #[test]
+        fn contract_type_multi_test() {
+            let contract_type = ContractType::MultiTestContract(Box::new(
+                ContractWrapper::new_with_empty(execute, instantiate, query),
+            ));
+            assert_eq!(format!("{:?}", contract_type), "MultiTestContract");
         }
     }
 }
