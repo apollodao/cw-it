@@ -618,6 +618,10 @@ mod tests {
     use astroport::pair::ExecuteMsg as PairExecuteMsg;
     use std::str::FromStr;
 
+    use crate::traits::CwItRunner;
+
+    use super::super::test_helpers::initial_coins;
+
     #[cfg(feature = "rpc-runner")]
     use {
         crate::rpc_runner::{config::RpcRunnerConfig, RpcRunner},
@@ -794,7 +798,7 @@ mod tests {
     }
 
     pub fn test_instantiate_astroport(app: TestRunner, contracts: ContractMap) {
-        let accs = app.init_accounts();
+        let accs = app.init_accounts(&initial_coins(), 10).unwrap();
         let native_denom = get_fee_denom(&app);
         let wasm = Wasm::new(&app);
 

@@ -355,6 +355,9 @@ mod tests {
         ContractMap, TestRunner,
     };
 
+    use super::super::test_helpers::initial_coins;
+    use crate::traits::CwItRunner;
+
     struct TestingRobot<'a> {
         runner: &'a TestRunner<'a>,
         accs: Vec<SigningAccount>,
@@ -363,7 +366,7 @@ mod tests {
     impl<'a> TestingRobot<'a> {
         fn new(runner: &'a TestRunner<'a>, contracts: ContractMap) -> Self {
             // Initialize accounts
-            let accs = runner.init_accounts();
+            let accs = runner.init_accounts(&initial_coins(), 10).unwrap();
             let admin = &accs[0];
 
             // Upload and initialize contracts
