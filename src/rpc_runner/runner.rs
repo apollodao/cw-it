@@ -1,6 +1,8 @@
 use std::num::ParseIntError;
 
+#[cfg(feature = "multi-test")]
 use anyhow::bail;
+
 use cosmos_sdk_proto::cosmos::auth::v1beta1::{QueryAccountRequest, QueryAccountResponse};
 use cosmrs::proto::cosmos::auth::v1beta1::BaseAccount;
 use cosmrs::tendermint::Time;
@@ -426,6 +428,7 @@ impl<'a> CwItRunner<'a> for RpcRunner<'a> {
         signer: &SigningAccount,
     ) -> Result<u64, anyhow::Error> {
         match code {
+            #[cfg(feature = "multi-test")]
             ContractType::MultiTestContract(_) => {
                 bail!("MultiTestContract not supported for RpcRunner")
             }
