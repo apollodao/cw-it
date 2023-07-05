@@ -203,6 +203,8 @@ where
     }
 
     /// Creates a new pair with the given assets and initial liquidity.
+    /// If `decimals` is Some, and the pair type is StableSwap, the native coins will be added to
+    /// the registry.
     fn create_astroport_pair(
         &self,
         pair_type: PairType,
@@ -210,22 +212,26 @@ where
         init_params: Option<Binary>,
         signer: &SigningAccount,
         initial_liquidity: Option<[Uint128; 2]>,
+        decimals: Option<&[u8; 2]>,
     ) -> (String, String) {
         let factory_addr = &self.astroport_contracts().factory.address;
 
         // If the pair is a stableswap pair, add the native coins to the registry
         if let PairType::Stable {} = pair_type {
-            //Query factory for native coin registry address
-            let factory_config = self.query_factory_config(factory_addr);
-            let registry_addr = factory_config.coin_registry_address.as_str();
-            let native_coins = asset_infos
-                .iter()
-                .filter_map(|info| match info {
-                    AssetInfo::NativeToken { denom } => Some((denom.to_string(), 6)),
-                    _ => None,
-                })
-                .collect();
-            self.add_native_coins_to_registry(registry_addr, native_coins, signer);
+            if let Some(decimals) = decimals {
+                //Query factory for native coin registry address
+                let factory_config = self.query_factory_config(factory_addr);
+                let registry_addr = factory_config.coin_registry_address.as_str();
+                let native_coins = asset_infos
+                    .iter()
+                    .zip(decimals.iter())
+                    .filter_map(|(info, decimals)| match info {
+                        AssetInfo::NativeToken { denom } => Some((denom.to_string(), *decimals)),
+                        _ => None,
+                    })
+                    .collect();
+                self.add_native_coins_to_registry(registry_addr, native_coins, signer);
+            }
         }
 
         let msg = AstroportFactoryExecuteMsg::CreatePair {
@@ -486,6 +492,7 @@ mod tests {
             init_params,
             admin,
             initial_liquidity.map(|liq| liq.map(Uint128::from)),
+            Some(&[6, 6]),
         );
 
         // Check pair info
@@ -535,6 +542,7 @@ mod tests {
             init_params,
             admin,
             initial_liquidity,
+            Some(&[6, 6]),
         );
 
         let swap_amount = Uint128::from(1000u128);
