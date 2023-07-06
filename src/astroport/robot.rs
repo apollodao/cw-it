@@ -203,8 +203,7 @@ where
     }
 
     /// Creates a new pair with the given assets and initial liquidity.
-    /// If `decimals` is Some, and the pair type is StableSwap, the native coins will be added to
-    /// the registry.
+    /// If `decimals` is Some, the native coin decimals will be added to the registry.
     fn create_astroport_pair(
         &self,
         pair_type: PairType,
@@ -216,22 +215,20 @@ where
     ) -> (String, String) {
         let factory_addr = &self.astroport_contracts().factory.address;
 
-        // If the pair is a stableswap pair, add the native coins to the registry
-        if let PairType::Stable {} = pair_type {
-            if let Some(decimals) = decimals {
-                //Query factory for native coin registry address
-                let factory_config = self.query_factory_config(factory_addr);
-                let registry_addr = factory_config.coin_registry_address.as_str();
-                let native_coins = asset_infos
-                    .iter()
-                    .zip(decimals.iter())
-                    .filter_map(|(info, decimals)| match info {
-                        AssetInfo::NativeToken { denom } => Some((denom.to_string(), *decimals)),
-                        _ => None,
-                    })
-                    .collect();
-                self.add_native_coins_to_registry(registry_addr, native_coins, signer);
-            }
+        // If decimals are provided, add native coins to registry
+        if let Some(decimals) = decimals {
+            //Query factory for native coin registry address
+            let factory_config = self.query_factory_config(factory_addr);
+            let registry_addr = factory_config.coin_registry_address.as_str();
+            let native_coins = asset_infos
+                .iter()
+                .zip(decimals.iter())
+                .filter_map(|(info, decimals)| match info {
+                    AssetInfo::NativeToken { denom } => Some((denom.to_string(), *decimals)),
+                    _ => None,
+                })
+                .collect();
+            self.add_native_coins_to_registry(registry_addr, native_coins, signer);
         }
 
         let msg = AstroportFactoryExecuteMsg::CreatePair {
