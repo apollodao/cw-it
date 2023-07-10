@@ -28,7 +28,6 @@ overflow-checks  = true
 
 [features]
 default = []
-backtraces = ["cosmwasm-std/backtraces", "osmosis-std/backtraces", "test-tube/backtraces", "osmosis-test-tube/backtraces"]
 astroport = ["cw20", "dep:astroport"]
 osmosis = ["proptest", "apollo-utils", "osmosis-test-tube"]
 rpc-runner = ["testcontainers", "tonic", "tokio", "cosmos-sdk-proto"]
@@ -76,9 +75,9 @@ config = { version = "0.13.2", features = ["yaml"] }
 anyhow = "1.0.66"
 serde_json = "1.0.89"
 strum = { version = "0.24.1", features = ["derive"] }
-osmosis-std = { git = "https://github.com/apollodao/osmosis-rust.git", rev = "cd3e84201b08d168ee848acbebc85b1da7cab3fa" }
-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "5233264f57a27eb1586caef6b5fae93becd53eda" }
-osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "5233264f57a27eb1586caef6b5fae93becd53eda", optional = true }
+osmosis-std = "0.16.0"
+test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "800a2af15bdd8270a4d832a2b1b799446fc8e1cf" }
+osmosis-test-tube = { git = "https://github.com/apollodao/test-tube.git", rev = "800a2af15bdd8270a4d832a2b1b799446fc8e1cf", optional = true }
 
 # Astroport deps
 astroport = { version = "=2.8.0", optional = true }
