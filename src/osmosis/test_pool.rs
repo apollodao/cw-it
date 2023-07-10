@@ -23,8 +23,14 @@ const MAX_POOL_WEIGHT: u64 = 1048575; //2^20 - 1
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OsmosisPoolType {
     Basic,
-    Balancer { pool_weights: Vec<u64> },
-    StableSwap { scaling_factors: Vec<u64> },
+    Balancer {
+        pool_weights: Vec<u64>,
+        pool_params: Option<PoolParams>,
+    },
+    StableSwap {
+        scaling_factors: Vec<u64>,
+        pool_params: Option<StableSwapPoolParams>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,6 +72,21 @@ impl OsmosisTestPool {
         }
     }
 
+    pub fn default_pool_params() -> PoolParams {
+        PoolParams {
+            swap_fee: "200000000000000000".to_string(),
+            exit_fee: "0".to_string(),
+            smooth_weight_change_params: None,
+        }
+    }
+
+    pub fn default_stableswap_pool_params() -> StableSwapPoolParams {
+        StableSwapPoolParams {
+            swap_fee: "200000000000000000".to_string(),
+            exit_fee: "0".to_string(),
+        }
+    }
+
     /// Create an Osmosis pool with the given initial liquidity.
     ///
     /// Returns the `u64` pool ID.
@@ -78,15 +99,18 @@ impl OsmosisTestPool {
                     .data
                     .pool_id
             }
-            OsmosisPoolType::Balancer { pool_weights } => {
+            OsmosisPoolType::Balancer {
+                pool_weights,
+                pool_params,
+            } => {
                 gamm.create_balancer_pool(
                     MsgCreateBalancerPool {
                         sender: signer.address(),
-                        pool_params: Some(PoolParams {
-                            swap_fee: "10000000000000000".to_string(),
-                            exit_fee: "10000000000000000".to_string(),
-                            smooth_weight_change_params: None,
-                        }),
+                        pool_params: Some(
+                            pool_params
+                                .clone()
+                                .unwrap_or_else(Self::default_pool_params),
+                        ),
                         pool_assets: self
                             .liquidity
                             .iter()
@@ -104,14 +128,18 @@ impl OsmosisTestPool {
                 .data
                 .pool_id
             }
-            OsmosisPoolType::StableSwap { scaling_factors } => {
+            OsmosisPoolType::StableSwap {
+                scaling_factors,
+                pool_params,
+            } => {
                 gamm.create_stable_swap_pool(
                     MsgCreateStableswapPool {
                         sender: signer.address(),
-                        pool_params: Some(StableSwapPoolParams {
-                            swap_fee: "10000000000000000".to_string(),
-                            exit_fee: "10000000000000000".to_string(),
-                        }),
+                        pool_params: Some(
+                            pool_params
+                                .clone()
+                                .unwrap_or_else(Self::default_stableswap_pool_params),
+                        ),
                         initial_pool_liquidity: self
                             .liquidity
                             .iter()
@@ -254,10 +282,18 @@ prop_compose! {
 pub fn pool_type(pool_liquidity: &Vec<Coin>) -> impl Strategy<Value = OsmosisPoolType> {
     prop_oneof![
         Just(OsmosisPoolType::Basic),
-        vec(1..MAX_POOL_WEIGHT, pool_liquidity.len())
-            .prop_map(|pool_weights| { OsmosisPoolType::Balancer { pool_weights } }),
-        scaling_factors(pool_liquidity)
-            .prop_map(|scaling_factors| { OsmosisPoolType::StableSwap { scaling_factors } }),
+        vec(1..MAX_POOL_WEIGHT, pool_liquidity.len()).prop_map(|pool_weights| {
+            OsmosisPoolType::Balancer {
+                pool_weights,
+                pool_params: None,
+            }
+        }),
+        scaling_factors(pool_liquidity).prop_map(|scaling_factors| {
+            OsmosisPoolType::StableSwap {
+                scaling_factors,
+                pool_params: None,
+            }
+        }),
     ]
     .no_shrink()
 }
@@ -334,12 +370,21 @@ fn assert_test_pool_properties(pool: OsmosisTestPool) {
     assert!(liquidity.iter().all(|liq| liq.amount.u128() < u128::MAX));
     match pool_type {
         OsmosisPoolType::Basic => {}
-        OsmosisPoolType::Balancer { pool_weights } => {
+        OsmosisPoolType::Balancer {
+            pool_weights,
+            pool_params,
+        } => {
             assert_eq!(pool_weights.len(), liquidity.len());
             assert!(pool_weights.iter().all(|weight| weight > &0));
             assert!(pool_weights.iter().all(|weight| weight < &MAX_POOL_WEIGHT));
+            if let Some(params) = pool_params {
+                assert!(params.exit_fee == *"0");
+            }
         }
-        OsmosisPoolType::StableSwap { scaling_factors } => {
+        OsmosisPoolType::StableSwap {
+            scaling_factors,
+            pool_params,
+        } => {
             assert_eq!(scaling_factors.len(), liquidity.len());
             assert!(scaling_factors.iter().all(|scale| scale > &0));
             assert!(scaling_factors
@@ -349,6 +394,9 @@ fn assert_test_pool_properties(pool: OsmosisTestPool) {
                 .iter()
                 .zip(scaling_factors.iter())
                 .all(|(liq, scale)| (*scale as u128) < liq.amount.u128()));
+            if let Some(params) = pool_params {
+                assert!(params.exit_fee == *"0");
+            }
         }
     }
 }

@@ -371,7 +371,7 @@ where
     if let Some(initial_liquidity) = initial_liquidity {
         let assets = asset_infos
             .into_iter()
-            .zip(initial_liquidity.into_iter())
+            .zip(initial_liquidity)
             .map(|(info, amount)| Asset { info, amount })
             .collect();
         provide_liquidity(app, &pair_addr, assets, signer);
@@ -620,8 +620,6 @@ mod tests {
 
     use crate::traits::CwItRunner;
 
-    use super::super::test_helpers::initial_coins;
-
     #[cfg(feature = "rpc-runner")]
     use {
         crate::rpc_runner::{config::RpcRunnerConfig, RpcRunner},
@@ -798,7 +796,7 @@ mod tests {
     }
 
     pub fn test_instantiate_astroport(app: TestRunner, contracts: ContractMap) {
-        let accs = app.init_accounts(&initial_coins(), 10).unwrap();
+        let accs = app.init_default_accounts().unwrap();
         let native_denom = get_fee_denom(&app);
         let wasm = Wasm::new(&app);
 

@@ -69,18 +69,6 @@ pub trait OsmosisTestAppRobot<'a>: TestRobot<'a, OsmosisTestApp> {
             .unwrap();
         pset.force_unlock_allowed_addresses
     }
-
-    /// Whitelists a denom as a superfluid LP share
-    /// ## Args:
-    ///   - `denom`: The LP share denom to whitelist
-    fn whitelist_superfluid_lp_share(&self, denom: impl Into<String>) -> &Self {
-        let denom = denom.into();
-        if !is_osmosis_lp_token(&denom) {
-            panic!("Denom must be an LP share to be whitelisted as a superfluid LP share");
-        }
-        self.runner().add_superfluid_lp_share(&denom);
-        self
-    }
 }
 
 pub trait OsmosisTestRobot<'a>: TestRobot<'a, OsmosisTestApp> {

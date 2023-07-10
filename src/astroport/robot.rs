@@ -203,25 +203,28 @@ where
     }
 
     /// Creates a new pair with the given assets and initial liquidity.
+    /// If `decimals` is Some, the native coin decimals will be added to the registry.
     fn create_astroport_pair(
         &self,
         pair_type: PairType,
-        asset_infos: [AssetInfo; 2],
+        asset_infos: &[AssetInfo; 2],
         init_params: Option<Binary>,
         signer: &SigningAccount,
-        initial_liquidity: Option<[Uint128; 2]>,
+        initial_liquidity: Option<&[u128; 2]>,
+        decimals: Option<&[u8; 2]>,
     ) -> (String, String) {
         let factory_addr = &self.astroport_contracts().factory.address;
 
-        // If the pair is a stableswap pair, add the native coins to the registry
-        if let PairType::Stable {} = pair_type {
+        // If decimals are provided, add native coins to registry
+        if let Some(decimals) = decimals {
             //Query factory for native coin registry address
             let factory_config = self.query_factory_config(factory_addr);
             let registry_addr = factory_config.coin_registry_address.as_str();
             let native_coins = asset_infos
                 .iter()
-                .filter_map(|info| match info {
-                    AssetInfo::NativeToken { denom } => Some((denom.to_string(), 6)),
+                .zip(decimals.iter())
+                .filter_map(|(info, decimals)| match info {
+                    AssetInfo::NativeToken { denom } => Some((denom.to_string(), *decimals)),
                     _ => None,
                 })
                 .collect();
@@ -243,9 +246,12 @@ where
 
         if let Some(initial_liquidity) = initial_liquidity {
             let assets = asset_infos
-                .into_iter()
-                .zip(initial_liquidity.into_iter())
-                .map(|(info, amount)| Asset { info, amount })
+                .iter()
+                .zip(initial_liquidity)
+                .map(|(info, amount)| Asset {
+                    info: info.clone(),
+                    amount: Uint128::new(*amount),
+                })
                 .collect();
             self.provide_liquidity(&pair_addr, assets, signer);
         }
@@ -355,7 +361,6 @@ mod tests {
         ContractMap, TestRunner,
     };
 
-    use super::super::test_helpers::initial_coins;
     use crate::traits::CwItRunner;
 
     struct TestingRobot<'a> {
@@ -366,7 +371,7 @@ mod tests {
     impl<'a> TestingRobot<'a> {
         fn new(runner: &'a TestRunner<'a>, contracts: ContractMap) -> Self {
             // Initialize accounts
-            let accs = runner.init_accounts(&initial_coins(), 10).unwrap();
+            let accs = runner.init_default_accounts().unwrap();
             let admin = &accs[0];
 
             // Upload and initialize contracts
@@ -463,15 +468,15 @@ mod tests {
     }
 
     #[test_case(PairType::Xyk {},AssetChoice::NativeNative,None,None; "XYK, native-native, no liq")]
-    #[test_case(PairType::Xyk {},AssetChoice::NativeNative,None,Some([420420,696969]); "XYK, native-native, with liq")]
-    #[test_case(PairType::Xyk {},AssetChoice::NativeCw20,None,Some([420420,696969]); "XYK, native-cw20, with liq")]
+    #[test_case(PairType::Xyk {},AssetChoice::NativeNative,None,Some(&[420420,696969]); "XYK, native-native, with liq")]
+    #[test_case(PairType::Xyk {},AssetChoice::NativeCw20,None,Some(&[420420,696969]); "XYK, native-cw20, with liq")]
     #[test_case(PairType::Stable {},AssetChoice::NativeNative,stable_init_params(),None; "Stable, native-native, no liq")]
-    #[test_case(PairType::Stable {},AssetChoice::NativeNative,stable_init_params(),Some([420420,696969]); "Stable, native-native, with liq")]
+    #[test_case(PairType::Stable {},AssetChoice::NativeNative,stable_init_params(),Some(&[420420,696969]); "Stable, native-native, with liq")]
     fn test_create_astroport_pair(
         pair_type: PairType,
         asset_info_choice: AssetChoice,
         init_params: Option<Binary>,
-        initial_liquidity: Option<[u128; 2]>,
+        initial_liquidity: Option<&[u128; 2]>,
     ) {
         let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
         let robot = get_test_robot(&runner);
@@ -483,10 +488,11 @@ mod tests {
 
         let (pair_addr, lp_token_addr) = robot.create_astroport_pair(
             pair_type.clone(),
-            asset_infos.clone(),
+            &asset_infos,
             init_params,
             admin,
-            initial_liquidity.map(|liq| liq.map(Uint128::from)),
+            initial_liquidity,
+            Some(&[6, 6]),
         );
 
         // Check pair info
@@ -529,13 +535,14 @@ mod tests {
         let admin_addr = &admin.address();
 
         let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
-        let initial_liquidity = Some([Uint128::from(420420u128), Uint128::from(696969u128)]);
+        let initial_liquidity = Some(&[420420u128, 696969u128]);
         let (pair_addr, _lp_token_addr) = robot.create_astroport_pair(
             pair_type,
-            asset_infos.clone(),
+            &asset_infos,
             init_params,
             admin,
             initial_liquidity,
+            Some(&[6, 6]),
         );
 
         let swap_amount = Uint128::from(1000u128);
