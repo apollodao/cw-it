@@ -242,9 +242,9 @@ mod tests {
     #[test]
     fn test_runner_from_and_to_str() {
         for str in TestRunner::VARIANTS {
-            match str {
-                &"phantom-data" => continue,
-                &"rpc-runner" => match TestRunner::from_str(str) {
+            match *str {
+                "phantom-data" => continue,
+                "rpc-runner" => match TestRunner::from_str(str) {
                     Ok(_) => panic!("RpcRunner from_str should fail"),
                     Err(err) => assert_eq!(err, "RpcRunner requires a config file".to_string()),
                 },
