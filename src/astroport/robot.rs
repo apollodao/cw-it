@@ -246,8 +246,8 @@ where
 
         if let Some(initial_liquidity) = initial_liquidity {
             let assets = asset_infos
-                .into_iter()
-                .zip(initial_liquidity.into_iter())
+                .iter()
+                .zip(initial_liquidity)
                 .map(|(info, amount)| Asset {
                     info: info.clone(),
                     amount: Uint128::new(*amount),

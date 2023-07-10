@@ -109,7 +109,7 @@ impl OsmosisTestPool {
                         pool_params: Some(
                             pool_params
                                 .clone()
-                                .unwrap_or_else(|| Self::default_pool_params()),
+                                .unwrap_or_else(Self::default_pool_params),
                         ),
                         pool_assets: self
                             .liquidity
@@ -138,7 +138,7 @@ impl OsmosisTestPool {
                         pool_params: Some(
                             pool_params
                                 .clone()
-                                .unwrap_or_else(|| Self::default_stableswap_pool_params()),
+                                .unwrap_or_else(Self::default_stableswap_pool_params),
                         ),
                         initial_pool_liquidity: self
                             .liquidity
@@ -377,11 +377,8 @@ fn assert_test_pool_properties(pool: OsmosisTestPool) {
             assert_eq!(pool_weights.len(), liquidity.len());
             assert!(pool_weights.iter().all(|weight| weight > &0));
             assert!(pool_weights.iter().all(|weight| weight < &MAX_POOL_WEIGHT));
-            match pool_params {
-                Some(params) => {
-                    assert!(params.exit_fee == "0".to_string());
-                }
-                None => {}
+            if let Some(params) = pool_params {
+                assert!(params.exit_fee == *"0");
             }
         }
         OsmosisPoolType::StableSwap {
@@ -397,11 +394,8 @@ fn assert_test_pool_properties(pool: OsmosisTestPool) {
                 .iter()
                 .zip(scaling_factors.iter())
                 .all(|(liq, scale)| (*scale as u128) < liq.amount.u128()));
-            match pool_params {
-                Some(params) => {
-                    assert!(params.exit_fee == "0".to_string());
-                }
-                None => {}
+            if let Some(params) = pool_params {
+                assert!(params.exit_fee == *"0");
             }
         }
     }
