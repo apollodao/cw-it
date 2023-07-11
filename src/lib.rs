@@ -8,6 +8,8 @@ pub mod traits;
 
 #[cfg(feature = "osmosis-test-tube")]
 pub mod osmosis_test_app;
+#[cfg(feature = "osmosis-test-tube")]
+pub use osmosis_test_app::WhitelistForceUnlock;
 
 #[cfg(feature = "multi-test")]
 #[cfg(test)]

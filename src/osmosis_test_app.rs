@@ -1,6 +1,8 @@
 use anyhow::Error;
 use cosmwasm_std::Coin;
+use osmosis_std::{shim::Any, types::osmosis::lockup};
 use osmosis_test_tube::{Module, OsmosisTestApp, SigningAccount, Wasm};
+use prost::Message;
 
 use crate::{traits::CwItRunner, ContractType};
 
@@ -45,10 +47,42 @@ impl CwItRunner<'_> for OsmosisTestApp {
     }
 }
 
+/// A trait for enabling the functionality of whitelisting an address for force unlock of a locked
+/// LP position on Osmosis.
+pub trait WhitelistForceUnlock {
+    /// Whitelists the given address for force unlock of locked LP positions.
+    fn whitelist_address_for_force_unlock(&self, addr: &str) -> Result<(), Error>;
+}
+
+impl WhitelistForceUnlock for OsmosisTestApp {
+    fn whitelist_address_for_force_unlock(&self, addr: &str) -> Result<(), Error> {
+        Ok(self.set_param_set(
+            "lockup",
+            Any {
+                type_url: lockup::Params::TYPE_URL.to_string(),
+                value: lockup::Params {
+                    force_unlock_allowed_addresses: vec![addr.to_string()],
+                }
+                .encode_to_vec(),
+            },
+        )?)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::Coin;
-    use osmosis_test_tube::OsmosisTestApp;
+    use osmosis_std::types::{
+        cosmos::bank::v1beta1::QueryAllBalancesResponse,
+        osmosis::{
+            gamm::v1beta1::QueryTotalSharesRequest,
+            lockup::{
+                MsgForceUnlock, MsgForceUnlockResponse, MsgLockTokens, MsgLockTokensResponse,
+            },
+        },
+    };
+    use osmosis_test_tube::{Gamm, OsmosisTestApp};
+    use test_tube::{Account, Runner, RunnerError};
 
     use crate::artifact::Artifact;
 
@@ -96,5 +130,89 @@ mod tests {
         let time = app.get_block_time_nanos();
         CwItRunner::increase_time(&app, 69).unwrap();
         assert_eq!(app.get_block_time_nanos(), time + 69000000000);
+    }
+
+    #[test]
+    fn whitelist_address_for_force_unlock_works() {
+        let app = OsmosisTestApp::new();
+
+        let balances = vec![
+            Coin::new(1_000_000_000_000, "uosmo"),
+            Coin::new(1_000_000_000_000, "uion"),
+        ];
+        let whitelisted_user = app.init_account(&balances).unwrap();
+
+        // create pool
+        let gamm = Gamm::new(&app);
+        let pool_id = gamm
+            .create_basic_pool(
+                &[Coin::new(1_000_000, "uosmo"), Coin::new(1_000_000, "uion")],
+                &whitelisted_user,
+            )
+            .unwrap()
+            .data
+            .pool_id;
+
+        // query shares
+        let shares = app
+            .query::<QueryTotalSharesRequest, QueryAllBalancesResponse>(
+                "/osmosis.gamm.v1beta1.Query/TotalShares",
+                &QueryTotalSharesRequest { pool_id },
+            )
+            .unwrap()
+            .balances;
+
+        // lock all shares
+        app.execute::<_, MsgLockTokensResponse>(
+            MsgLockTokens {
+                owner: whitelisted_user.address(),
+                duration: Some(osmosis_std::shim::Duration {
+                    seconds: 1000000000,
+                    nanos: 0,
+                }),
+                coins: shares,
+            },
+            MsgLockTokens::TYPE_URL,
+            &whitelisted_user,
+        )
+        .unwrap();
+
+        // try to unlock
+        let err = app
+            .execute::<_, MsgForceUnlockResponse>(
+                MsgForceUnlock {
+                    owner: whitelisted_user.address(),
+                    id: pool_id,
+                    coins: vec![], // all
+                },
+                MsgForceUnlock::TYPE_URL,
+                &whitelisted_user,
+            )
+            .unwrap_err();
+
+        // should fail
+        assert_eq!(err,  RunnerError::ExecuteError {
+            msg: format!("failed to execute message; message index: 0: Sender ({}) not allowed to force unlock: unauthorized", whitelisted_user.address()),
+        });
+
+        // add whitelisted user to param set
+        app.whitelist_address_for_force_unlock(&whitelisted_user.address())
+            .unwrap();
+
+        // unlock again after adding whitelisted user
+        let res = app
+            .execute::<_, MsgForceUnlockResponse>(
+                MsgForceUnlock {
+                    owner: whitelisted_user.address(),
+                    id: pool_id,
+                    coins: vec![], // all
+                },
+                MsgForceUnlock::TYPE_URL,
+                &whitelisted_user,
+            )
+            .unwrap();
+
+        // should succeed
+        assert!(res.data.success);
     }
 }
