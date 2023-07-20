@@ -2,7 +2,7 @@
 macro_rules! create_contract_wrappers {
     ( $( $name:expr ),* ) => {{
         use std::collections::HashMap;
-        use cw_multi_test::{ContractWrapper, Contract};
+        use apollo_cw_multi_test::{ContractWrapper, Contract};
         use cosmwasm_std::Empty;
         vec![
             $(
@@ -26,7 +26,7 @@ macro_rules! create_contract_wrappers {
 macro_rules! create_contract_wrappers_with_reply {
     ( $( $name:expr ),* ) => {{
         use std::collections::HashMap;
-        use cw_multi_test::{ContractWrapper, Contract};
+        use apollo_cw_multi_test::{ContractWrapper, Contract};
         use cosmwasm_std::Empty;
         vec![
             $(

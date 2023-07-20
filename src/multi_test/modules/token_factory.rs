@@ -10,7 +10,7 @@ use osmosis_std::types::osmosis::tokenfactory::v1beta1::{
 };
 use regex::Regex;
 
-use cw_multi_test::{
+use apollo_cw_multi_test::{
     AppResponse, BankSudo, CosmosRouter, StargateKeeper, StargateMessageHandler, StargateMsg,
 };
 
@@ -284,7 +284,7 @@ fn coin_from_sdk_string(sdk_string: &str) -> anyhow::Result<Coin> {
 mod tests {
     use cosmwasm_std::{BalanceResponse, Binary, Coin};
 
-    use cw_multi_test::{BasicAppBuilder, Executor, StargateKeeper};
+    use apollo_cw_multi_test::{BasicAppBuilder, Executor, StargateKeeper};
 
     use super::*;
 
