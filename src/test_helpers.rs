@@ -1,11 +1,11 @@
 pub mod test_contract {
     use std::fmt;
 
+    use apollo_cw_multi_test::{Contract, ContractWrapper};
     use cosmwasm_schema::{cw_serde, schemars::JsonSchema};
     use cosmwasm_std::{
         Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, SubMsg, WasmMsg,
     };
-    use apollo_cw_multi_test::{Contract, ContractWrapper};
 
     #[cw_serde]
     pub struct EmptyMsg {}
