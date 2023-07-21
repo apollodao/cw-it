@@ -33,12 +33,6 @@ pub enum Artifact {
         rpc_endpoint: String,
         contract_address: String,
     },
-    #[cfg(feature = "git")]
-    Git {
-        url: String,
-        branch: String,
-        crate_name: String,
-    },
 }
 
 /// Enum to represent different ways of representing a contract in tests
@@ -119,12 +113,6 @@ impl Artifact {
                 rpc_endpoint,
                 contract_address,
             } => download_wasm_from_contract_address(rpc_endpoint, contract_address),
-            #[cfg(feature = "git")]
-            Artifact::Git {
-                url: _,
-                branch: _,
-                crate_name: _,
-            } => todo!(),
         }
     }
 }
