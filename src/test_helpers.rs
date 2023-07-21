@@ -5,7 +5,7 @@ pub mod test_contract {
     use cosmwasm_std::{
         Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, SubMsg, WasmMsg,
     };
-    use cw_multi_test::{Contract, ContractWrapper};
+    use apollo_cw_multi_test::{Contract, ContractWrapper};
 
     #[cw_serde]
     pub struct EmptyMsg {}

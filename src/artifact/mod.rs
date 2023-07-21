@@ -6,7 +6,7 @@ use std::{
 use thiserror::Error;
 
 #[cfg(feature = "multi-test")]
-use {cosmwasm_std::Empty, cw_multi_test::Contract};
+use {apollo_cw_multi_test::Contract, cosmwasm_std::Empty};
 
 #[cfg(feature = "chain-download")]
 use self::on_chain::{download_wasm_from_code_id, download_wasm_from_contract_address};
@@ -142,8 +142,8 @@ mod tests {
 
     #[cfg(feature = "multi-test")]
     mod multi_test {
+        use apollo_cw_multi_test::ContractWrapper;
         use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
-        use cw_multi_test::ContractWrapper;
 
         use super::*;
 

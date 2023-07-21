@@ -1,9 +1,9 @@
 use anyhow::bail;
+use apollo_cw_multi_test::{BankSudo, BasicAppBuilder};
 use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
 use cosmwasm_std::{
     coin, Addr, BankMsg, Binary, Coin, CosmosMsg, Empty, QueryRequest, StakingMsg, WasmMsg,
 };
-use cw_multi_test::{BankSudo, BasicAppBuilder};
 use osmosis_std::types::{
     cosmos::{
         bank::v1beta1::MsgSend,
@@ -24,7 +24,7 @@ use test_tube::{
 use crate::{traits::CwItRunner, ContractType};
 
 pub struct MultiTestRunner<'a> {
-    pub app: cw_multi_test::App,
+    pub app: apollo_cw_multi_test::App,
     pub address_prefix: &'a str,
 }
 
@@ -41,7 +41,7 @@ impl<'a> MultiTestRunner<'a> {
 
     pub fn new_with_stargate(
         address_prefix: &'a str,
-        stargate_keeper: cw_multi_test::StargateKeeper<Empty, Empty>,
+        stargate_keeper: apollo_cw_multi_test::StargateKeeper<Empty, Empty>,
     ) -> Self {
         // Construct app
         let app = BasicAppBuilder::<Empty, Empty>::new()
@@ -343,8 +343,8 @@ mod tests {
     use cosmrs::proto::cosmos::bank::v1beta1::MsgSendResponse;
     use cosmwasm_std::{coin, Event, Uint128};
 
+    use apollo_cw_multi_test::ContractWrapper;
     use cw20::MinterResponse;
-    use cw_multi_test::ContractWrapper;
     use osmosis_std::types::cosmos::bank::v1beta1::{
         QueryBalanceRequest, QuerySupplyOfRequest, QueryTotalSupplyRequest,
     };

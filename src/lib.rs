@@ -47,7 +47,7 @@ pub use test_tube;
 pub use osmosis_test_tube;
 
 #[cfg(feature = "multi-test")]
-pub use cw_multi_test;
+pub use apollo_cw_multi_test as cw_multi_test;
 
 #[cfg(feature = "rpc-runner")]
 pub use testcontainers::clients::Cli;
