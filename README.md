@@ -46,7 +46,7 @@ cw-it = { version = "0.1.0", features = ["osmosis"] }
 
 Then you can write tests that look like this:
 
-```ignore
+```rust
 
 struct TestingRobot<'a>(&'a TestRunner);
 
