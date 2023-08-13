@@ -14,6 +14,8 @@ use apollo_cw_multi_test::{
     AppResponse, BankSudo, CosmosRouter, StargateKeeper, StargateMessageHandler, StargateMsg,
 };
 
+/// This is a struct that implements the [`apollo_cw_multi_test::StargateMessageHandler`] trait to
+/// mimic the behavior of the Osmosis TokenFactory module version 0.15.
 #[derive(Clone)]
 pub struct TokenFactory<'a> {
     pub module_denom_prefix: &'a str,
@@ -24,6 +26,7 @@ pub struct TokenFactory<'a> {
 }
 
 impl<'a> TokenFactory<'a> {
+    /// Creates a new TokenFactory instance with the given parameters.
     pub const fn new(
         prefix: &'a str,
         max_subdenom_len: usize,

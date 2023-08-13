@@ -38,8 +38,8 @@ impl FromStr for TestRunner<'_> {
     /// Returns a TestRunner from a string, which is the name of the runner. Useful for deciding
     /// which runner to use base on an env var or similar.
     ///
-    /// NB: MultiTestRunner will use the "osmo" address prefix.
-    /// RpcRunner is not supported in this function, as it requires a config file and optional
+    /// NB: `MultiTestRunner` will use the "osmo" address prefix.
+    /// `RpcRunner` is not supported in this function, as it requires a config file and optional
     /// docker Cli instance.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         #[allow(unreachable_code)]
@@ -71,7 +71,8 @@ impl Display for TestRunner<'_> {
 }
 
 impl TestRunner<'_> {
-    /// Creates a TestRunner instance from an env var, which is the name of the runner.
+    /// Creates a TestRunner instance from the contents of the env var `TEST_RUNNER`. If the env var
+    /// is not set, it defaults to `multi-test`. Any string value which `from_str` can parse is valid.
     pub fn from_env_var() -> Result<Self, String> {
         TestRunner::from_str(&std::env::var("TEST_RUNNER").unwrap_or_else(|_| "multi-test".into()))
     }

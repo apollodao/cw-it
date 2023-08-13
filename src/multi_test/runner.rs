@@ -29,6 +29,8 @@ pub struct MultiTestRunner<'a> {
 }
 
 impl<'a> MultiTestRunner<'a> {
+    /// Creates a new instance of a `MultiTestRunner`, wrapping a `cw_multi_test::App`
+    /// with the given address prefix.
     pub fn new(address_prefix: &'a str) -> Self {
         // Construct app
         let app = BasicAppBuilder::<Empty, Empty>::new().build(|_, _, _| {});
@@ -39,6 +41,9 @@ impl<'a> MultiTestRunner<'a> {
         }
     }
 
+    /// Creates a new instance of a `MultiTestRunner`, wrapping a `cw_multi_test::App`
+    /// with the given address prefix and stargate keeper. This is needed for testing
+    /// functionality that requires the Stargate messages or queries.
     pub fn new_with_stargate(
         address_prefix: &'a str,
         stargate_keeper: apollo_cw_multi_test::StargateKeeper<Empty, Empty>,
