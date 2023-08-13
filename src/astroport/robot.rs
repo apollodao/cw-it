@@ -8,7 +8,7 @@ use test_tube::{RunnerResult, SigningAccount};
 use super::utils::{parse_astroport_create_pair_events, AstroportContracts};
 use crate::robot::TestRobot;
 use crate::traits::CwItRunner;
-use crate::ContractMap;
+use crate::{ContractMap, TestRunner};
 
 pub trait AstroportTestRobot<'a, R>: TestRobot<'a, R>
 where
@@ -34,6 +34,22 @@ where
         admin: &SigningAccount,
     ) -> AstroportContracts {
         crate::astroport::utils::setup_astroport(runner, contracts, admin)
+    }
+
+    fn increase_cw20_allowance(
+        &self,
+        cw20_addr: &str,
+        spender: &str,
+        amount: impl Into<Uint128>,
+        signer: &SigningAccount,
+    ) -> &Self {
+        let msg = Cw20ExecuteMsg::IncreaseAllowance {
+            spender: spender.to_string(),
+            amount: amount.into(),
+            expires: None,
+        };
+        self.wasm().execute(cw20_addr, &msg, &[], signer).unwrap();
+        self
     }
 
     /// Queries the balance of a CW20 token for the given address.
@@ -336,6 +352,69 @@ where
             )
             .unwrap();
         self
+    }
+}
+
+/// A simple robot for testing against astroport contracts.
+/// This struct implements the TestRobot and AstroportTestRobot traits.
+pub struct DefaultAstroportRobot<'a, R>
+where
+    R: CwItRunner<'a> + 'a,
+{
+    /// The test runner
+    pub runner: &'a R,
+    /// The astroport contracts
+    pub astroport_contracts: AstroportContracts,
+}
+
+impl<'a, R> TestRobot<'a, R> for DefaultAstroportRobot<'a, R>
+where
+    R: CwItRunner<'a>,
+{
+    fn runner(&self) -> &'a R {
+        self.runner
+    }
+}
+
+impl<'a, R> AstroportTestRobot<'a, R> for DefaultAstroportRobot<'a, R>
+where
+    R: CwItRunner<'a>,
+{
+    fn astroport_contracts(&self) -> &AstroportContracts {
+        &self.astroport_contracts
+    }
+}
+
+impl<'a, R> DefaultAstroportRobot<'a, R>
+where
+    R: CwItRunner<'a>,
+{
+    /// Uploads and instantiates the astroport contracts, returning a struct containing the the runner and
+    /// contract addresses
+    pub fn instantiate(runner: &'a R, admin: &SigningAccount, contract_map: ContractMap) -> Self {
+        let astroport_contracts =
+            Self::upload_and_init_astroport_contracts(runner, contract_map, &admin);
+
+        Self {
+            runner,
+            astroport_contracts,
+        }
+    }
+
+    /// Uploads and instantiates astroport contracts from local artifacts, returning a struct
+    /// containing the the runner and contract addresses
+    pub fn instantiate_local(
+        runner: &'a TestRunner<'a>,
+        admin: &SigningAccount,
+        path: &Option<&str>,
+        append_arch: bool,
+        arch: &Option<&str>,
+    ) -> DefaultAstroportRobot<'a, TestRunner<'a>> {
+        // Upload and instantiate astroport contracts
+        let astroport_contract_map =
+            super::utils::get_local_contracts(runner, path, append_arch, arch);
+
+        DefaultAstroportRobot::<'a, TestRunner>::instantiate(runner, admin, astroport_contract_map)
     }
 }
 
