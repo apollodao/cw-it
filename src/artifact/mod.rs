@@ -14,20 +14,20 @@ use self::on_chain::{download_wasm_from_code_id, download_wasm_from_contract_add
 #[cfg(feature = "chain-download")]
 mod on_chain;
 
-/// Enum to represent the different ways to get a contract artifact
-/// - Local: A local file path
-/// - Url: A url to download the artifact from
-/// - Chain: A chain id to download the artifact from
+/// Enum to represent the different ways to get a contract artifact, i.e a contract wasm file.
 #[cw_serde]
 pub enum Artifact {
+    /// A path to a local wasm file.
     Local(String),
+    /// A url to download the wasm file from.
     #[cfg(feature = "url-download")]
     Url(String),
+    /// An RPC endpoint to download the artifact from, together with a code id.
+    /// Downloads the wasm mapping to the code id from the chain.
     #[cfg(feature = "chain-download")]
-    ChainCodeId {
-        rpc_endpoint: String,
-        code_id: u64,
-    },
+    ChainCodeId { rpc_endpoint: String, code_id: u64 },
+    /// An RPC endpoint to download the artifact from, together with a contract address.
+    /// Downloads the wasm mapping to the contract address from the chain.
     #[cfg(feature = "chain-download")]
     ChainContractAddress {
         rpc_endpoint: String,
@@ -37,7 +37,11 @@ pub enum Artifact {
 
 /// Enum to represent different ways of representing a contract in tests
 pub enum ContractType {
+    /// A contract artifact. This is the most common way to represent a contract
+    /// and is an abstraction around different ways to obtain a contract wasm file.
     Artifact(Artifact),
+    /// A multi-test contract. Since multi-test contracts are not wasm files, but instead
+    /// pointers to entry points of the contract, we need to handle them differently.
     #[cfg(feature = "multi-test")]
     MultiTestContract(Box<dyn Contract<Empty, Empty>>),
 }
@@ -98,6 +102,7 @@ pub enum ArtifactError {
 }
 
 impl Artifact {
+    /// Return the wasm byte code for the artifact.
     pub fn get_wasm_byte_code(&self) -> Result<Vec<u8>, ArtifactError> {
         match self {
             Artifact::Local(path) => Ok(fs::read(path)?),

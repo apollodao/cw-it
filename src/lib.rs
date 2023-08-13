@@ -6,6 +6,7 @@ pub mod helpers;
 pub mod robot;
 pub mod traits;
 
+/// This module contains the implementation of the `CwItRunner` trait for the `OsmosisTestApp` struct.
 #[cfg(feature = "osmosis-test-tube")]
 pub mod osmosis_test_app;
 #[cfg(feature = "osmosis-test-tube")]

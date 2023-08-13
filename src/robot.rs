@@ -8,14 +8,17 @@ use crate::helpers::{bank_balance_query, bank_send};
 pub trait TestRobot<'a, R: Runner<'a> + 'a> {
     fn runner(&self) -> &'a R;
 
+    /// Returns an instance of the [`test_tube::Wasm`] struct for the runner.
     fn wasm(&self) -> Wasm<'a, R> {
         Wasm::new(self.runner())
     }
 
+    /// Returns an instance of the [`test_tube::Bank`] struct for the runner.
     fn bank(&self) -> Bank<'a, R> {
         Bank::new(self.runner())
     }
 
+    /// Returns the bank balance of `denom` for the given account. Panics on error.
     fn query_native_token_balance(
         &self,
         account: impl Into<String>,
@@ -24,6 +27,8 @@ pub trait TestRobot<'a, R: Runner<'a> + 'a> {
         bank_balance_query(self.runner(), account.into(), denom.into()).unwrap()
     }
 
+    /// Asserts that the bank balance of `denom` for the given account is equal to `expected`.
+    /// Panics on error. Returns `self` to allow for chaining.
     fn assert_native_token_balance_eq(
         &self,
         account: impl Into<String>,
@@ -36,6 +41,8 @@ pub trait TestRobot<'a, R: Runner<'a> + 'a> {
         self
     }
 
+    /// Asserts that the bank balance of `denom` for the given account is greater than `expected`.
+    /// Panics on error. Returns `self` to allow for chaining.
     fn assert_native_token_balance_gt(
         &self,
         account: impl Into<String>,
@@ -48,6 +55,8 @@ pub trait TestRobot<'a, R: Runner<'a> + 'a> {
         self
     }
 
+    /// Asserts that the bank balance of `denom` for the given account is less than `expected`.
+    /// Panics on error. Returns `self` to allow for chaining.
     fn assert_native_token_balance_lt(
         &self,
         account: impl Into<String>,
@@ -60,6 +69,8 @@ pub trait TestRobot<'a, R: Runner<'a> + 'a> {
         self
     }
 
+    /// Sends `amount` of `denom` from `from` to `to`. Panics on error. Returns `self` to allow for
+    /// chaining.
     fn send_native_tokens(
         &self,
         from: &SigningAccount,
