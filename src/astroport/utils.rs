@@ -73,7 +73,7 @@ impl AstroportContracts {
         arch: &Option<&str>,
         signer: &SigningAccount,
     ) -> Self {
-        let contracts = get_local_contracts(runner, &Some("artifacts/"), false, &None);
+        let contracts = get_local_contracts(runner, path, append_arch, arch);
 
         setup_astroport(runner, contracts, signer)
     }
