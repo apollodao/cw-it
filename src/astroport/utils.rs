@@ -65,6 +65,20 @@ pub struct AstroportContracts {
     pub whitelist: Contract,
 }
 
+impl AstroportContracts {
+    pub fn new_from_local_contracts(
+        runner: &TestRunner,
+        path: &Option<&str>,
+        append_arch: bool,
+        arch: &Option<&str>,
+        signer: &SigningAccount,
+    ) -> Self {
+        let contracts = get_local_contracts(runner, &Some("artifacts/"), false, &None);
+
+        setup_astroport(runner, contracts, signer)
+    }
+}
+
 pub fn setup_astroport<'a, R: CwItRunner<'a>>(
     app: &'a R,
     contracts: ContractMap,
