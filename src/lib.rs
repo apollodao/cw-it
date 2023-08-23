@@ -37,6 +37,7 @@ pub mod astroport;
 pub mod test_runner;
 
 pub use artifact::*;
+pub use test_runner::OwnedTestRunner;
 pub use test_runner::TestRunner;
 
 // Re-exports for convenience

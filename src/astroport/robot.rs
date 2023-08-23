@@ -393,7 +393,7 @@ where
     /// contract addresses
     pub fn instantiate(runner: &'a R, admin: &SigningAccount, contract_map: ContractMap) -> Self {
         let astroport_contracts =
-            Self::upload_and_init_astroport_contracts(runner, contract_map, &admin);
+            Self::upload_and_init_astroport_contracts(runner, contract_map, admin);
 
         Self {
             runner,
@@ -437,7 +437,7 @@ mod tests {
     use crate::{
         astroport::utils::{cw20_info, native_info, AstroportContracts},
         robot::TestRobot,
-        ContractMap, TestRunner,
+        ContractMap, OwnedTestRunner, TestRunner,
     };
 
     use crate::traits::CwItRunner;
@@ -533,12 +533,13 @@ mod tests {
 
     #[test]
     fn test_upload_and_init_astroport() {
-        get_test_robot(&TestRunner::from_str(TEST_RUNNER).unwrap());
+        get_test_robot(&OwnedTestRunner::from_str(TEST_RUNNER).unwrap().as_ref());
     }
 
     #[test]
     fn test_query_factory_config() {
-        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let owned_runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
+        let runner = owned_runner.as_ref();
         let robot = get_test_robot(&runner);
 
         let astro_contracts = &robot.astroport_contracts;
@@ -557,7 +558,8 @@ mod tests {
         init_params: Option<Binary>,
         initial_liquidity: Option<&[u128; 2]>,
     ) {
-        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let owned_runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
+        let runner = owned_runner.as_ref();
         let robot = get_test_robot(&runner);
 
         let contracts = &robot.astroport_contracts;
@@ -605,7 +607,8 @@ mod tests {
         asset_info_choice: AssetChoice,
         init_params: Option<Binary>,
     ) {
-        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let owned_runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
+        let runner = owned_runner.as_ref();
         let contracts = get_contracts(&runner);
         let robot = TestingRobot::new(&runner, contracts);
 
@@ -667,7 +670,8 @@ mod tests {
 
     #[test]
     fn test_query_native_coin_registry() {
-        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let owned_runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
+        let runner = owned_runner.as_ref();
         let contracts = get_contracts(&runner);
         let robot = TestingRobot::new(&runner, contracts);
         let admin = &robot.accs[0];
