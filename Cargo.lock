@@ -84,7 +84,7 @@ dependencies = [
  "derivative",
  "itertools",
  "k256",
- "osmosis-std",
+ "osmosis-std 0.16.1",
  "prost 0.9.0",
  "regex",
  "schemars",
@@ -898,7 +898,7 @@ dependencies = [
 
 [[package]]
 name = "cw-it"
-version = "0.1.3"
+version = "0.2.0-rc.1"
 dependencies = [
  "anyhow",
  "apollo-cw-multi-test",
@@ -922,7 +922,7 @@ dependencies = [
  "cosmwasm-std",
  "cw20 0.15.1",
  "cw20-base",
- "osmosis-std",
+ "osmosis-std 0.17.0-rc0",
  "osmosis-test-tube",
  "paste",
  "proptest",
@@ -2071,10 +2071,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "osmosis-std-derive"
-version = "0.16.1"
+name = "osmosis-std"
+version = "0.17.0-rc0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11c2ba5535743617d6f44ae8d572d064fabab6d06ffcf403512f89c58954dbe9"
+checksum = "c0b022b748710ecdf1adc6a124c3bef29f17ef05e7fa1260a08889d1d53f9cc5"
+dependencies = [
+ "chrono",
+ "cosmwasm-std",
+ "osmosis-std-derive",
+ "prost 0.11.9",
+ "prost-types",
+ "schemars",
+ "serde",
+ "serde-cw-value",
+]
+
+[[package]]
+name = "osmosis-std-derive"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f47f0b2f22adb341bb59e5a3a1b464dde033181954bd055b9ae86d6511ba465b"
 dependencies = [
  "itertools",
  "proc-macro2",
@@ -2085,15 +2101,15 @@ dependencies = [
 
 [[package]]
 name = "osmosis-test-tube"
-version = "16.0.1"
+version = "17.0.0-rc0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "527375c01396e7e4de4ccc18a0141aeb6b342dc089d30c57282025f3a8753e72"
+checksum = "977a2b4f088dd704a47e96b5914e28465cfcdb1cb1145a1f9b45c219a9b145c5"
 dependencies = [
  "base64",
  "bindgen",
  "cosmrs",
  "cosmwasm-std",
- "osmosis-std",
+ "osmosis-std 0.17.0-rc0",
  "prost 0.11.9",
  "serde",
  "serde_json",
@@ -3213,14 +3229,14 @@ dependencies = [
 
 [[package]]
 name = "test-tube"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a520f35c8ca6665ea5231a81ce9110f49a6901a1cbedb751e72859e83320bfea"
+checksum = "09b1f7cafdf7738331999fb1465d2d3032f08ac61940e1ef4601dbbef21d6a5e"
 dependencies = [
  "base64",
  "cosmrs",
  "cosmwasm-std",
- "osmosis-std",
+ "osmosis-std 0.17.0-rc0",
  "prost 0.11.9",
  "serde",
  "serde_json",
