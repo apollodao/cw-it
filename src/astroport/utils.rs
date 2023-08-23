@@ -633,6 +633,7 @@ mod tests {
     use std::str::FromStr;
 
     use crate::traits::CwItRunner;
+    use crate::OwnedTestRunner;
 
     #[cfg(feature = "rpc-runner")]
     use {
@@ -761,7 +762,7 @@ mod tests {
     /// Creates an RPC test runner and accounts. If `cli` is Some, it will attempt to run the tests
     /// against the configured docker container.
     #[cfg(feature = "rpc-runner")]
-    fn get_rpc_runner(cli: Option<&Cli>) -> TestRunner {
+    fn get_rpc_runner(cli: Option<&Cli>) -> OwnedTestRunner {
         let rpc_runner_config = RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH);
 
         let runner = if let Some(cli) = cli {
@@ -769,7 +770,7 @@ mod tests {
         } else {
             RpcRunner::new(rpc_runner_config, None).unwrap()
         };
-        TestRunner::RpcRunner(runner)
+        OwnedTestRunner::RpcRunner(runner)
     }
 
     #[cfg(feature = "rpc-runner")]
@@ -778,8 +779,8 @@ mod tests {
     pub fn test_with_rpc_runner() {
         let cli = Cli::default();
         let runner = get_rpc_runner(Some(&cli));
-        let contracts = get_local_contracts(&runner);
-        test_instantiate_astroport(runner, contracts);
+        let contracts = get_local_contracts(&runner.as_ref());
+        test_instantiate_astroport(runner.as_ref(), contracts);
     }
 
     #[cfg(feature = "chain-download")]
@@ -787,9 +788,9 @@ mod tests {
     // #[test]
     #[allow(dead_code)]
     pub fn test_with_neutron_testnet_artifacts() {
-        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
+        let runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
         let contracts = get_neutron_testnet_artifacts();
-        test_instantiate_astroport(runner, contracts);
+        test_instantiate_astroport(runner.as_ref(), contracts);
     }
 
     fn get_fee_denom<'a>(runner: &'a TestRunner) -> &'a str {
@@ -804,9 +805,9 @@ mod tests {
     #[cfg(feature = "osmosis-test-tube")]
     #[test]
     fn test_with_local_artifacts() {
-        let runner = TestRunner::from_str(TEST_RUNNER).unwrap();
-        let contracts = get_local_contracts(&runner);
-        test_instantiate_astroport(runner, contracts);
+        let runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
+        let contracts = get_local_contracts(&runner.as_ref());
+        test_instantiate_astroport(runner.as_ref(), contracts);
     }
 
     pub fn test_instantiate_astroport(app: TestRunner, contracts: ContractMap) {
