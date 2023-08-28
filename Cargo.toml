@@ -1,6 +1,6 @@
 [package]
 name        = "cw-it"
-version     = "0.2.0-rc.2"
+version     = "0.2.0-rc.3"
 authors     = ["Pacman <pacman@apollo.farm>", "Sturdy <sturdy@apollo.farm>"]
 edition     = "2021"
 license     = "MPL-2.0"

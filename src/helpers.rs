@@ -1,4 +1,5 @@
 use std::env;
+use std::fmt::Debug;
 use std::{collections::HashMap, str::FromStr};
 
 use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
@@ -136,4 +137,53 @@ pub fn get_current_working_dir() -> String {
         Ok(path) => path.into_os_string().into_string().unwrap(),
         Err(_) => "FAILED".to_string(),
     }
+}
+
+/// An enum to choose which type of unwrap to use. When using `Unwrap::Err`, the
+/// result must be an `Err` or the test will panic. If the result contains an
+/// `Err`, the test will pass only if the error message contains the provided
+/// string.
+pub enum Unwrap {
+    Ok,
+    Err(&'static str),
+}
+
+impl Unwrap {
+    pub fn unwrap<T: Debug, E: Debug>(self, result: Result<T, E>) -> Option<T> {
+        match self {
+            Unwrap::Ok => {
+                let res = result.unwrap();
+                Some(res)
+            }
+            Unwrap::Err(s) => {
+                let err = result.unwrap_err();
+                assert!(
+                    format!("{:?}", err).contains(s),
+                    "Expected error message to contain {:?}, got {:?}",
+                    s,
+                    err
+                );
+                None
+            }
+        }
+    }
+}
+
+#[test]
+fn test_unwrap() {
+    let res: Result<u32, &str> = Ok(5);
+    assert_eq!(Unwrap::Ok.unwrap(res), Some(5));
+
+    let res: Result<u32, &str> = Err("test");
+    assert_eq!(Unwrap::Err("test").unwrap(res), None);
+
+    let res: Result<u32, &str> = Err("test2");
+    assert_eq!(Unwrap::Err("test").unwrap(res), None);
+}
+
+#[test]
+#[should_panic(expected = "Expected error message to contain \"test\", got \"random\"")]
+fn test_unwrap_panic() {
+    let res: Result<u32, &str> = Err("random");
+    Unwrap::Err("test").unwrap(res);
 }
