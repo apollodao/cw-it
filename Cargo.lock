@@ -73,9 +73,9 @@ dependencies = [
 
 [[package]]
 name = "apollo-cw-multi-test"
-version = "0.16.2"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1c7e04dcaeab52c3390867822b3019f81e239b8bbd3146fb91a83b10fb1f27b"
+checksum = "27b88d6037608a781a95ab1125941e2358c37272dcf0d4613de795b81b6ffbf3"
 dependencies = [
  "anyhow",
  "cosmwasm-std",
@@ -84,7 +84,7 @@ dependencies = [
  "derivative",
  "itertools",
  "k256 0.11.6",
- "osmosis-std 0.16.1",
+ "osmosis-std 0.19.2",
  "prost 0.9.0",
  "regex",
  "schemars",
@@ -921,7 +921,7 @@ dependencies = [
 
 [[package]]
 name = "cw-it"
-version = "0.2.0-rc.4"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "apollo-cw-multi-test",
@@ -945,7 +945,7 @@ dependencies = [
  "cosmwasm-std",
  "cw20 0.15.1",
  "cw20-base",
- "osmosis-std 0.19.1",
+ "osmosis-std 0.19.2",
  "osmosis-test-tube",
  "paste",
  "proptest",
@@ -2159,22 +2159,6 @@ checksum = "4d5d9eb14b174ee9aa2ef96dc2b94637a2d4b6e7cb873c7e171f0c20c6cf3eac"
 
 [[package]]
 name = "osmosis-std"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fa46d2ad5ae738572887974e000934374ce3546b820505c0ee19ca708e49622"
-dependencies = [
- "chrono",
- "cosmwasm-std",
- "osmosis-std-derive",
- "prost 0.11.9",
- "prost-types",
- "schemars",
- "serde",
- "serde-cw-value",
-]
-
-[[package]]
-name = "osmosis-std"
 version = "0.17.0-rc0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0b022b748710ecdf1adc6a124c3bef29f17ef05e7fa1260a08889d1d53f9cc5"
@@ -2191,9 +2175,9 @@ dependencies = [
 
 [[package]]
 name = "osmosis-std"
-version = "0.19.1"
+version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "088997c4da871db9edb9e090a4e164d1cb12498781491ccb8030246287400300"
+checksum = "798fade51443a0e07eb25b59a11b320b9e8f03e6e8fbe14c520258f04742fe13"
 dependencies = [
  "chrono",
  "cosmwasm-std",
@@ -3409,7 +3393,7 @@ dependencies = [
  "base64 0.13.1",
  "cosmrs",
  "cosmwasm-std",
- "osmosis-std 0.19.1",
+ "osmosis-std 0.19.2",
  "prost 0.11.9",
  "serde",
  "serde_json",
