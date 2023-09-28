@@ -1,11 +1,11 @@
 use astroport::asset::{Asset, AssetInfo};
 use astroport::factory::{ConfigResponse, ExecuteMsg as AstroportFactoryExecuteMsg, PairType};
-use cosmwasm_std::{Binary, Coin, Decimal, Uint128};
+use cosmwasm_std::{coin, Binary, Coin, Decimal, Uint128};
 use cw20::{BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
 use std::collections::HashMap;
-use test_tube::{RunnerResult, SigningAccount};
+use test_tube::{Account, RunnerResult, SigningAccount};
 
-use super::utils::{parse_astroport_create_pair_events, AstroportContracts};
+use super::utils::{parse_astroport_create_pair_events, AstroportContracts, Contract};
 use crate::robot::TestRobot;
 use crate::traits::CwItRunner;
 use crate::{ContractMap, TestRunner};
@@ -351,6 +351,88 @@ where
                 signer,
             )
             .unwrap();
+        self
+    }
+}
+
+pub struct NativeCoinWrappersRobot<'a> {
+    pub runner: &'a TestRunner<'a>,
+    pub native_coin_wrapper_code_id: u64,
+    pub cw20_code_id: u64,
+    pub coin_wrappers: HashMap<&'a str, String>,
+}
+
+impl<'a> TestRobot<'a, TestRunner<'a>> for NativeCoinWrappersRobot<'a> {
+    fn runner(&self) -> &'a TestRunner<'a> {
+        self.runner
+    }
+}
+
+impl<'a> NativeCoinWrappersRobot<'a> {
+    fn new(
+        runner: &'a TestRunner<'a>,
+        native_coin_wrapper_code_id: u64,
+        cw20_code_id: u64,
+    ) -> Self {
+        Self {
+            runner,
+            native_coin_wrapper_code_id,
+            cw20_code_id,
+            coin_wrappers: HashMap::new(),
+        }
+    }
+
+    fn wrap_native_token(
+        &self,
+        denom: &str,
+        amount: impl Into<Uint128>,
+        signer: &SigningAccount,
+    ) -> &Self {
+        let denom = denom.into();
+        let addr = match self.coin_wrappers.get(denom) {
+            Some(addr) => addr,
+            None => panic!("No native coin wrapper instantiated for {}", denom),
+        };
+
+        let amount: Uint128 = amount.into();
+        self.wasm()
+            .execute(
+                addr,
+                &astroport::native_coin_wrapper::ExecuteMsg::Wrap {},
+                &[coin(amount.u128(), denom)],
+                signer,
+            )
+            .unwrap();
+
+        self
+    }
+
+    fn instantiate_new_coin_wrapper(
+        &mut self,
+        denom: &'a str,
+        signer: &SigningAccount,
+        token_decimals: u8,
+    ) -> &Self {
+        let addr = self
+            .wasm()
+            .instantiate(
+                self.native_coin_wrapper_code_id,
+                &astroport::native_coin_wrapper::InstantiateMsg {
+                    denom: denom.into(),
+                    token_code_id: self.cw20_code_id,
+                    token_decimals,
+                },
+                Some(&signer.address()),
+                Some(&format!("{}-native-coin-wrapper", denom)),
+                &[],
+                signer,
+            )
+            .unwrap()
+            .data
+            .address;
+
+        self.coin_wrappers.insert(denom, addr);
+
         self
     }
 }

@@ -24,9 +24,10 @@ use cosmwasm_std::{to_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
 use test_tube::{Account, Module, Runner, SigningAccount, Wasm};
 
-pub const ASTROPORT_CONTRACT_NAMES: [&str; 11] = [
+pub const ASTROPORT_CONTRACT_NAMES: [&str; 12] = [
     "astroport_token",
     "astroport_native_coin_registry",
+    "astroport_native_coin_wrapper",
     "astroport_factory",
     "astroport_generator",
     "astroport_maker",
@@ -54,6 +55,7 @@ impl Contract {
 pub struct AstroportContracts {
     pub factory: Contract,
     pub coin_registry: Contract,
+    pub native_coin_wrapper: Contract,
     pub generator: Contract,
     pub astro_token: Contract,
     pub maker: Contract,
@@ -355,6 +357,10 @@ where
         pair_stable: Contract::new(String::from(""), code_ids["astroport_pair_stable"]),
         pair: Contract::new(String::from(""), code_ids["astroport_pair"]),
         whitelist: Contract::new(String::from(""), code_ids["astroport_whitelist"]),
+        native_coin_wrapper: Contract::new(
+            String::from(""),
+            code_ids["astroport_native_coin_wrapper"],
+        ),
     }
 }
 
