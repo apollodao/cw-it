@@ -382,22 +382,23 @@ impl<'a> NativeCoinWrappersRobot<'a> {
         }
     }
 
+    pub fn get_coin_wrapper_addr(&self, denom: &'a str) -> String {
+        match self.coin_wrappers.get(denom) {
+            Some(addr) => addr.clone(),
+            None => panic!("No native coin wrapper instantiated for {}", denom),
+        }
+    }
+
     pub fn wrap_native_token(
         &self,
         denom: &str,
         amount: impl Into<Uint128>,
         signer: &SigningAccount,
     ) -> &Self {
-        let denom = denom.into();
-        let addr = match self.coin_wrappers.get(denom) {
-            Some(addr) => addr,
-            None => panic!("No native coin wrapper instantiated for {}", denom),
-        };
-
         let amount: Uint128 = amount.into();
         self.wasm()
             .execute(
-                addr,
+                &self.get_coin_wrapper_addr(denom),
                 &astroport::native_coin_wrapper::ExecuteMsg::Wrap {},
                 &[coin(amount.u128(), denom)],
                 signer,
