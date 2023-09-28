@@ -369,7 +369,7 @@ impl<'a> TestRobot<'a, TestRunner<'a>> for NativeCoinWrappersRobot<'a> {
 }
 
 impl<'a> NativeCoinWrappersRobot<'a> {
-    fn new(
+    pub fn new(
         runner: &'a TestRunner<'a>,
         native_coin_wrapper_code_id: u64,
         cw20_code_id: u64,
@@ -382,7 +382,7 @@ impl<'a> NativeCoinWrappersRobot<'a> {
         }
     }
 
-    fn wrap_native_token(
+    pub fn wrap_native_token(
         &self,
         denom: &str,
         amount: impl Into<Uint128>,
@@ -407,7 +407,7 @@ impl<'a> NativeCoinWrappersRobot<'a> {
         self
     }
 
-    fn instantiate_new_coin_wrapper(
+    pub fn instantiate_new_coin_wrapper(
         &mut self,
         denom: &'a str,
         signer: &SigningAccount,
