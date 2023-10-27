@@ -19,12 +19,13 @@ use astroport::vesting::{
     Cw20HookMsg as VestingHookMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
     VestingSchedule, VestingSchedulePoint,
 };
+use astroport_v3::liquidity_manager::InstantiateMsg as LiquidityManagerInstantiateMsg;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
 use test_tube::{Account, Module, Runner, SigningAccount, Wasm};
 
-pub const ASTROPORT_CONTRACT_NAMES: [&str; 11] = [
+pub const ASTROPORT_CONTRACT_NAMES: [&str; 13] = [
     "astroport_token",
     "astroport_native_coin_registry",
     "astroport_factory",
@@ -36,6 +37,8 @@ pub const ASTROPORT_CONTRACT_NAMES: [&str; 11] = [
     "astroport_staking",
     "astroport_vesting",
     "astroport_whitelist",
+    "astroport_liquidity_manager",
+    "astroport_pair_concentrated",
 ];
 
 #[cw_serde]
@@ -63,6 +66,7 @@ pub struct AstroportContracts {
     pub staking: Contract,
     pub vesting: Contract,
     pub whitelist: Contract,
+    pub liquidity_manager: Contract,
 }
 
 impl AstroportContracts {
@@ -169,6 +173,14 @@ where
                         total_fee_bps: 5,
                         pair_type: PairType::Stable {},
                     },
+                    PairConfig {
+                        code_id: code_ids["astroport_pair_concentrated"],
+                        is_disabled: false,
+                        is_generator_disabled: false,
+                        maker_fee_bps: 5000,
+                        total_fee_bps: 0,
+                        pair_type: PairType::Custom("concentrated".to_string()),
+                    },
                 ],
                 token_code_id: code_ids["astroport_token"], // TODO: is this correct or do we need another contract?
                 fee_address: None,
@@ -181,6 +193,23 @@ where
             Some("Astroport Factory"), // contract label
             &[],                       // funds
             admin,                     // signer
+        )
+        .unwrap()
+        .data
+        .address;
+
+    // Instantiate Liquidity Manager
+    println!("Instantiating liquidity manager ...");
+    let liquidity_manager = wasm
+        .instantiate(
+            code_ids["astroport_liquidity_manager"],
+            &LiquidityManagerInstantiateMsg {
+                astroport_factory: factory.clone(),
+            },
+            Some(&admin.address()),
+            Some("Liquidity Manager"),
+            &[],
+            admin,
         )
         .unwrap()
         .data
@@ -355,6 +384,10 @@ where
         pair_stable: Contract::new(String::from(""), code_ids["astroport_pair_stable"]),
         pair: Contract::new(String::from(""), code_ids["astroport_pair"]),
         whitelist: Contract::new(String::from(""), code_ids["astroport_whitelist"]),
+        liquidity_manager: Contract::new(
+            liquidity_manager,
+            code_ids["astroport_liquidity_manager"],
+        ),
     }
 }
 
@@ -585,6 +618,9 @@ pub fn get_local_contracts(
 
 #[cfg(feature = "astroport-multi-test")]
 pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
+    use apollo_cw_multi_test::ContractWrapper;
+    use cosmwasm_std::Empty;
+
     use crate::create_contract_wrappers;
     use crate::create_contract_wrappers_with_reply;
 
@@ -604,6 +640,32 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
         "astroport_pair_stable",
         "astroport_pair"
     ));
+
+    // Liquidity manager and concentrated pair don't have query entrypoint in contract module
+    contract_wrappers.extend(vec![
+        (
+            "astroport_liquidity_manager".to_string(),
+            Box::new(
+                ContractWrapper::new_with_empty(
+                    astroport_liquidity_manager::contract::execute,
+                    astroport_liquidity_manager::contract::instantiate,
+                    astroport_liquidity_manager::query::query,
+                )
+                .with_reply(astroport_liquidity_manager::contract::reply),
+            ) as Box<dyn apollo_cw_multi_test::Contract<Empty>>,
+        ),
+        (
+            "astroport_pair_concentrated".to_string(),
+            Box::new(
+                ContractWrapper::new_with_empty(
+                    astroport_pair_concentrated::contract::execute,
+                    astroport_pair_concentrated::contract::instantiate,
+                    astroport_pair_concentrated::queries::query,
+                )
+                .with_reply(astroport_pair_concentrated::contract::reply),
+            ) as Box<dyn apollo_cw_multi_test::Contract<Empty>>,
+        ),
+    ]);
 
     contract_wrappers
         .into_iter()
@@ -633,6 +695,12 @@ mod tests {
     use std::str::FromStr;
 
     use crate::traits::CwItRunner;
+
+    #[cfg(any(
+        feature = "rpc-runner",
+        feature = "chain-download",
+        feature = "osmosis-test-tube"
+    ))]
     use crate::OwnedTestRunner;
 
     #[cfg(feature = "rpc-runner")]
