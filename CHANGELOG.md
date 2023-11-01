@@ -9,9 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Bumped `astroport` to `2.8.7`.
+- Bumped `astroport` to `2.9.0`.
 - Helper fn `instantiate_astroport` now instantiates the `astroport-liquidity-manager` contract and registers the `concentrated` pair type in the factory contract.
-  - NB: Astroport liquidity manager API only exists in the `astroport` version >= 3.6.1 which contains unreleased changes. Be careful when integrating with Astroport as they don't follow SemVer.
 
 ## [0.2.1] - 2023-09-26
 

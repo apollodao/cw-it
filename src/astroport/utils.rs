@@ -12,6 +12,7 @@ use astroport::maker::InstantiateMsg as MakerInstantiateMsg;
 use astroport::native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
 use std::collections::HashMap;
 
+use astroport::liquidity_manager::InstantiateMsg as LiquidityManagerInstantiateMsg;
 use astroport::router::InstantiateMsg as RouterInstantiateMsg;
 use astroport::staking::InstantiateMsg as StakingInstantiateMsg;
 use astroport::token::InstantiateMsg as AstroTokenInstantiateMsg;
@@ -19,7 +20,6 @@ use astroport::vesting::{
     Cw20HookMsg as VestingHookMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
     VestingSchedule, VestingSchedulePoint,
 };
-use astroport_v3::liquidity_manager::InstantiateMsg as LiquidityManagerInstantiateMsg;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
