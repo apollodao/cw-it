@@ -21,7 +21,7 @@ use astroport::vesting::{
     VestingSchedule, VestingSchedulePoint,
 };
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{to_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
+use cosmwasm_std::{to_json_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
 use test_tube::{Account, Module, Runner, SigningAccount, Wasm};
 
@@ -356,7 +356,7 @@ where
     let msg = Cw20ExecuteMsg::Send {
         contract: vesting.clone(),
         amount: vesting_amount,
-        msg: to_binary(&VestingHookMsg::RegisterVestingAccounts {
+        msg: to_json_binary(&VestingHookMsg::RegisterVestingAccounts {
             vesting_accounts: vec![VestingAccount {
                 address: generator.clone(),
                 schedules: vec![VestingSchedule {
@@ -704,10 +704,7 @@ mod tests {
     use crate::OwnedTestRunner;
 
     #[cfg(feature = "rpc-runner")]
-    use {
-        crate::rpc_runner::{config::RpcRunnerConfig, RpcRunner},
-        testcontainers::clients::Cli,
-    };
+    use crate::rpc_runner::{config::RpcRunnerConfig, RpcRunner};
 
     #[cfg(feature = "chain-download")]
     use {
@@ -830,14 +827,10 @@ mod tests {
     /// Creates an RPC test runner and accounts. If `cli` is Some, it will attempt to run the tests
     /// against the configured docker container.
     #[cfg(feature = "rpc-runner")]
-    fn get_rpc_runner(cli: Option<&Cli>) -> OwnedTestRunner {
+    fn get_rpc_runner<'a>() -> OwnedTestRunner<'a> {
         let rpc_runner_config = RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH);
 
-        let runner = if let Some(cli) = cli {
-            RpcRunner::new(rpc_runner_config, Some(cli)).unwrap()
-        } else {
-            RpcRunner::new(rpc_runner_config, None).unwrap()
-        };
+        let runner = RpcRunner::new(rpc_runner_config).unwrap();
         OwnedTestRunner::RpcRunner(runner)
     }
 
@@ -845,8 +838,7 @@ mod tests {
     // Commenting out because we have not set up Docker for CI yet.
     // #[test]
     pub fn test_with_rpc_runner() {
-        let cli = Cli::default();
-        let runner = get_rpc_runner(Some(&cli));
+        let runner = get_rpc_runner();
         let contracts = get_local_contracts(&runner.as_ref());
         test_instantiate_astroport(runner.as_ref(), contracts);
     }
@@ -864,7 +856,7 @@ mod tests {
     fn get_fee_denom<'a>(runner: &'a TestRunner) -> &'a str {
         match runner {
             #[cfg(feature = "rpc-runner")]
-            TestRunner::RpcRunner(rpc_runner) => rpc_runner.rpc_runner_config.chain_config.denom(),
+            TestRunner::RpcRunner(rpc_runner) => rpc_runner.config.chain_config.denom(),
             _ => "uosmo",
         }
     }

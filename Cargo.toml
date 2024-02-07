@@ -32,10 +32,10 @@ incremental      = false
 overflow-checks  = true
 
 [features]
-default = []
+default = ["rpc-runner", "osmosis", "astroport", "chain-download", "multi-test", "astroport-multi-test", "osmosis-test-tube"]
 astroport = ["cw20", "dep:astroport"]
 osmosis = ["proptest", "apollo-utils", "osmosis-test-tube"]
-rpc-runner = ["testcontainers", "tonic", "tokio", "cosmos-sdk-proto"]
+rpc-runner = ["tonic", "tokio", "bip32"]
 chain-download = ["tokio"]
 multi-test = ["apollo-cw-multi-test", "paste", "regex"]
 astroport-multi-test = [
@@ -69,6 +69,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
+bip32 = { version = "0.5", features = ["bip39"], optional = true }
 cosmwasm-std = { version = "1.2.1", features = ["stargate"] }
 serde = { version = "1.0.152", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
@@ -82,8 +83,8 @@ anyhow = "1.0.66"
 serde_json = "1.0.89"
 strum = { version = "0.24.1", features = ["derive"] }
 osmosis-std = "0.22.0"
-test-tube = { version = "0.4.0", features = ["module-wrappers"] }
-osmosis-test-tube = { version = "22.0.0", optional = true }
+test-tube = { version = "0.5.0", features = ["module-wrappers"] }
+osmosis-test-tube = { version = "22.1.0", optional = true }
 
 # Astroport deps
 astroport = { version = "=2.9.0", optional = true }
@@ -114,7 +115,6 @@ tonic = { version = "0.8.2", default-features = false, optional = true }
 testcontainers = { version = "0.14.0", features = [
   "experimental",
 ], optional = true }
-cosmos-sdk-proto = { version = "0.15.0", optional = true }
 
 # Cw-multi-test deps
 apollo-cw-multi-test = { version = "0.17.0", features = ["stargate"], optional = true }
@@ -125,6 +125,5 @@ tokio = { version = "1.27.0", optional = true }
 
 [dev-dependencies]
 test-case      = "3.0.0"
-testcontainers = { version = "0.14.0", features = ["experimental"] }
 cw20-base      = { version = "0.15", features = ["library"] }
 cw20           = "0.15"

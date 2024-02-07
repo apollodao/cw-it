@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 use anyhow::{bail, Ok};
 use cosmwasm_std::{
-    from_slice, Addr, Api, BankMsg, BankQuery, BlockInfo, Coin, Empty, Event, QueryRequest,
-    Storage, SupplyResponse, Uint128,
+    from_json, Addr, Api, BankMsg, BankQuery, BlockInfo, Coin, Empty, Event, QueryRequest, Storage,
+    SupplyResponse, Uint128,
 };
 use osmosis_std::types::osmosis::tokenfactory::v1beta1::{
     MsgBurn, MsgBurnResponse, MsgCreateDenom, MsgCreateDenomResponse, MsgMint, MsgMintResponse,
@@ -97,7 +97,7 @@ impl TokenFactory<'_> {
             denom: denom.clone(),
         });
         let raw = router.query(api, storage, block, request)?;
-        let supply: SupplyResponse = from_slice(&raw)?;
+        let supply: SupplyResponse = from_json(&raw)?;
         println!("supply: {:?}", supply);
         println!(
             "supply.amount.amount.is_zero: {:?}",
