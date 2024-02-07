@@ -32,7 +32,7 @@ incremental      = false
 overflow-checks  = true
 
 [features]
-default = ["rpc-runner", "osmosis", "astroport", "chain-download", "multi-test", "astroport-multi-test", "osmosis-test-tube"]
+default = []
 astroport = ["cw20", "dep:astroport"]
 osmosis = ["proptest", "apollo-utils", "osmosis-test-tube"]
 rpc-runner = ["tonic", "tokio", "bip32"]

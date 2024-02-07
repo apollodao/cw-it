@@ -97,7 +97,7 @@ impl TokenFactory<'_> {
             denom: denom.clone(),
         });
         let raw = router.query(api, storage, block, request)?;
-        let supply: SupplyResponse = from_json(&raw)?;
+        let supply: SupplyResponse = from_json(raw)?;
         println!("supply: {:?}", supply);
         println!(
             "supply.amount.amount.is_zero: {:?}",

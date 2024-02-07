@@ -34,13 +34,12 @@ impl From<FeeSetting> for test_tube::account::FeeSetting {
                 gas_price,
                 gas_adjustment,
             } => test_tube::account::FeeSetting::Auto {
-                gas_price: gas_price.into(),
+                gas_price,
                 gas_adjustment,
             },
-            FeeSetting::Custom { amount, gas_limit } => test_tube::account::FeeSetting::Custom {
-                amount: amount.into(),
-                gas_limit,
-            },
+            FeeSetting::Custom { amount, gas_limit } => {
+                test_tube::account::FeeSetting::Custom { amount, gas_limit }
+            }
         }
     }
 }
