@@ -61,7 +61,7 @@ args = ["deny", "check"]
 [tasks.check]
 toolchain = "${RUST_VERSION}"
 command = "cargo"
-args = ["check"]
+args = ["check",  "--all-features"]
 
 [tasks.clippy-check]
 toolchain = "${NIGHTLY_VERSION}"
