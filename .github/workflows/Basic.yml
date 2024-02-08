@@ -7,10 +7,15 @@ name: Basic
 jobs:
   test:
     name: Test Suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+
+      - name: Set up Go 1.21.6
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21.6"
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
