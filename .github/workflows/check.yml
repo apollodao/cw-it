@@ -1,0 +1,24 @@
+name: Check for errors
+on:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  RUSTFLAGS: -D warnings
+
+jobs:
+  cargo-check:
+    name: Cargo check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install cargo make
+        uses: davidB/rust-cargo-make@v1
+
+      - name: Install stable Rust
+        run: cargo make install-stable
+
+      - name: Check
+        run: cargo make check

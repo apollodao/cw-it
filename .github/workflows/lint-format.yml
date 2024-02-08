@@ -1,0 +1,34 @@
+name: Linting and formatting
+on:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  RUSTFLAGS: -D warnings
+
+jobs:
+  lint-and-format:
+    name: Lint and check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install cargo make
+        uses: davidB/rust-cargo-make@v1
+
+      - name: Install nightly toolchain
+        run: cargo make install-nightly
+
+      - name: Run cargo clippy
+        run: cargo make clippy-check
+
+      - name: Run cargo fmt
+        run: cargo make format-check
+
+      - name: Run cargo machete
+        run: cargo make machete-check
+
+      # TODO: Enable when project more mature
+      # - name: Lint todo comments
+      #   run: cargo make todo-check

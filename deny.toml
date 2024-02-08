@@ -1,0 +1,50 @@
+# cargo-deny is really only ever intended to run on the "normal" tier-1 targets
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "x86_64-unknown-linux-musl" },
+]
+
+# Ignore dev dependencies
+exclude-dev = true
+
+[advisories]
+vulnerability = "deny"
+unmaintained = "deny"
+notice = "deny"
+unsound = "deny"
+ignore = []
+
+[bans]
+multiple-versions = "allow"
+deny = []
+skip = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = []
+[sources.allow-org]
+github = []
+
+[licenses]
+unlicensed = "deny"
+copyleft = "deny"
+# We want really high confidence when inferring licenses from text
+confidence-threshold = 0.93
+allow = ["Apache-2.0", "MIT", "BSD-3-Clause", "MPL-2.0", "ISC"]
+exceptions = [
+    { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
+    { allow = ["OpenSSL"], name = "ring" }
+]
+
+[[licenses.clarify]]
+name = "ring"
+# SPDX considers OpenSSL to encompass both the OpenSSL and SSLeay licenses
+# https://spdx.org/licenses/OpenSSL.html
+# ISC - Both BoringSSL and ring use this for their new files
+# MIT - "Files in third_party/ have their own licenses, as described therein. The MIT
+# license, for third_party/fiat, which, unlike other third_party directories, is
+# compiled into non-test libraries, is included below."
+# OpenSSL - Obviously
+expression = "ISC AND MIT AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]

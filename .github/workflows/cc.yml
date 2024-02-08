@@ -1,0 +1,19 @@
+
+name: Conventional commit check
+on:
+  pull_request:
+  workflow_dispatch:
+
+# This workflow denies a push on a pull request if all pushed commits are not following
+# the conventional commits standard.
+
+jobs:
+  conv-commit:
+    name: Enforce conventional commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v3
+
+      - name: Check all commit messages for adherence
+        uses: bilalshaikh42/action-conventional-commits@v2.0.1
