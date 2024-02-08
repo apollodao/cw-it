@@ -297,10 +297,10 @@ mod tests {
         &TokenFactory::new("factory", 32, 16, 59 + 16, "10000000uosmo");
 
     #[test_case(Addr::unchecked("sender"), "subdenom", &["10000000uosmo"]; "valid denom")]
-    #[test_case(Addr::unchecked("sen/der"), "subdenom", &["10000000uosmo"] => panics ; "invalid creator address")]
+    #[test_case(Addr::unchecked("sen/der"), "subdenom", &["10000000uosmo"] => panics "creator address cannot contains" ; "invalid creator address")]
     #[test_case(Addr::unchecked("asdasdasdasdasdasdasdasdasdasdasdasdasdasdasd"), "subdenom", &["10000000uosmo"] => panics ; "creator address too long")]
-    #[test_case(Addr::unchecked("sender"), "subdenom", &["10000000uosmo", "100factory/sender/subdenom"] => panics ; "denom exists")]
-    #[test_case(Addr::unchecked("sender"), "subdenom", &["100000uosmo"] => panics ; "insufficient funds for fee")]
+    #[test_case(Addr::unchecked("sender"), "subdenom", &["10000000uosmo", "100factory/sender/subdenom"] => panics "Subdenom already exists" ; "denom exists")]
+    #[test_case(Addr::unchecked("sender"), "subdenom", &["100000uosmo"] => panics "Cannot Sub" ; "insufficient funds for fee")]
     fn create_denom(sender: Addr, subdenom: &str, initial_coins: &[&str]) {
         let initial_coins = initial_coins
             .iter()
@@ -332,7 +332,7 @@ mod tests {
 
         res.assert_event(
             &Event::new("create_denom")
-                .add_attribute("creator", "sender")
+                .add_attribute("creator", sender.to_string())
                 .add_attribute(
                     "new_token_denom",
                     format!(
@@ -354,8 +354,8 @@ mod tests {
     }
 
     #[test_case(Addr::unchecked("sender"), Addr::unchecked("sender"), 1000u128 ; "valid mint")]
-    #[test_case(Addr::unchecked("sender"), Addr::unchecked("sender"), 0u128 => panics ; "zero amount")]
-    #[test_case(Addr::unchecked("sender"), Addr::unchecked("creator"), 1000u128 => panics ; "sender is not creator")]
+    #[test_case(Addr::unchecked("sender"), Addr::unchecked("sender"), 0u128 => panics "Invalid zero amount" ; "zero amount")]
+    #[test_case(Addr::unchecked("sender"), Addr::unchecked("creator"), 1000u128 => panics "Unauthorized mint. Not the creator of the denom." ; "sender is not creator")]
     fn mint(sender: Addr, creator: Addr, mint_amount: u128) {
         let mut stargate_keeper = StargateKeeper::new();
         TOKEN_FACTORY.register_msgs(&mut stargate_keeper);
@@ -411,9 +411,9 @@ mod tests {
 
     #[test_case(Addr::unchecked("sender"), Addr::unchecked("sender"), 1000u128, 1000u128 ; "valid burn")]
     #[test_case(Addr::unchecked("sender"), Addr::unchecked("sender"), 1000u128, 2000u128 ; "valid burn 2")]
-    #[test_case(Addr::unchecked("sender"), Addr::unchecked("creator"), 1000u128, 1000u128 => panics ; "sender is not creator")]
-    #[test_case(Addr::unchecked("sender"), Addr::unchecked("sender"), 0u128, 1000u128 => panics ; "zero amount")]
-    #[test_case(Addr::unchecked("sender"), Addr::unchecked("sender"), 2000u128, 1000u128 => panics ; "insufficient funds")]
+    #[test_case(Addr::unchecked("sender"), Addr::unchecked("creator"), 1000u128, 1000u128 => panics "Unauthorized burn. Not the creator of the denom." ; "sender is not creator")]
+    #[test_case(Addr::unchecked("sender"), Addr::unchecked("sender"), 0u128, 1000u128 => panics "Invalid zero amount" ; "zero amount")]
+    #[test_case(Addr::unchecked("sender"), Addr::unchecked("sender"), 2000u128, 1000u128 => panics "Cannot Sub" ; "insufficient funds")]
     fn burn(sender: Addr, creator: Addr, burn_amount: u128, initial_balance: u128) {
         let mut stargate_keeper = StargateKeeper::new();
         TOKEN_FACTORY.register_msgs(&mut stargate_keeper);
@@ -480,12 +480,12 @@ mod tests {
 
     #[test_case("uosmo" ; "native denom")]
     #[test_case("IBC/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2" ; "ibc denom")]
-    #[test_case("IBC/27394FB092D2ECCD56123CA622B25F41E5EB2" => panics ; "invalid ibc denom")]
-    #[test_case("IB/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2" => panics ; "invalid ibc denom 2")]
+    #[test_case("IBC/27394FB092D2ECCD56123CA622B25F41E5EB2" => panics "Invalid sdk string" ; "invalid ibc denom")]
+    #[test_case("IB/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2" => panics "Invalid sdk string" ; "invalid ibc denom 2")]
     #[test_case("factory/sender/subdenom" ; "token factory denom")]
     #[test_case("factory/se1298der/subde192MAnom" ; "token factory denom 2")]
-    #[test_case("factor/sender/subdenom" => panics ; "invalid token factory denom")]
-    #[test_case("factory/sender/subdenom/extra" => panics ; "invalid token factory denom 2")]
+    #[test_case("factor/sender/subdenom" => panics "Invalid sdk string" ; "invalid token factory denom")]
+    #[test_case("factory/sender/subdenom/extra" => panics "Invalid sdk string" ; "invalid token factory denom 2")]
     fn test_coin_from_sdk_string(denom: &str) {
         let sdk_string = format!("{}{}", 1000, denom);
         let coin = coin_from_sdk_string(&sdk_string).unwrap();
