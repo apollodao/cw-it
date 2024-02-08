@@ -135,7 +135,7 @@ args = ["machete", "--fix"]
 [tasks.test]
 toolchain = "${RUST_VERSION}"
 command = "cargo"
-args = ["test", "--locked"]
+args = ["test", "--locked", "--all-features"]
 
 # Run unit tests
 [tasks.unit-test]
