@@ -73,9 +73,9 @@ dependencies = [
 
 [[package]]
 name = "apollo-cw-multi-test"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27b88d6037608a781a95ab1125941e2358c37272dcf0d4613de795b81b6ffbf3"
+checksum = "f79f4204575175473a9b7fff8083596d09e6edb07469d2a4176846b353b2d1ef"
 dependencies = [
  "anyhow",
  "cosmwasm-std",
@@ -84,7 +84,7 @@ dependencies = [
  "derivative",
  "itertools 0.10.5",
  "k256 0.11.6",
- "osmosis-std 0.19.2",
+ "osmosis-std",
  "prost 0.9.0",
  "regex",
  "schemars",
@@ -962,7 +962,7 @@ dependencies = [
  "cosmwasm-std",
  "cw20 0.15.1",
  "cw20-base",
- "osmosis-std 0.22.0",
+ "osmosis-std",
  "osmosis-test-tube",
  "paste",
  "proptest",
@@ -2112,47 +2112,18 @@ dependencies = [
 
 [[package]]
 name = "osmosis-std"
-version = "0.19.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "798fade51443a0e07eb25b59a11b320b9e8f03e6e8fbe14c520258f04742fe13"
-dependencies = [
- "chrono",
- "cosmwasm-std",
- "osmosis-std-derive 0.16.2",
- "prost 0.11.9",
- "prost-types 0.11.9",
- "schemars",
- "serde",
- "serde-cw-value",
-]
-
-[[package]]
-name = "osmosis-std"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8641c376f01f5af329dc2a34e4f5527eaeb0bde18cda8d86fed958d04c86159c"
 dependencies = [
  "chrono",
  "cosmwasm-std",
- "osmosis-std-derive 0.20.1",
+ "osmosis-std-derive",
  "prost 0.12.3",
  "prost-types 0.12.3",
  "schemars",
  "serde",
  "serde-cw-value",
-]
-
-[[package]]
-name = "osmosis-std-derive"
-version = "0.16.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f47f0b2f22adb341bb59e5a3a1b464dde033181954bd055b9ae86d6511ba465b"
-dependencies = [
- "itertools 0.10.5",
- "proc-macro2",
- "prost-types 0.11.9",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -2178,7 +2149,7 @@ dependencies = [
  "bindgen",
  "cosmrs",
  "cosmwasm-std",
- "osmosis-std 0.22.0",
+ "osmosis-std",
  "prost 0.12.3",
  "serde",
  "serde_json",
@@ -3391,7 +3362,7 @@ dependencies = [
  "base64 0.21.7",
  "cosmrs",
  "cosmwasm-std",
- "osmosis-std 0.22.0",
+ "osmosis-std",
  "prost 0.12.3",
  "serde",
  "serde_json",

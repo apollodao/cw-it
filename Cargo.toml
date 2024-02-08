@@ -117,7 +117,7 @@ testcontainers = { version = "0.14.0", features = [
 ], optional = true }
 
 # Cw-multi-test deps
-apollo-cw-multi-test = { version = "0.17.0", features = ["stargate"], optional = true }
+apollo-cw-multi-test = { version = "0.18.0", features = ["stargate"], optional = true }
 paste         = { version = "1.0.12", optional = true }
 
 # RPC Runner and chain-download deps
