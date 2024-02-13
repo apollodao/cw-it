@@ -56,7 +56,7 @@ args = ["fmt", "--all", "--","--verbose", "--check"]
 
 [tasks.deny]
 command = "cargo"
-args = ["deny", "check"]
+args = ["deny", "--all-features", "check"]
 
 [tasks.check]
 toolchain = "${RUST_VERSION}"
