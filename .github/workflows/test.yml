@@ -1,0 +1,37 @@
+name: Test Suite
+on:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  RUSTFLAGS: -D warnings
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Set up Go 1.21.6
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21.6"
+
+      - name: Install cargo make
+        uses: davidB/rust-cargo-make@v1
+
+      - name: Install stable toolchain
+        run: cargo make install-stable
+
+      - name: Run unit tests
+        run: cargo make unit-test
+        env:
+          RUST_BACKTRACE: 1
+
+      # No integration tests yet
+      # - name: Run integration tests
+      #   run: cargo make integration-test
+      #   env:
+      #     RUST_BACKTRACE: 1

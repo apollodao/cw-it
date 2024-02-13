@@ -20,12 +20,13 @@ use astroport::vesting::{
     Cw20HookMsg as VestingHookMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
     VestingSchedule, VestingSchedulePoint,
 };
+use astroport_v3::incentives::InstantiateMsg as IncentivesInstantiateMsg;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{to_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
+use cosmwasm_std::{to_json_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
 use test_tube::{Account, Module, Runner, SigningAccount, Wasm};
 
-pub const ASTROPORT_CONTRACT_NAMES: [&str; 13] = [
+pub const ASTROPORT_CONTRACT_NAMES: [&str; 14] = [
     "astroport_token",
     "astroport_native_coin_registry",
     "astroport_factory",
@@ -39,6 +40,7 @@ pub const ASTROPORT_CONTRACT_NAMES: [&str; 13] = [
     "astroport_whitelist",
     "astroport_liquidity_manager",
     "astroport_pair_concentrated",
+    "astroport_incentives",
 ];
 
 #[cw_serde]
@@ -67,6 +69,7 @@ pub struct AstroportContracts {
     pub vesting: Contract,
     pub whitelist: Contract,
     pub liquidity_manager: Contract,
+    pub incentives: Contract,
 }
 
 impl AstroportContracts {
@@ -264,6 +267,30 @@ where
         .data
         .address;
 
+    // Instantiate incentives contract
+    println!("Instantiating incentives contract ...");
+    let incentives = wasm
+        .instantiate(
+            code_ids["astroport_incentives"],
+            &IncentivesInstantiateMsg {
+                astro_token: astroport_v3::asset::AssetInfo::Token {
+                    contract_addr: Addr::unchecked(&astro_token),
+                },
+                factory: factory.clone(),
+                guardian: None,
+                incentivization_fee_info: None,
+                owner: admin.address(),
+                vesting_contract: vesting.clone(),
+            },
+            Some(&admin.address()),       // contract admin used for migration
+            Some("Astroport Incentives"), // contract label
+            &[],                          // funds
+            admin,                        // signer
+        )
+        .unwrap()
+        .data
+        .address;
+
     // Update factory config to add generator
     println!("Updating factory config to add generator ...");
     let _res = wasm
@@ -356,7 +383,7 @@ where
     let msg = Cw20ExecuteMsg::Send {
         contract: vesting.clone(),
         amount: vesting_amount,
-        msg: to_binary(&VestingHookMsg::RegisterVestingAccounts {
+        msg: to_json_binary(&VestingHookMsg::RegisterVestingAccounts {
             vesting_accounts: vec![VestingAccount {
                 address: generator.clone(),
                 schedules: vec![VestingSchedule {
@@ -388,6 +415,7 @@ where
             liquidity_manager,
             code_ids["astroport_liquidity_manager"],
         ),
+        incentives: Contract::new(incentives, code_ids["astroport_incentives"]),
     }
 }
 
@@ -641,7 +669,7 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
         "astroport_pair"
     ));
 
-    // Liquidity manager and concentrated pair don't have query entrypoint in contract module
+    // Liquidity manager, incentives, and concentrated pair don't have query entrypoint in contract module
     contract_wrappers.extend(vec![
         (
             "astroport_liquidity_manager".to_string(),
@@ -663,6 +691,17 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
                     astroport_pair_concentrated::queries::query,
                 )
                 .with_reply(astroport_pair_concentrated::contract::reply),
+            ) as Box<dyn apollo_cw_multi_test::Contract<Empty>>,
+        ),
+        (
+            "astroport_incentives".to_string(),
+            Box::new(
+                ContractWrapper::new_with_empty(
+                    astroport_incentives::execute::execute,
+                    astroport_incentives::instantiate::instantiate,
+                    astroport_incentives::query::query,
+                )
+                .with_reply(astroport_incentives::reply::reply),
             ) as Box<dyn apollo_cw_multi_test::Contract<Empty>>,
         ),
     ]);
@@ -704,10 +743,7 @@ mod tests {
     use crate::OwnedTestRunner;
 
     #[cfg(feature = "rpc-runner")]
-    use {
-        crate::rpc_runner::{config::RpcRunnerConfig, RpcRunner},
-        testcontainers::clients::Cli,
-    };
+    use crate::rpc_runner::{config::RpcRunnerConfig, RpcRunner};
 
     #[cfg(feature = "chain-download")]
     use {
@@ -830,14 +866,10 @@ mod tests {
     /// Creates an RPC test runner and accounts. If `cli` is Some, it will attempt to run the tests
     /// against the configured docker container.
     #[cfg(feature = "rpc-runner")]
-    fn get_rpc_runner(cli: Option<&Cli>) -> OwnedTestRunner {
+    fn get_rpc_runner<'a>() -> OwnedTestRunner<'a> {
         let rpc_runner_config = RpcRunnerConfig::from_yaml(TEST_CONFIG_PATH);
 
-        let runner = if let Some(cli) = cli {
-            RpcRunner::new(rpc_runner_config, Some(cli)).unwrap()
-        } else {
-            RpcRunner::new(rpc_runner_config, None).unwrap()
-        };
+        let runner = RpcRunner::new(rpc_runner_config).unwrap();
         OwnedTestRunner::RpcRunner(runner)
     }
 
@@ -845,8 +877,7 @@ mod tests {
     // Commenting out because we have not set up Docker for CI yet.
     // #[test]
     pub fn test_with_rpc_runner() {
-        let cli = Cli::default();
-        let runner = get_rpc_runner(Some(&cli));
+        let runner = get_rpc_runner();
         let contracts = get_local_contracts(&runner.as_ref());
         test_instantiate_astroport(runner.as_ref(), contracts);
     }
@@ -864,7 +895,7 @@ mod tests {
     fn get_fee_denom<'a>(runner: &'a TestRunner) -> &'a str {
         match runner {
             #[cfg(feature = "rpc-runner")]
-            TestRunner::RpcRunner(rpc_runner) => rpc_runner.rpc_runner_config.chain_config.denom(),
+            TestRunner::RpcRunner(rpc_runner) => rpc_runner.config.chain_config.denom(),
             _ => "uosmo",
         }
     }

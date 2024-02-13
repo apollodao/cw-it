@@ -1,13 +1,13 @@
 use std::num::ParseIntError;
 
-#[cfg(feature = "multi-test")]
 use anyhow::bail;
 
-use cosmos_sdk_proto::cosmos::auth::v1beta1::{QueryAccountRequest, QueryAccountResponse};
+use cosmrs::crypto::secp256k1;
 use cosmrs::proto::cosmos::auth::v1beta1::BaseAccount;
+use cosmrs::proto::cosmos::auth::v1beta1::{QueryAccountRequest, QueryAccountResponse};
 use cosmrs::tendermint::Time;
 use cosmwasm_std::{
-    from_binary, Coin, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
+    from_json, Coin, ContractResult, Empty, Querier, QuerierResult, QueryRequest, SystemResult,
     WasmQuery,
 };
 use osmosis_std::types::cosmwasm::wasm::v1::{
@@ -17,20 +17,15 @@ use test_tube::{
     account::FeeSetting, Account, DecodeError, EncodeError, Module, Runner, RunnerError,
     RunnerExecuteResult, RunnerResult, SigningAccount, Wasm,
 };
-use testcontainers::clients::Cli;
-use testcontainers::images::generic::GenericImage;
-use testcontainers::Container;
-use thiserror::Error;
 
 use super::chain::Chain;
 use super::config::RpcRunnerConfig;
-use crate::application::Application;
-use crate::helpers::block_on;
+use super::error::RpcRunnerError;
+use super::helpers;
+use crate::helpers::{bank_send, block_on};
 use crate::traits::CwItRunner;
 use crate::ContractType;
 
-use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
-use cosmos_sdk_proto::cosmos::tx::v1beta1::SimulateRequest;
 use cosmrs::rpc::endpoint::abci_query::AbciQuery;
 use cosmrs::rpc::endpoint::broadcast::tx_commit::Response as TxCommitResponse;
 use cosmrs::rpc::Client;
@@ -39,90 +34,43 @@ use cosmrs::tx::{Fee, SignerInfo};
 use cosmrs::AccountId;
 use prost::Message;
 
-#[derive(Debug, Error)]
-pub enum RpcRunnerError {
-    #[error("{0}")]
-    ChainError(#[from] super::chain::ChainError),
-
-    #[error("{0}")]
-    Generic(String),
-}
-
-#[derive(Debug)]
-pub struct RpcRunner<'a> {
+pub struct RpcRunner {
     chain: Chain,
-    _container: Option<Container<'a, GenericImage>>,
-    pub rpc_runner_config: RpcRunnerConfig,
+    funding_account: SigningAccount,
+    pub config: RpcRunnerConfig,
 }
 
-impl<'a> RpcRunner<'a> {
-    pub fn new(
-        mut rpc_runner_config: RpcRunnerConfig,
-        docker: Option<&'a Cli>,
-    ) -> Result<Self, RpcRunnerError> {
-        // Setup test container
-        let container = match &rpc_runner_config.container {
-            Some(container_info) => {
-                let container: Container<GenericImage> = docker.unwrap().run(
-                    container_info
-                        .get_container_image()
-                        .map_err(RpcRunnerError::Generic)?,
-                );
-                rpc_runner_config.bind_chain_to_container(&container);
-                Some(container)
-            }
-            None => None,
-        };
-
+impl RpcRunner {
+    pub fn new(rpc_runner_config: RpcRunnerConfig) -> Result<Self, RpcRunnerError> {
         // Setup chain and app
         let chain = Chain::new(rpc_runner_config.chain_config.clone())?;
 
+        let signing_key = helpers::mnemonic_to_signing_key(
+            &rpc_runner_config.funding_account_mnemonic,
+            &rpc_runner_config.chain_config.derivation_path.parse()?,
+        )?;
+
+        let funding_account = SigningAccount::new(
+            rpc_runner_config.chain_config.prefix.clone(),
+            signing_key,
+            rpc_runner_config
+                .fee_setting
+                .clone()
+                .unwrap_or(chain.chain_cfg().auto_fee_setting())
+                .into(),
+        );
+
         Ok(Self {
             chain,
-            _container: container,
-            rpc_runner_config,
+            config: rpc_runner_config,
+            funding_account,
         })
-    }
-
-    pub fn from_container(
-        mut rpc_runner_config: RpcRunnerConfig,
-        container: Container<'a, GenericImage>,
-    ) -> Result<Self, RpcRunnerError> {
-        rpc_runner_config.bind_chain_to_container(&container);
-
-        let chain = Chain::new(rpc_runner_config.chain_config.clone())?;
-
-        Ok(Self {
-            chain,
-            _container: Some(container),
-            rpc_runner_config,
-        })
-    }
-
-    pub fn init_account(&self, id: usize) -> Result<SigningAccount, anyhow::Error> {
-        Ok(self
-            .rpc_runner_config
-            .import_account(&format!("test{}", id))?)
-    }
-
-    pub fn init_accounts(&self, count: usize) -> Result<Vec<SigningAccount>, anyhow::Error> {
-        if count > 10 {
-            panic!("cannot create more than 10 accounts");
-        }
-
-        let mut accounts = vec![];
-        for i in 1..count + 1 {
-            let account = self.init_account(i)?;
-            accounts.push(account);
-        }
-
-        Ok(accounts)
     }
 }
 
-impl Querier for RpcRunner<'_> {
+impl Querier for RpcRunner {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
-        let x = match from_binary::<QueryRequest<Empty>>(&bin_request.into()).unwrap() {
+        let x = match from_json::<QueryRequest<Empty>>(&bin_request).unwrap() {
             QueryRequest::Wasm(wasm_query) => match wasm_query {
                 WasmQuery::Smart { contract_addr, msg } => self
                     .query::<_, QuerySmartContractStateResponse>(
@@ -144,7 +92,7 @@ impl Querier for RpcRunner<'_> {
     }
 }
 
-impl<'a> Application for RpcRunner<'a> {
+impl RpcRunner {
     fn create_signed_tx<I>(
         &self,
         msgs: I,
@@ -194,65 +142,13 @@ impl<'a> Application for RpcRunner<'a> {
     #[allow(deprecated)]
     fn simulate_tx<I>(
         &self,
-        msgs: I,
-        signer: &SigningAccount,
+        _msgs: I,
+        _signer: &SigningAccount,
     ) -> RunnerResult<cosmrs::proto::cosmos::base::abci::v1beta1::GasInfo>
     where
         I: IntoIterator<Item = cosmrs::Any>,
     {
-        // println!("simulate_tx called");
-        let zero_fee = Fee::from_amount_and_gas(
-            cosmrs::Coin {
-                denom: self.chain.chain_cfg().denom().parse()?,
-                amount: (0u8).into(),
-            },
-            0u64,
-        );
-
-        let tx_raw = self.create_signed_tx(msgs, signer, zero_fee)?;
-        // println!("tx_raw size = {:?}", tx_raw.len());
-
-        let simulate_msg = SimulateRequest {
-            tx: None,
-            tx_bytes: tx_raw,
-        };
-
-        // println!("Init GRpc ServiceClient (port 9090)");
-
-        let gas_info: cosmos_sdk_proto::cosmos::base::abci::v1beta1::GasInfo = block_on(async {
-            let mut service = ServiceClient::connect(self.chain.chain_cfg().grpc_endpoint.clone())
-                .await
-                .map_err(|e| RunnerError::GenericError(e.to_string()))?;
-            service
-                .simulate(simulate_msg)
-                .await
-                .map_err(|e| RunnerError::GenericError(e.to_string()))
-        })?
-        .into_inner()
-        .gas_info
-        .ok_or(RunnerError::QueryError {
-            msg: "No gas_info returned from simulate".into(),
-        })?;
-
-        Ok(cosmrs::proto::cosmos::base::abci::v1beta1::GasInfo {
-            gas_wanted: gas_info.gas_wanted,
-            gas_used: gas_info.gas_used,
-        })
-        // let gas_limit = (gas_info.gas_used as f64 * DEFAULT_GAS_ADJUSTMENT).ceil();
-        // let amount = Coin {
-        //     denom: Denom::from_str(FEE_DENOM).unwrap(),
-        //     amount: ((gas_limit * 0.1).ceil() as u64).into(),
-        // };
-
-        // Ok(Fee::from_amount_and_gas(amount, gas_limit as u64))
-        // unsafe {
-        //     let res = Simulate(self.id, base64_tx_bytes);
-        //     let res = RawResult::from_non_null_ptr(res).into_result()?;
-
-        //     cosmrs::proto::cosmos::base::abci::v1beta1::GasInfo::decode(res.as_slice())
-        //         .map_err(DecodeError::ProtoDecodeError)
-        //         .map_err(RunnerError::DecodeError)
-        // }
+        todo!()
     }
 
     fn estimate_fee<I>(&self, msgs: I, signer: &SigningAccount) -> RunnerResult<Fee>
@@ -310,7 +206,7 @@ impl<'a> Application for RpcRunner<'a> {
         req.encode(&mut buf)
             .map_err(EncodeError::ProtoEncodeError)?;
         Ok(block_on(self.chain.client().abci_query(
-            Some(path.parse()?),
+            Some(path.to_string()),
             buf,
             None,
             false,
@@ -318,7 +214,7 @@ impl<'a> Application for RpcRunner<'a> {
     }
 }
 
-impl<'a> Runner<'_> for RpcRunner<'a> {
+impl Runner<'_> for RpcRunner {
     fn execute_multiple<M, R>(
         &self,
         msgs: &[(M, &str)],
@@ -380,16 +276,16 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
         let tx_raw = self.create_signed_tx(msgs, signer, fee)?;
 
         let tx_commit_response: TxCommitResponse =
-            block_on(self.chain.client().broadcast_tx_commit(tx_raw.into()))?;
+            block_on(self.chain.client().broadcast_tx_commit(tx_raw))?;
 
         if tx_commit_response.check_tx.code.is_err() {
             return Err(RunnerError::ExecuteError {
-                msg: tx_commit_response.check_tx.log.value().to_string(),
+                msg: tx_commit_response.check_tx.log,
             });
         }
-        if tx_commit_response.deliver_tx.code.is_err() {
+        if tx_commit_response.tx_result.code.is_err() {
             return Err(RunnerError::ExecuteError {
-                msg: tx_commit_response.deliver_tx.log.value().to_string(),
+                msg: tx_commit_response.tx_result.log,
             });
         }
         tx_commit_response.try_into()
@@ -405,7 +301,7 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
             .map_err(EncodeError::ProtoEncodeError)?;
 
         let res = block_on(self.chain.client().abci_query(
-            Some(path.parse()?),
+            Some(path.to_string()),
             base64_query_msg_bytes,
             None,
             false,
@@ -421,42 +317,62 @@ impl<'a> Runner<'_> for RpcRunner<'a> {
     }
 }
 
-impl<'a> CwItRunner<'a> for RpcRunner<'a> {
+impl<'a> CwItRunner<'a> for RpcRunner {
     fn store_code(
         &self,
         code: ContractType,
         signer: &SigningAccount,
     ) -> Result<u64, anyhow::Error> {
         match code {
-            #[cfg(feature = "multi-test")]
-            ContractType::MultiTestContract(_) => {
-                bail!("MultiTestContract not supported for RpcRunner")
-            }
             ContractType::Artifact(artifact) => {
                 let bytes = artifact.get_wasm_byte_code()?;
                 let wasm = Wasm::new(self);
                 let code_id = wasm.store_code(&bytes, None, signer)?.data.code_id;
                 Ok(code_id)
             }
+            _ => bail!("Only ContractType::Artifact is supported for RpcRunner"),
         }
     }
 
-    fn init_account(&self, _initial_balance: &[Coin]) -> Result<SigningAccount, anyhow::Error> {
-        // TODO: how to solve for ID and not using requested balance
-        self.init_account(0)
+    fn init_account(&self, initial_balance: &[Coin]) -> Result<SigningAccount, anyhow::Error> {
+        // Create new random account
+        let new_account = SigningAccount::new(
+            self.chain.chain_cfg().prefix().to_string(),
+            secp256k1::SigningKey::random(),
+            self.config
+                .fee_setting
+                .clone()
+                .unwrap_or(self.chain.chain_cfg().auto_fee_setting())
+                .into(),
+        );
+
+        // Fund account with initial_balance from funding_account
+        bank_send(
+            self,
+            &self.funding_account,
+            &new_account.address(),
+            initial_balance.to_vec(),
+        )
+        .map_err(|e| anyhow::anyhow!("Funding of new account failed. Error: {}", e))?;
+
+        Ok(new_account)
     }
 
     fn init_accounts(
         &self,
-        _initial_balance: &[Coin],
+        initial_balance: &[Coin],
         num_accounts: usize,
     ) -> Result<Vec<SigningAccount>, anyhow::Error> {
-        self.init_accounts(num_accounts)
+        let mut accounts = Vec::new();
+        for _ in 0..num_accounts {
+            accounts.push(self.init_account(initial_balance)?);
+        }
+        Ok(accounts)
     }
 
     fn increase_time(&self, _seconds: u64) -> Result<(), anyhow::Error> {
         // TODO: Figure out best way to sleep tests until `seconds` has passed.
-        todo!()
+        todo!("Increase time is unimplemented for RpcRunner")
     }
 
     fn query_block_time_nanos(&self) -> u64 {

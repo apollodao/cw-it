@@ -429,7 +429,7 @@ mod tests {
         factory::PairType,
         pair::StablePoolParams,
     };
-    use cosmwasm_std::{to_binary, Binary, Uint128};
+    use cosmwasm_std::{to_json_binary, Binary, Uint128};
     use test_case::test_case;
     use test_tube::{Account, SigningAccount};
 
@@ -523,7 +523,7 @@ mod tests {
     /// Returns some stable pool initialization params.
     fn stable_init_params() -> Option<Binary> {
         Some(
-            to_binary(&StablePoolParams {
+            to_json_binary(&StablePoolParams {
                 amp: 10,
                 owner: None,
             })

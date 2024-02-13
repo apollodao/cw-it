@@ -1,4 +1,3 @@
-pub mod application;
 pub mod artifact;
 pub mod const_coin;
 pub mod error;
@@ -50,6 +49,3 @@ pub use osmosis_test_tube;
 
 #[cfg(feature = "multi-test")]
 pub use apollo_cw_multi_test as cw_multi_test;
-
-#[cfg(feature = "rpc-runner")]
-pub use testcontainers::clients::Cli;

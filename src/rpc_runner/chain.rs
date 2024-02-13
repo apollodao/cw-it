@@ -1,11 +1,10 @@
 use std::time::Duration;
 
-use cosmos_sdk_proto::cosmos::tx::v1beta1::service_client::ServiceClient;
 use cosmrs::rpc::{Client, HttpClient};
+use cosmwasm_std::{Coin, Uint128};
 // use futures_time::{task::sleep, time::Duration};
 use serde::Deserialize;
 use thiserror::Error;
-use tonic::transport::Channel;
 
 use cosmrs::rpc::error::Error as RpcError;
 
@@ -13,19 +12,17 @@ use config::Config;
 
 use crate::helpers::block_on;
 
+use super::config::FeeSetting;
+
 #[derive(Debug, Error)]
 pub enum ChainError {
     #[error("{0}")]
     RpcError(#[from] RpcError),
-
-    #[error("{0}")]
-    TonicTransportError(#[from] tonic::transport::Error),
 }
 
 #[derive(Debug)]
 pub struct Chain {
     http_client: HttpClient,
-    grpc_client: ServiceClient<Channel>,
     chain_cfg: ChainConfig,
 }
 
@@ -59,6 +56,16 @@ impl ChainConfig {
     pub fn prefix(&self) -> &str {
         &self.prefix
     }
+
+    pub fn auto_fee_setting(&self) -> FeeSetting {
+        FeeSetting::Auto {
+            gas_price: Coin {
+                denom: self.denom.clone(),
+                amount: Uint128::new(self.gas_price as u128),
+            },
+            gas_adjustment: self.gas_adjustment,
+        }
+    }
 }
 
 #[allow(clippy::missing_const_for_fn)]
@@ -69,22 +76,14 @@ impl Chain {
         //let rpc_endpoint="http://localhost:26657".to_string();
         let http_client = HttpClient::new(chain_cfg.rpc_endpoint.as_str())?;
 
-        let grpc_client: ServiceClient<Channel> =
-            block_on(ServiceClient::connect(chain_cfg.grpc_endpoint.clone()))?;
-
         Ok(Self {
             http_client,
-            grpc_client,
             chain_cfg,
         })
     }
 
     pub fn client(&self) -> &HttpClient {
         &self.http_client
-    }
-
-    pub fn grpc_client(&self) -> &ServiceClient<Channel> {
-        &self.grpc_client
     }
 
     pub fn chain_cfg(&self) -> &ChainConfig {

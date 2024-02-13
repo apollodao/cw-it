@@ -27,7 +27,7 @@ pub enum OwnedTestRunner<'a> {
     #[cfg(feature = "osmosis-test-tube")]
     OsmosisTestApp(OsmosisTestApp),
     #[cfg(feature = "rpc-runner")]
-    RpcRunner(RpcRunner<'a>),
+    RpcRunner(RpcRunner),
     #[cfg(feature = "multi-test")]
     MultiTest(MultiTestRunner<'a>),
 }
@@ -41,7 +41,7 @@ pub enum TestRunner<'a> {
     #[cfg(feature = "osmosis-test-tube")]
     OsmosisTestApp(&'a OsmosisTestApp),
     #[cfg(feature = "rpc-runner")]
-    RpcRunner(&'a RpcRunner<'a>),
+    RpcRunner(&'a RpcRunner),
     #[cfg(feature = "multi-test")]
     MultiTest(&'a MultiTestRunner<'a>),
 }
@@ -136,14 +136,14 @@ impl<'a> From<&'a OsmosisTestApp> for TestRunner<'a> {
 }
 
 #[cfg(feature = "rpc-runner")]
-impl<'a> From<RpcRunner<'a>> for OwnedTestRunner<'a> {
-    fn from(runner: RpcRunner<'a>) -> Self {
+impl<'a> From<RpcRunner> for OwnedTestRunner<'a> {
+    fn from(runner: RpcRunner) -> Self {
         Self::RpcRunner(runner)
     }
 }
 #[cfg(feature = "rpc-runner")]
-impl<'a> From<&'a RpcRunner<'a>> for TestRunner<'a> {
-    fn from(runner: &'a RpcRunner<'a>) -> Self {
+impl<'a> From<&'a RpcRunner> for TestRunner<'a> {
+    fn from(runner: &'a RpcRunner) -> Self {
         Self::RpcRunner(runner)
     }
 }
@@ -276,7 +276,7 @@ impl<'a> CwItRunner<'a> for TestRunner<'a> {
             #[cfg(feature = "osmosis-test-tube")]
             Self::OsmosisTestApp(app) => Ok(app.init_account(initial_balance)?),
             #[cfg(feature = "rpc-runner")]
-            Self::RpcRunner(runner) => runner.init_account(0),
+            Self::RpcRunner(runner) => runner.init_account(initial_balance),
             #[cfg(feature = "multi-test")]
             Self::MultiTest(runner) => runner.init_account(initial_balance),
         }
@@ -294,7 +294,7 @@ impl<'a> CwItRunner<'a> for TestRunner<'a> {
                 Ok(app.init_accounts(initial_balance, num_accounts as u64)?)
             }
             #[cfg(feature = "rpc-runner")]
-            Self::RpcRunner(runner) => runner.init_accounts(num_accounts),
+            Self::RpcRunner(runner) => runner.init_accounts(initial_balance, num_accounts),
             #[cfg(feature = "multi-test")]
             Self::MultiTest(runner) => runner.init_accounts(initial_balance, num_accounts),
         }
