@@ -12,7 +12,7 @@ vulnerability = "deny"
 unmaintained = "deny"
 notice = "deny"
 unsound = "deny"
-ignore = []
+ignore = ["RUSTSEC-2024-0320"] # "yaml-rust is unmaintained"
 
 [bans]
 multiple-versions = "allow"
