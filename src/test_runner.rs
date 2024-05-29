@@ -216,6 +216,13 @@ impl<'a> Runner<'a> for TestRunner<'a> {
             Self::MultiTest(runner) => runner.query(path, query),
         }
     }
+
+    fn execute_tx(
+        &self,
+        tx_bytes: &[u8],
+    ) -> test_tube::RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
+        todo!()
+    }
 }
 impl Runner<'_> for OwnedTestRunner<'_> {
     fn execute_multiple<M, R>(
@@ -247,6 +254,13 @@ impl Runner<'_> for OwnedTestRunner<'_> {
         R: prost::Message + DeserializeOwned + Default,
     {
         self.as_ref().query(path, query)
+    }
+
+    fn execute_tx(
+        &self,
+        tx_bytes: &[u8],
+    ) -> test_tube::RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
+        todo!()
     }
 }
 
