@@ -244,24 +244,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "astroport-liquidity-manager"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "add163cbe65b61f57c427c57bbfaef5a0848ac5dd822835c94b76587584c36ca"
-dependencies = [
- "astroport 3.11.1",
- "astroport-factory",
- "astroport-pair",
- "astroport-pair-stable",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 1.2.0",
- "cw20 0.15.1",
- "cw20-base",
- "thiserror",
-]
-
-[[package]]
 name = "astroport-maker"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -330,19 +312,19 @@ dependencies = [
 
 [[package]]
 name = "astroport-pair-stable"
-version = "3.4.1"
+version = "4.0.0-rc.1-tokenfactory"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77adc49722c854a4ed3879da243705b1914ddffb752471602a1acd4807341d1d"
+checksum = "08d9863286dab2b0efa199875794cfdd0abe6e45c0e9311a3f5a33283d872426"
 dependencies = [
- "astroport 3.11.1",
+ "astroport 5.0.0-rc.2-tokenfactory",
  "astroport-circular-buffer 0.2.0",
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-storage-plus 0.15.1",
+ "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
- "cw2 0.15.1",
- "cw20 0.15.1",
- "itertools 0.10.5",
+ "cw2 1.1.2",
+ "cw20 1.1.2",
+ "itertools 0.12.1",
  "thiserror",
 ]
 
@@ -931,7 +913,6 @@ dependencies = [
  "astroport-factory",
  "astroport-generator",
  "astroport-incentives",
- "astroport-liquidity-manager",
  "astroport-maker",
  "astroport-native-coin-registry",
  "astroport-pair",
