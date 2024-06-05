@@ -275,6 +275,13 @@ impl Runner<'_> for MultiTestRunner<'_> {
             })
             .map_err(|e| RunnerError::GenericError(e.to_string()))
     }
+
+    fn execute_tx(
+        &self,
+        _tx_bytes: &[u8],
+    ) -> test_tube::RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
+        todo!()
+    }
 }
 
 impl<'a> CwItRunner<'a> for MultiTestRunner<'a> {

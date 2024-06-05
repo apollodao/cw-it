@@ -315,6 +315,13 @@ impl Runner<'_> for RpcRunner {
 
         Ok(R::decode(res.value.as_slice()).map_err(DecodeError::ProtoDecodeError)?)
     }
+
+    fn execute_tx(
+        &self,
+        _tx_bytes: &[u8],
+    ) -> RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
+        todo!()
+    }
 }
 
 impl<'a> CwItRunner<'a> for RpcRunner {

@@ -179,18 +179,17 @@ dependencies = [
 
 [[package]]
 name = "astroport-factory"
-version = "1.7.0"
+version = "1.8.0-rc.2-tokenfactory"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afc4250f45bd4697476921a3533f151a73f7352c271b68ff411321006d5a4977"
+checksum = "799b8c9d77524d776fe5e5d0eed4fa9278dc78ce603aad5a361606a35f45f360"
 dependencies = [
- "astroport 3.11.1",
+ "astroport 5.0.0-rc.2-tokenfactory",
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-storage-plus 0.15.1",
+ "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
- "cw2 0.15.1",
- "itertools 0.10.5",
- "protobuf",
+ "cw2 1.1.2",
+ "itertools 0.12.1",
  "thiserror",
 ]
 
@@ -228,9 +227,9 @@ dependencies = [
 
 [[package]]
 name = "astroport-incentives"
-version = "1.0.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3e24d90a13953fe8c34aadc0919ce2f148772fe609bb7480a6615a54dcc9780"
+checksum = "ba05c27479d2885ba313086aa0b7d09284f1393f1ebb6d385f96d93b3c6fb72a"
 dependencies = [
  "astroport 3.11.1",
  "cosmwasm-schema",
@@ -294,19 +293,21 @@ dependencies = [
 
 [[package]]
 name = "astroport-pair-concentrated"
-version = "1.2.13"
+version = "4.0.0-rc.1-tokenfactory"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7a25c6ccbeccd25d36706621db915b67ca5d919e192fb06d7dd35cf69152d84"
+checksum = "f831ebe18472f6e9ba7a754eaaa09a389b7bcbc909d1d7b5314bf2092a18719b"
 dependencies = [
- "astroport 2.9.5",
+ "astroport 5.0.0-rc.2-tokenfactory",
+ "astroport-circular-buffer 0.2.0",
  "astroport-factory",
+ "astroport-pcl-common",
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-storage-plus 0.15.1",
- "cw-utils 0.15.1",
- "cw2 0.15.1",
- "cw20 0.15.1",
- "itertools 0.10.5",
+ "cw-storage-plus 1.2.0",
+ "cw-utils 1.0.3",
+ "cw2 1.1.2",
+ "cw20 1.1.2",
+ "itertools 0.12.1",
  "thiserror",
 ]
 
@@ -323,6 +324,22 @@ dependencies = [
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
+ "cw20 1.1.2",
+ "itertools 0.12.1",
+ "thiserror",
+]
+
+[[package]]
+name = "astroport-pcl-common"
+version = "2.0.0-rc.2-tokenfactory"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "068cdc3b7f521f8abd4a7587da3f22219c1c8142e7508166a7f6c2c928470941"
+dependencies = [
+ "astroport 5.0.0-rc.2-tokenfactory",
+ "astroport-factory",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 1.2.0",
  "cw20 1.1.2",
  "itertools 0.12.1",
  "thiserror",
