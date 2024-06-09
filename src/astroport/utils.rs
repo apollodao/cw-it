@@ -10,6 +10,8 @@ use astroport_v5::factory::{
     ExecuteMsg as AstroportFactoryExecuteMsg, InstantiateMsg as AstroportFactoryInstantiateMsg,
     PairConfig, PairType,
 };
+use astroport_v5::asset::AssetInfo as AssetInfoV5;
+use astroport_v5::incentives::InstantiateMsg as IncentivesInstantiateMsg;
 use osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
 use std::collections::HashMap;
 
@@ -21,7 +23,6 @@ use astroport::vesting::{
     Cw20HookMsg as VestingHookMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
     VestingSchedule, VestingSchedulePoint,
 };
-use astroport_v3::incentives::InstantiateMsg as IncentivesInstantiateMsg;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_json_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
@@ -283,25 +284,25 @@ where
         .data
         .address;
 
-    // Instantiate incentives contract
-    println!("Instantiating incentives contract ...");
+
+    println!("Instantiating incentives ...");
     let incentives = wasm
         .instantiate(
             code_ids["astroport_incentives"],
             &IncentivesInstantiateMsg {
-                astro_token: astroport_v3::asset::AssetInfo::Token {
-                    contract_addr: Addr::unchecked(&astro_token),
-                },
+                owner: admin.address(),
                 factory: factory.clone(),
                 guardian: None,
-                incentivization_fee_info: None,
-                owner: admin.address(),
+                astro_token: AssetInfoV5::Token {
+                    contract_addr: Addr::unchecked(&astro_token),
+                },
                 vesting_contract: vesting.clone(),
+                incentivization_fee_info: None,
             },
-            Some(&admin.address()),       // contract admin used for migration
+            Some(&admin.address()),    // contract admin used for migration
             Some("Astroport Incentives"), // contract label
-            &[],                          // funds
-            admin,                        // signer
+            &[],                       // funds
+            admin,                     // signer
         )
         .unwrap()
         .data
@@ -800,7 +801,7 @@ mod tests {
     pub const ARCH: Option<&str> = None;
 
     /// The path to the artifacts folder
-    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/c73a2db");
+    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/99884be");
 
     #[cfg(feature = "chain-download")]
     /// The Neutron testnet RPC to use to download wasm files
