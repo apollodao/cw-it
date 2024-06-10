@@ -35,7 +35,16 @@ allow = ["Apache-2.0", "MIT", "BSD-3-Clause", "MPL-2.0", "ISC"]
 exceptions = [
     { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
     { allow = ["OpenSSL"], name = "ring" },
-    { allow = ["GPL-3.0"], name = "astroport-incentives" }
+    { allow = ["GPL-3.0"], name = "astroport-incentives" },
+    { allow = ["GPL-3.0"], name = "astroport-factory" },
+    { allow = ["GPL-3.0"], name = "astroport-generator" },
+    { allow = ["GPL-3.0"], name = "astroport-maker" },
+    { allow = ["GPL-3.0"], name = "astroport-pair" },
+    { allow = ["GPL-3.0"], name = "astroport-pair-concentrated" },
+    { allow = ["GPL-3.0"], name = "astroport-pair-stable" },
+    { allow = ["GPL-3.0"], name = "astroport-pcl-common" },
+    { allow = ["GPL-3.0"], name = "astroport-router" },
+    { allow = ["GPL-3.0"], name = "astroport-vesting" }
 ]
 
 [[licenses.clarify]]
@@ -49,3 +58,4 @@ name = "ring"
 # OpenSSL - Obviously
 expression = "ISC AND MIT AND OpenSSL"
 license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+
