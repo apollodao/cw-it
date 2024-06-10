@@ -444,8 +444,6 @@ pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String, 
     let mut lp_token = String::from("");
     let mut token_denom = String::from("");
 
-    println!("events: {:?}", events);
-
     for event in events {
         if event.ty == "wasm" {
             let attributes = &event.attributes;
@@ -462,9 +460,6 @@ pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String, 
             }
         }
     }
-    println!("pair_addr : {:?}", pair_addr);
-    println!("lp_token : {:?}", lp_token);
-    println!("token_denom : {:?}", token_denom);
     (pair_addr, lp_token, token_denom)
 }
 
