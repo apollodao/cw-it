@@ -720,7 +720,7 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
 mod tests {
     use astroport::asset::{Asset, AssetInfo};
     use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
-    use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
+    use cw20::{AllowanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
     use osmosis_std::types::cosmos::bank::v1beta1::QueryAllBalancesRequest;
     use osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
     use test_tube::{Account, Bank, Module, Wasm};
@@ -747,8 +747,8 @@ mod tests {
 
     #[cfg(feature = "chain-download")]
     use {
-        super::get_wasm_path, crate::artifact::Artifact, crate::artifact::ChainArtifact,
-        crate::ContractType, std::collections::HashMap,
+        super::get_wasm_path, crate::artifact::ChainArtifact, crate::ContractType,
+        std::collections::HashMap,
     };
 
     #[cfg(feature = "rpc-runner")]
@@ -827,7 +827,7 @@ mod tests {
     #[cfg(feature = "chain-download")]
     /// Get artifacts from Neutron testnet
     fn get_neutron_testnet_artifacts() -> HashMap<String, ContractType> {
-        let mut artifacts = NEUTRON_CONTRACT_ADDRESSES
+        let artifacts = NEUTRON_CONTRACT_ADDRESSES
             .iter()
             .map(|(name, chain_artifact)| {
                 (

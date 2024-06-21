@@ -438,9 +438,8 @@ mod tests {
     use super::AstroportTestRobot;
     use crate::traits::CwItRunner;
     use crate::{
-        astroport::utils::{cw20_info, native_info, AstroportContracts},
-        robot::TestRobot,
-        ContractMap, OwnedTestRunner, TestRunner,
+        astroport::utils::AstroportContracts, robot::TestRobot, ContractMap, OwnedTestRunner,
+        TestRunner,
     };
     use cosmwasm_std::Addr;
 
@@ -583,7 +582,7 @@ mod tests {
 
         let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
 
-        let (pair_addr, lp_token_addr, lp_token_denom) = robot.create_astroport_pair(
+        let (pair_addr, _lp_token_addr, lp_token_denom) = robot.create_astroport_pair(
             pair_type.clone(),
             &asset_infos,
             init_params,
@@ -601,7 +600,7 @@ mod tests {
         if let Some(initial_liq) = initial_liquidity {
             // Check lp token balance
             let lp_token_balance =
-                robot.query_native_token_balance(&admin.address(), lp_token_denom);
+                robot.query_native_token_balance(admin.address(), lp_token_denom);
             assert_ne!(lp_token_balance, Uint128::zero());
 
             // Check pair reserves
@@ -635,7 +634,7 @@ mod tests {
 
         let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
         let initial_liquidity = Some(&[420420u128, 696969u128]);
-        let (pair_addr, _lp_token_addr, lp_token_denom) = robot.create_astroport_pair(
+        let (pair_addr, _lp_token_addr, _lp_token_denom) = robot.create_astroport_pair(
             pair_type,
             &asset_infos,
             init_params,

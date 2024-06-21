@@ -1,6 +1,9 @@
 use anyhow::bail;
 use apollo_cw_multi_test::{BankSudo, BasicAppBuilder};
-use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
+use cosmrs::{
+    auth, crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo,
+    tx::SignerInfo,
+};
 use cosmwasm_std::{
     coin, Addr, BankMsg, Binary, Coin, CosmosMsg, Empty, QueryRequest, StakingMsg, WasmMsg,
 };
@@ -18,7 +21,8 @@ use prost::Message;
 use serde::de::DeserializeOwned;
 use std::str::FromStr;
 use test_tube::{
-    Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, SigningAccount,
+    Account, DecodeError, EncodeError, FeeSetting, NonSigningAccount, Runner, RunnerError,
+    SigningAccount,
 };
 
 use crate::{traits::CwItRunner, ContractType};
@@ -58,89 +62,10 @@ impl<'a> MultiTestRunner<'a> {
             address_prefix,
         }
     }
-}
 
-impl Runner<'_> for MultiTestRunner<'_> {
-    fn execute_cosmos_msgs<S>(
-        &self,
-        msgs: &[cosmwasm_std::CosmosMsg],
-        signer: &test_tube::SigningAccount,
-    ) -> test_tube::RunnerExecuteResult<S>
-    where
-        S: prost::Message + Default,
-    {
-        let sender = Addr::unchecked(signer.address());
-
-        // Execute messages with multi test app
-        let app_responses = self
-            .app
-            .execute_multi(sender, msgs.to_vec())
-            // NB: Must use this syntax to capture full anyhow message.
-            // to_string() will only give the outermost error context.
-            .map_err(|e| RunnerError::GenericError(format!("{:#}", e)))?;
-
-        // Construct test_tube::ExecuteResponse from cw_multi_test::AppResponse
-        let events = app_responses
-            .iter()
-            .flat_map(|r| r.events.clone())
-            .collect();
-        let tmp = app_responses
-            .iter()
-            .map(|r| r.data.clone())
-            .filter(|d| d.is_some())
-            .collect::<Vec<_>>();
-        let last_data = tmp.last().unwrap_or(&None);
-        let data = match last_data {
-            Some(d) => S::decode(d.as_slice()).unwrap(),
-            None => S::default(),
-        };
-        let raw_data = data.encode_to_vec();
-        let runner_res = test_tube::ExecuteResponse {
-            data,
-            events,
-            raw_data,
-            gas_info: GasInfo {
-                gas_wanted: 0,
-                gas_used: 0,
-            },
-        };
-
-        Ok(runner_res)
-    }
-
-    fn execute_multiple<M, R>(
-        &self,
-        msgs: &[(M, &str)],
-        signer: &test_tube::SigningAccount,
-    ) -> test_tube::RunnerExecuteResult<R>
-    where
-        M: prost::Message,
-        R: prost::Message + Default,
-    {
-        let encoded_msgs = msgs
-            .iter()
-            .map(|(msg, type_url)| {
-                let mut buf = Vec::new();
-                M::encode(msg, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
-
-                Ok(cosmrs::Any {
-                    type_url: type_url.to_string(),
-                    value: buf,
-                })
-            })
-            .collect::<Result<Vec<cosmrs::Any>, RunnerError>>()?;
-
-        self.execute_multiple_raw(encoded_msgs, signer)
-    }
-
-    fn execute_multiple_raw<R>(
-        &self,
+    pub fn proto_msgs_to_cosmos_msgs(
         msgs: Vec<cosmrs::Any>,
-        signer: &test_tube::SigningAccount,
-    ) -> test_tube::RunnerExecuteResult<R>
-    where
-        R: prost::Message + Default,
-    {
+    ) -> Result<Vec<CosmosMsg<Empty>>, RunnerError> {
         let msgs = msgs
             .iter()
             .map(|msg| match msg.type_url.as_str() {
@@ -258,6 +183,103 @@ impl Runner<'_> for MultiTestRunner<'_> {
             })
             .collect::<Result<Vec<_>, RunnerError>>()?;
 
+        Ok(msgs)
+    }
+
+    pub fn execute_cosmos_msgs_from_sender<S>(
+        &self,
+        msgs: &[cosmwasm_std::CosmosMsg],
+        sender: String,
+    ) -> test_tube::RunnerExecuteResult<S>
+    where
+        S: prost::Message + Default,
+    {
+        let sender = Addr::unchecked(sender);
+
+        // Execute messages with multi test app
+        let app_responses = self
+            .app
+            .execute_multi(sender, msgs.to_vec())
+            // NB: Must use this syntax to capture full anyhow message.
+            // to_string() will only give the outermost error context.
+            .map_err(|e| RunnerError::GenericError(format!("{:#}", e)))?;
+
+        // Construct test_tube::ExecuteResponse from cw_multi_test::AppResponse
+        let events = app_responses
+            .iter()
+            .flat_map(|r| r.events.clone())
+            .collect();
+        let tmp = app_responses
+            .iter()
+            .map(|r| r.data.clone())
+            .filter(|d| d.is_some())
+            .collect::<Vec<_>>();
+        let last_data = tmp.last().unwrap_or(&None);
+        let data = match last_data {
+            Some(d) => S::decode(d.as_slice()).unwrap(),
+            None => S::default(),
+        };
+        let raw_data = data.encode_to_vec();
+        let runner_res = test_tube::ExecuteResponse {
+            data,
+            events,
+            raw_data,
+            gas_info: GasInfo {
+                gas_wanted: 0,
+                gas_used: 0,
+            },
+        };
+
+        Ok(runner_res)
+    }
+}
+
+impl Runner<'_> for MultiTestRunner<'_> {
+    fn execute_cosmos_msgs<S>(
+        &self,
+        msgs: &[cosmwasm_std::CosmosMsg],
+        signer: &test_tube::SigningAccount,
+    ) -> test_tube::RunnerExecuteResult<S>
+    where
+        S: prost::Message + Default,
+    {
+        self.execute_cosmos_msgs_from_sender(msgs, signer.address())
+    }
+
+    fn execute_multiple<M, R>(
+        &self,
+        msgs: &[(M, &str)],
+        signer: &test_tube::SigningAccount,
+    ) -> test_tube::RunnerExecuteResult<R>
+    where
+        M: prost::Message,
+        R: prost::Message + Default,
+    {
+        let encoded_msgs = msgs
+            .iter()
+            .map(|(msg, type_url)| {
+                let mut buf = Vec::new();
+                M::encode(msg, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
+
+                Ok(cosmrs::Any {
+                    type_url: type_url.to_string(),
+                    value: buf,
+                })
+            })
+            .collect::<Result<Vec<cosmrs::Any>, RunnerError>>()?;
+
+        self.execute_multiple_raw(encoded_msgs, signer)
+    }
+
+    fn execute_multiple_raw<R>(
+        &self,
+        msgs: Vec<cosmrs::Any>,
+        signer: &test_tube::SigningAccount,
+    ) -> test_tube::RunnerExecuteResult<R>
+    where
+        R: prost::Message + Default,
+    {
+        let msgs = MultiTestRunner::proto_msgs_to_cosmos_msgs(msgs)?;
         self.execute_cosmos_msgs(&msgs, signer)
     }
 
@@ -278,9 +300,78 @@ impl Runner<'_> for MultiTestRunner<'_> {
 
     fn execute_tx(
         &self,
-        _tx_bytes: &[u8],
+        tx_bytes: &[u8],
     ) -> test_tube::RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
-        todo!()
+        // Decode tx bytes as TxRaw
+        let tx_raw: cosmrs::proto::cosmos::tx::v1beta1::TxRaw =
+            cosmrs::tx::Raw::from_bytes(tx_bytes)?.into();
+
+        // Decode tx body
+        let body_bytes = tx_raw.body_bytes;
+        let body = cosmrs::proto::cosmos::tx::v1beta1::TxBody::decode(body_bytes.as_slice())
+            .map_err(|e| RunnerError::DecodeError(DecodeError::ProtoDecodeError(e)))?;
+
+        let auth_info =
+            cosmrs::proto::cosmos::tx::v1beta1::AuthInfo::decode(tx_raw.auth_info_bytes.as_slice())
+                .map_err(|e| RunnerError::DecodeError(DecodeError::ProtoDecodeError(e)))?;
+
+        if auth_info.signer_infos.is_empty() {
+            return Err(RunnerError::GenericError(
+                "no signer infos found".to_string(),
+            ));
+        }
+        if auth_info.signer_infos.len() > 1 {
+            return Err(RunnerError::GenericError(
+                "multiple signer infos found. Only single signer transactions supported"
+                    .to_string(),
+            ));
+        }
+        let signer: SignerInfo = auth_info.signer_infos[0].clone().try_into()?;
+
+        let signer_public_key = signer
+            .public_key
+            .ok_or(RunnerError::GenericError("no public key found".to_string()))?;
+
+        let public_key = signer_public_key.single().ok_or(RunnerError::GenericError(
+            "no single public key found".to_string(),
+        ))?;
+
+        let account = NonSigningAccount::new("osmo".to_string(), *public_key);
+
+        let sender = account.address();
+
+        let cosmos_msgs = MultiTestRunner::proto_msgs_to_cosmos_msgs(body.messages)?;
+
+        let execute_res =
+            self.execute_cosmos_msgs_from_sender::<prost::bytes::Bytes>(&cosmos_msgs, sender)?;
+
+        let res = cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx {
+            code: 0,
+            codespace: "".to_string(),
+            data: execute_res.data,
+            log: "".to_string(),
+            info: "".to_string(),
+            gas_wanted: 0,
+            gas_used: 0,
+            events: execute_res
+                .events
+                .into_iter()
+                .map(|e| cosmrs::proto::tendermint::v0_37::abci::Event {
+                    r#type: e.ty,
+                    attributes: e
+                        .attributes
+                        .into_iter()
+                        .map(|a| cosmrs::proto::tendermint::v0_37::abci::EventAttribute {
+                            key: a.key,
+                            value: a.value,
+                            index: false,
+                        })
+                        .collect(),
+                })
+                .collect(),
+        };
+
+        Ok(res)
     }
 }
 

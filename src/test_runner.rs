@@ -221,7 +221,15 @@ impl<'a> Runner<'a> for TestRunner<'a> {
         &self,
         tx_bytes: &[u8],
     ) -> test_tube::RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
-        todo!()
+        match self {
+            Self::PhantomData(_) => unimplemented!(),
+            #[cfg(feature = "osmosis-test-tube")]
+            Self::OsmosisTestApp(app) => app.execute_tx(tx_bytes),
+            #[cfg(feature = "rpc-runner")]
+            Self::RpcRunner(runner) => runner.execute_tx(tx_bytes),
+            #[cfg(feature = "multi-test")]
+            Self::MultiTest(runner) => runner.execute_tx(tx_bytes),
+        }
     }
 }
 impl Runner<'_> for OwnedTestRunner<'_> {
@@ -260,7 +268,7 @@ impl Runner<'_> for OwnedTestRunner<'_> {
         &self,
         tx_bytes: &[u8],
     ) -> test_tube::RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
-        todo!()
+        self.as_ref().execute_tx(tx_bytes)
     }
 }
 
