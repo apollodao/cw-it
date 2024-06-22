@@ -442,13 +442,13 @@ pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String, 
             let attributes = &event.attributes;
             for attr in attributes {
                 if attr.key == "pair_contract_addr" {
-                    pair_addr = attr.value.clone();
+                    pair_addr.clone_from(&attr.value);
                 }
                 if attr.key == "liquidity_token_addr" {
-                    lp_token = attr.value.clone();
+                    lp_token.clone_from(&attr.value);
                 }
                 if attr.key == "lp_denom" {
-                    token_denom = attr.value.clone()
+                    token_denom.clone_from(&attr.value);
                 }
             }
         }

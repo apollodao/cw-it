@@ -9,8 +9,8 @@ skip_core_tasks = true
 RUST_OPTIMIZER_VERSION = "0.15.0"
 # Use rust version from rust-optimizer Dockerfile (see https://github.com/CosmWasm/rust-optimizer/blob/main/Dockerfile#L1)
 # to be sure that we compile / test against the same version
-RUST_VERSION = "1.75.0"
-NIGHTLY_VERSION = "nightly-2023-08-29"
+RUST_VERSION = "1.79.0"
+NIGHTLY_VERSION = "1.79.0"
 
 [tasks.install-stable]
 script = '''
