@@ -44,7 +44,6 @@ astroport-multi-test = [
   "astroport-token",
   "astroport-native-coin-registry",
   "astroport-factory",
-  "astroport-generator",
   "astroport-maker",
   "astroport-pair-stable",
   "astroport-pair",
@@ -69,11 +68,11 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.cargo-machete]
-ignored = ["astroport-token", "astroport-native-coin-registry", "astroport-factory", "astroport-generator", "astroport-maker", "astroport-pair-stable", "astroport-pair", "astroport-router", "astroport-staking", "astroport-vesting", "astroport-whitelist"]
+ignored = ["astroport-token", "astroport-native-coin-registry", "astroport-factory", "astroport-maker", "astroport-pair-stable", "astroport-pair", "astroport-router", "astroport-staking", "astroport-vesting", "astroport-whitelist"]
 
 [dependencies]
 bip32 = { version = "0.5", features = ["bip39"], optional = true }
-cosmwasm-std = { version = "1.5.4", features = ["stargate"] }
+cosmwasm-std = { version = "1.5.5", features = ["stargate"] }
 serde = { version = "1.0.152", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
 cosmwasm-schema = "1.2.1"
@@ -90,23 +89,22 @@ osmosis-test-tube = { version = "25.0.0", optional = true }
 
 # Astroport deps
 astroport = { version = "2.9.0", optional = true }
-astroport_v5 = { package = "astroport", version = "5.0.0-rc.2-tokenfactory", optional = true }
+astroport_v5 = { package = "astroport", version = "5.1.0", optional = true }
 cw20 = { version = "0.15", optional = true }
 
 # Astroport contracts for multi-test
 astroport-token = { version = "=1.1.1", optional = true, features = ["library"] }
 astroport-native-coin-registry = { version = "=1.0.1", optional = true, features = ["library"] }
-astroport-factory = { version = "=1.8.0-rc.2-tokenfactory", optional = true, features = ["library"] }
-astroport-generator = { version = "=2.3.2", optional = true }
-astroport-maker = { version = "=1.4.0", optional = true }
-astroport-pair-stable = { version = "=4.0.0-rc.1-tokenfactory", optional = true, features = ["library"] }
-astroport-pair = { version = "=1.5.1", optional = true }
+astroport-factory = { version = "=1.8.0", optional = true, features = ["library"] }
+astroport-maker = { version = "=1.5.0", optional = true }
+astroport-pair-stable = { version = "=4.0.0", optional = true, features = ["library"] }
+astroport-pair = { version = "=2.0.1", optional = true }
 astroport-router = { version = "=1.2.1", optional = true }
-astroport-staking = { version = "=1.1.0", optional = true }
-astroport-vesting = { version = "=1.3.2", optional = true, features = ["library"] }
-astroport-whitelist = { version = "=1.0.1", optional = true, features = ["library"] }
-astroport-pair-concentrated = { version = "=4.0.0-rc.1-tokenfactory", optional = true, features = ["library"] }
-astroport-incentives = { version = "=1.0.0", optional = true, features = ["library"] }
+astroport-staking = { version = "=2.1.0", optional = true }
+astroport-vesting = { version = "=1.4.0", optional = true, features = ["library"] }
+astroport-whitelist = { version = "=2.0.0", optional = true, features = ["library"] }
+astroport-pair-concentrated = { version = "=4.0.1", optional = true, features = ["library"] }
+astroport-incentives = { version = "=1.1.0", optional = true, features = ["library"] }
 
 # Osmosis deps
 proptest     = { version = "1.0.0", optional = true }

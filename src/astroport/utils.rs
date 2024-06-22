@@ -5,31 +5,28 @@ use crate::{ContractMap, ContractType, TestRunner};
 use astroport::asset::{Asset, AssetInfo};
 use astroport::maker::InstantiateMsg as MakerInstantiateMsg;
 use astroport::native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
-use astroport_v5::asset::AssetInfo as AssetInfoV5;
-use astroport_v5::factory::{
-    ExecuteMsg as AstroportFactoryExecuteMsg, InstantiateMsg as AstroportFactoryInstantiateMsg,
-    PairConfig, PairType,
-};
-use astroport_v5::incentives::InstantiateMsg as IncentivesInstantiateMsg;
-use osmosis_std::types::cosmos::base::v1beta1::Coin as OsmosisCoin;
-use osmosis_std::types::osmosis::tokenfactory::v1beta1::{
-    MsgCreateDenom, MsgCreateDenomResponse, MsgMint, MsgMintResponse,
-};
-use test_tube::ExecuteResponse;
-// use astroport_v5::tokenfactory_tracker::InstantiateMsg as TrackerInstantiateMsg;
-use osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
-use std::collections::HashMap;
-
-// use astroport::liquidity_manager::InstantiateMsg as LiquidityManagerInstantiateMsg;
 use astroport::router::InstantiateMsg as RouterInstantiateMsg;
 use astroport::token::InstantiateMsg as AstroTokenInstantiateMsg;
 use astroport::vesting::{
     Cw20HookMsg as VestingHookMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
     VestingSchedule, VestingSchedulePoint,
 };
+use astroport_v5::asset::AssetInfo as AssetInfoV5;
+use astroport_v5::factory::{
+    ExecuteMsg as AstroportFactoryExecuteMsg, InstantiateMsg as AstroportFactoryInstantiateMsg,
+    PairConfig, PairType,
+};
+use astroport_v5::incentives::InstantiateMsg as IncentivesInstantiateMsg;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_json_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
+use osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
+use osmosis_std::types::cosmos::base::v1beta1::Coin as OsmosisCoin;
+use osmosis_std::types::osmosis::tokenfactory::v1beta1::{
+    MsgCreateDenom, MsgCreateDenomResponse, MsgMint, MsgMintResponse,
+};
+use std::collections::HashMap;
+use test_tube::ExecuteResponse;
 use test_tube::{Account, Bank, Module, Runner, SigningAccount, Wasm};
 
 pub fn astroport_asset_info_to_astroport_v5_asset_info(
@@ -47,15 +44,11 @@ pub const ASTROPORT_CONTRACT_NAMES: [&str; 11] = [
     "astroport_token",
     "astroport_native_coin_registry",
     "astroport_factory",
-    // "astroport_generator",
     "astroport_maker",
     "astroport_pair_stable",
     "astroport_pair",
     "astroport_router",
-    // "astroport_staking",
     "astroport_vesting",
-    // "astroport_whitelist",
-    // "astroport_liquidity_manager",
     "astroport_pair_concentrated",
     "astroport_incentives",
     "astroport_tokenfactory_tracker",
@@ -671,8 +664,6 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
     );
 
     contract_wrappers.extend(create_contract_wrappers_with_reply!(
-        // "astroport_generator",
-        // "astroport_staking",
         "astroport_factory",
         "astroport_pair_stable",
         "astroport_pair"
@@ -715,7 +706,7 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
 mod tests {
     use astroport::asset::{Asset, AssetInfo};
     use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
-    use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
+    use cw20::{AllowanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
     use osmosis_std::types::cosmos::bank::v1beta1::QueryAllBalancesRequest;
     use osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
     use test_tube::{Account, Bank, Module, Wasm};
@@ -742,8 +733,8 @@ mod tests {
 
     #[cfg(feature = "chain-download")]
     use {
-        super::get_wasm_path, crate::artifact::Artifact, crate::artifact::ChainArtifact,
-        crate::ContractType, std::collections::HashMap,
+        super::get_wasm_path, crate::artifact::ChainArtifact, crate::ContractType,
+        std::collections::HashMap,
     };
 
     #[cfg(feature = "rpc-runner")]
@@ -822,7 +813,7 @@ mod tests {
     #[cfg(feature = "chain-download")]
     /// Get artifacts from Neutron testnet
     fn get_neutron_testnet_artifacts() -> HashMap<String, ContractType> {
-        let mut artifacts = NEUTRON_CONTRACT_ADDRESSES
+        let artifacts = NEUTRON_CONTRACT_ADDRESSES
             .iter()
             .map(|(name, chain_artifact)| {
                 (

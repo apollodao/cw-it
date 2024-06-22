@@ -37,14 +37,15 @@ exceptions = [
     { allow = ["OpenSSL"], name = "ring" },
     { allow = ["GPL-3.0"], name = "astroport-incentives" },
     { allow = ["GPL-3.0"], name = "astroport-factory" },
-    { allow = ["GPL-3.0"], name = "astroport-generator" },
     { allow = ["GPL-3.0"], name = "astroport-maker" },
     { allow = ["GPL-3.0"], name = "astroport-pair" },
     { allow = ["GPL-3.0"], name = "astroport-pair-concentrated" },
     { allow = ["GPL-3.0"], name = "astroport-pair-stable" },
     { allow = ["GPL-3.0"], name = "astroport-pcl-common" },
     { allow = ["GPL-3.0"], name = "astroport-router" },
-    { allow = ["GPL-3.0"], name = "astroport-vesting" }
+    { allow = ["GPL-3.0"], name = "astroport-vesting" },
+    { allow = ["GPL-3.0"], name = "astroport-staking" },
+    { allow = ["CC0-1.0"], name = "tiny-keccak" }
 ]
 
 [[licenses.clarify]]
