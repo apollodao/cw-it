@@ -10,7 +10,7 @@ RUST_OPTIMIZER_VERSION = "0.15.0"
 # Use rust version from rust-optimizer Dockerfile (see https://github.com/CosmWasm/rust-optimizer/blob/main/Dockerfile#L1)
 # to be sure that we compile / test against the same version
 RUST_VERSION = "1.79.0"
-NIGHTLY_VERSION = "1.79.0"
+NIGHTLY_VERSION = "nightly-2024-06-25"
 
 [tasks.install-stable]
 script = '''
