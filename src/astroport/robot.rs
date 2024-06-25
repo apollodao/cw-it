@@ -600,7 +600,7 @@ mod tests {
         if let Some(initial_liq) = initial_liquidity {
             // Check lp token balance
             let lp_token_balance =
-                robot.query_native_token_balance(&admin.address(), lp_token_denom);
+                robot.query_native_token_balance(admin.address(), lp_token_denom);
             assert_ne!(lp_token_balance, Uint128::zero());
 
             // Check pair reserves
