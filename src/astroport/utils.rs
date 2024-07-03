@@ -400,6 +400,7 @@ pub fn create_astroport_pair<'a, R>(
     init_params: Option<Binary>,
     signer: &SigningAccount,
     initial_liquidity: Option<[Uint128; 2]>,
+    denom_creation_fee: &[Coin],
 ) -> (String, String, String)
 where
     R: Runner<'a>,
@@ -415,7 +416,9 @@ where
             .collect(),
         init_params,
     };
-    let res = wasm.execute(factory_addr, &msg, &[], signer).unwrap();
+    let res = wasm
+        .execute(factory_addr, &msg, denom_creation_fee, signer)
+        .unwrap();
 
     // Get pair and lp_token addresses from event
     let (pair_addr, lp_token_addr, token_denom) = parse_astroport_create_pair_events(&res.events);
@@ -934,6 +937,7 @@ mod tests {
                 None,
                 admin,
                 None,
+                &[],
             );
 
         println!("uluna_astro_pair_addr: {:?}", uluna_astro_pair_addr);
@@ -1010,3 +1014,4 @@ mod tests {
         );
     }
 }
+
