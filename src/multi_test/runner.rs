@@ -1,4 +1,6 @@
+use crate::{traits::CwItRunner, ContractType};
 use anyhow::bail;
+use apollo_cw_multi_test::BankKeeper;
 use apollo_cw_multi_test::{BankSudo, BasicAppBuilder};
 use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
 use cosmwasm_std::{
@@ -20,11 +22,10 @@ use std::str::FromStr;
 use test_tube::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, SigningAccount,
 };
+use cosmwasm_std::testing::MockApi;
 
-use crate::{traits::CwItRunner, ContractType};
-
-pub struct MultiTestRunner<'a> {
-    pub app: apollo_cw_multi_test::App,
+pub struct MultiTestRunner<'a, B = BankKeeper, A = MockApi> {
+    pub app: apollo_cw_multi_test::App<B, A>,
     pub address_prefix: &'a str,
 }
 
@@ -660,3 +661,4 @@ mod tests {
         assert_eq!(app.app.block_info().time.seconds(), time.seconds() + 69);
     }
 }
+
