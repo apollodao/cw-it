@@ -58,9 +58,9 @@ dependencies = [
 
 [[package]]
 name = "apollo-cw-multi-test"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f79f4204575175473a9b7fff8083596d09e6edb07469d2a4176846b353b2d1ef"
+checksum = "302ade9b31bee51ac98dceaa0818fdf28d92794150b84460a8edf4053a3339b1"
 dependencies = [
  "anyhow",
  "cosmwasm-std",
@@ -469,6 +469,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d86b93f97252c47b41663388e6d155714a9d0c398b99f1005cbc5f978b29f445"
 
 [[package]]
+name = "bech32"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d965446196e3b7decd44aa7ee49e31d630118f90ef12f97900f262eb915c951d"
+
+[[package]]
 name = "bindgen"
 version = "0.69.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -802,7 +808,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78c1556156fdf892a55cced6115968b961eaaadd6f724a2c2cb7d1e168e32dd3"
 dependencies = [
  "base64",
- "bech32",
+ "bech32 0.9.1",
  "bnum",
  "cosmwasm-crypto",
  "cosmwasm-derive",
@@ -927,7 +933,7 @@ dependencies = [
 
 [[package]]
 name = "cw-it"
-version = "0.4.0-rc.1"
+version = "0.4.0-rc.2"
 dependencies = [
  "anyhow",
  "apollo-cw-multi-test",
@@ -946,6 +952,7 @@ dependencies = [
  "astroport-token",
  "astroport-vesting",
  "astroport-whitelist",
+ "bech32 0.11.0",
  "bip32",
  "config",
  "cosmrs",
@@ -960,6 +967,7 @@ dependencies = [
  "prost 0.12.6",
  "regex",
  "serde",
+ "sha2 0.10.8",
  "strum 0.24.1",
  "test-case",
  "test-tube",
@@ -1892,7 +1900,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46f60e477bd71007d9ff78ae020ec1c6b3b47798578af6151429434d86472efc"
 dependencies = [
- "bech32",
+ "bech32 0.9.1",
  "cosmos-sdk-proto 0.20.0",
  "cosmwasm-schema",
  "cosmwasm-std",

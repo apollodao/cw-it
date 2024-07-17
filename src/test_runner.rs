@@ -4,9 +4,7 @@ use std::{
 };
 
 use crate::{traits::CwItRunner, ContractType};
-use apollo_cw_multi_test::BankKeeper;
 use serde::de::DeserializeOwned;
-use cosmwasm_std::testing::MockApi;
 use test_tube::{Runner, SigningAccount};
 
 #[cfg(feature = "rpc-runner")]
@@ -23,27 +21,27 @@ use osmosis_test_tube::OsmosisTestApp;
 /// runners.
 #[derive(strum::EnumVariantNames)]
 #[strum(serialize_all = "kebab_case")]
-pub enum OwnedTestRunner<'a, B = BankKeeper, A = MockApi> {
+pub enum OwnedTestRunner<'a> {
     PhantomData(&'a ()),
     #[cfg(feature = "osmosis-test-tube")]
     OsmosisTestApp(OsmosisTestApp),
     #[cfg(feature = "rpc-runner")]
     RpcRunner(RpcRunner),
     #[cfg(feature = "multi-test")]
-    MultiTest(MultiTestRunner<'a, B, A>),
+    MultiTest(MultiTestRunner<'a>),
 }
 
 /// A version of TestRunner which borrows the runner instead of owning it. This is useful for
 /// passing a TestRunner to a function which needs to own it, but we don't want to give up ownership
 /// of the runner.
-pub enum TestRunner<'a, B = BankKeeper, A = MockApi> {
+pub enum TestRunner<'a> {
     PhantomData(&'a ()),
     #[cfg(feature = "osmosis-test-tube")]
     OsmosisTestApp(&'a OsmosisTestApp),
     #[cfg(feature = "rpc-runner")]
     RpcRunner(&'a RpcRunner),
     #[cfg(feature = "multi-test")]
-    MultiTest(&'a MultiTestRunner<'a, B, A>),
+    MultiTest(&'a MultiTestRunner<'a>),
 }
 
 impl<'a> OwnedTestRunner<'a> {
@@ -382,7 +380,7 @@ mod tests {
 
     #[test]
     fn test_runner_from_and_to_str() {
-        for str in OwnedTestRunner::<BankKeeper, MockApi>::VARIANTS {
+        for str in OwnedTestRunner::VARIANTS {
             match *str {
                 "phantom-data" => continue,
                 "rpc-runner" => match OwnedTestRunner::from_str(str) {
@@ -397,4 +395,3 @@ mod tests {
         }
     }
 }
-

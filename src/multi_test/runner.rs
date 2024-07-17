@@ -1,8 +1,10 @@
+use crate::multi_test::api::MockApiBech32;
 use crate::{traits::CwItRunner, ContractType};
 use anyhow::bail;
 use apollo_cw_multi_test::BankKeeper;
 use apollo_cw_multi_test::{BankSudo, BasicAppBuilder};
 use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
+
 use cosmwasm_std::{
     coin, Addr, BankMsg, Binary, Coin, CosmosMsg, Empty, QueryRequest, StakingMsg, WasmMsg,
 };
@@ -22,10 +24,9 @@ use std::str::FromStr;
 use test_tube::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, SigningAccount,
 };
-use cosmwasm_std::testing::MockApi;
 
-pub struct MultiTestRunner<'a, B = BankKeeper, A = MockApi> {
-    pub app: apollo_cw_multi_test::App<B, A>,
+pub struct MultiTestRunner<'a> {
+    pub app: apollo_cw_multi_test::App<BankKeeper, MockApiBech32<'a>>,
     pub address_prefix: &'a str,
 }
 
@@ -34,7 +35,9 @@ impl<'a> MultiTestRunner<'a> {
     /// with the given address prefix.
     pub fn new(address_prefix: &'a str) -> Self {
         // Construct app
-        let app = BasicAppBuilder::<Empty, Empty>::new().build(|_, _, _| {});
+        let app = BasicAppBuilder::<Empty, Empty>::new()
+            .with_api(MockApiBech32::new(address_prefix))
+            .build(|_, _, _| {});
 
         Self {
             app,
@@ -51,6 +54,7 @@ impl<'a> MultiTestRunner<'a> {
     ) -> Self {
         // Construct app
         let app = BasicAppBuilder::<Empty, Empty>::new()
+            .with_api(MockApiBech32::new(address_prefix))
             .with_stargate(stargate_keeper)
             .build(|_, _, _| {});
 
@@ -661,4 +665,3 @@ mod tests {
         assert_eq!(app.app.block_info().time.seconds(), time.seconds() + 69);
     }
 }
-

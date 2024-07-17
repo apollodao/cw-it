@@ -1,6 +1,6 @@
 [package]
 name        = "cw-it"
-version     = "0.4.0-rc.1"
+version     = "0.4.0-rc.2"
 authors     = ["Pacman <pacman@apollo.farm>", "Sturdy <sturdy@apollo.farm>"]
 edition     = "2021"
 license     = "MPL-2.0"
@@ -37,7 +37,7 @@ astroport = ["cw20", "dep:astroport", "dep:astroport_v5"]
 osmosis = ["proptest", "apollo-utils", "osmosis-test-tube"]
 rpc-runner = ["bip32"]
 chain-download = ["tokio"]
-multi-test = ["apollo-cw-multi-test", "paste", "regex"]
+multi-test = ["bech32", "sha2", "apollo-cw-multi-test", "paste", "regex"]
 astroport-multi-test = [
   "multi-test",
   "astroport",
@@ -112,7 +112,9 @@ apollo-utils = { version = "0.1.1", optional = true }
 regex        = { version = "1.7.3", optional = true }
 
 # Cw-multi-test deps
-apollo-cw-multi-test = { version = "0.18.0", features = ["stargate"], optional = true }
+apollo-cw-multi-test = { version = "0.18.1", features = ["stargate"], optional = true }
+bech32 = { version = "0.11.0", optional = true }
+sha2 = { version = "0.10.8", optional = true }
 paste         = { version = "1.0.12", optional = true }
 
 # RPC Runner and chain-download deps
