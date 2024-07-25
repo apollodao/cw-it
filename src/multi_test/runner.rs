@@ -25,6 +25,8 @@ use test_tube::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, SigningAccount,
 };
 
+use super::api::MockApiBech;
+
 pub struct MultiTestRunner<'a> {
     pub app: apollo_cw_multi_test::App<BankKeeper, MockApiBech32<'a>>,
     pub address_prefix: &'a str,
@@ -372,6 +374,7 @@ mod tests {
     };
     use test_tube::{Bank, Module, RunnerExecuteResult, Wasm};
 
+    use crate::multi_test::api::MockApiBech;
     use crate::{artifact::Artifact, helpers::upload_wasm_file};
 
     use crate::test_helpers::*;
@@ -454,17 +457,18 @@ mod tests {
     fn wasm_execute_contract() {
         // start the keeper
         let app = MultiTestRunner::new("osmo");
+        let mock_api = MockApiBech32::new("osmo");
 
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
         let res = instantiate_astro_token(&app, &alice).unwrap();
 
-        let contract_addr = res.data.address;
+        let contract_addr = mock_api.addr_make(&res.data.address);
 
         let wasm = Wasm::new(&app);
         let res = wasm
             .execute(
-                &contract_addr,
+                &contract_addr.to_string(),
                 &cw20_base::msg::ExecuteMsg::Mint {
                     recipient: alice.address(),
                     amount: 100u128.into(),
@@ -526,8 +530,10 @@ mod tests {
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
         let res = instantiate_astro_token(&app, &alice).unwrap();
-
-        let contract_addr = res.data.address;
+        println!("res: {:?}", res);
+        let mock_api = MockApiBech32::new("osmo");
+        let contract_addr = res.data.address; //mock_api.addr_make(&res.data.address).to_string();
+        println!("contract_addr: {:?}", contract_addr);
 
         let res = QueryContractInfoRequest {
             address: contract_addr.clone(),
@@ -545,9 +551,33 @@ mod tests {
     #[test]
     fn bank_send() {
         let app = MultiTestRunner::new("osmo");
+        let bank: Bank<MultiTestRunner> = Bank::new(&app);
         let alice = app.init_account(&[coin(1000, "uatom")]).unwrap();
         let bob = app.init_account(&[]).unwrap();
 
+        let mock_api_bech = MockApiBech32::new("osmo");
+        let alice_address = mock_api_bech.addr_make(&alice.address()).to_string();
+        let bob_address = mock_api_bech.addr_make(&bob.address()).to_string();
+        let bank_query = bank
+            .query_all_balances(&QueryAllBalancesRequest {
+                address: alice_address.clone(),
+                pagination: None,
+            })
+            .unwrap();
+
+        println!("alice_address bank_query: {:?}", bank_query);
+
+        let bank_query = bank
+        .query_all_balances(&QueryAllBalancesRequest {
+            address: bob_address.clone(),
+            pagination: None,
+        })
+        .unwrap();
+
+    println!("bob_address bank_query: {:?}", bank_query);
+
+        println!("alice_address {}", alice_address);
+        println!("bob_address {}", bob_address);
         let msgs = vec![cosmwasm_std::CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
             to_address: bob.address(),
             amount: vec![cosmwasm_std::Coin {
@@ -555,6 +585,8 @@ mod tests {
                 amount: 100u128.into(),
             }],
         })];
+        println!("alice.address(): {:?}", alice.address());
+        
 
         let res = app
             .execute_cosmos_msgs::<MsgSendResponse>(&msgs, &alice)
@@ -564,9 +596,9 @@ mod tests {
         assert_eq!(
             res.events[0],
             Event::new("transfer")
-                .add_attribute("recipient", bob.address())
-                .add_attribute("sender", alice.address())
-                .add_attribute("amount", "100uatom")
+            .add_attribute("recipient", bob.address())
+            .add_attribute("sender", alice.address())
+            .add_attribute("amount", "100uatom")
         );
 
         let bank = Bank::new(&app);
@@ -584,9 +616,9 @@ mod tests {
         assert_eq!(
             res.events[0],
             Event::new("transfer")
-                .add_attribute("recipient", bob.address())
-                .add_attribute("sender", alice.address())
-                .add_attribute("amount", "100uatom")
+            .add_attribute("recipient", bob.address())
+            .add_attribute("sender", alice.address())
+            .add_attribute("amount", "100uatom")
         );
     }
 
@@ -595,8 +627,9 @@ mod tests {
         let app = MultiTestRunner::new("osmo");
         let alice = app.init_account(&[coin(1000, "uatom")]).unwrap();
 
-        let bank = Bank::new(&app);
-
+        let mock_api_bech = MockApiBech32::new("osmo");
+        let bank: Bank<MultiTestRunner> = Bank::new(&app);
+        let alice_address = mock_api_bech.addr_make(&alice.address());
         // Query all balances
         let res = bank
             .query_all_balances(&QueryAllBalancesRequest {
@@ -665,3 +698,4 @@ mod tests {
         assert_eq!(app.app.block_info().time.seconds(), time.seconds() + 69);
     }
 }
+
