@@ -175,7 +175,8 @@ impl TokenFactory<'_> {
         res.data = Some(data.into());
         res.events.push(
             Event::new("tf_mint")
-                .add_attribute("mint_to_address", "sender")
+                .add_attribute("mint_to_address", sender.to_string())
+                .add_attribute("denom", denom.to_string())
                 .add_attribute("amount", amount.to_string()),
         );
         Ok(res)

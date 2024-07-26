@@ -3,7 +3,11 @@ use std::fmt::Debug;
 use std::{collections::HashMap, str::FromStr};
 
 use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
-use osmosis_std::types::cosmos::bank::v1beta1::{MsgSend, MsgSendResponse, QueryBalanceRequest};
+use osmosis_std::types::cosmos::bank::v1beta1::{
+    MsgSend, MsgSendResponse, QueryAllBalancesRequest, QueryAllBalancesResponse,
+    QueryBalanceRequest,
+};
+use osmosis_std::types::cosmos::base::query::v1beta1::PageRequest;
 use osmosis_std::types::cosmos::base::v1beta1::Coin as ProtoCoin;
 use serde::Serialize;
 use test_tube::{Account, Module, Runner, RunnerExecuteResult, RunnerResult, SigningAccount};
@@ -108,6 +112,19 @@ pub fn bank_balance_query<'a>(
         .ok_or_else(|| StdError::generic_err("Bank balance query failed"))
 }
 
+pub fn bank_all_balances_query<'a>(
+    runner: &'a impl Runner<'a>,
+    address: String,
+    pagination: Option<PageRequest>,
+) -> StdResult<QueryAllBalancesResponse> {
+    Bank::new(runner)
+        .query_all_balances(&QueryAllBalancesRequest {
+            address,
+            pagination,
+        })
+        .or_else(|_| Err(StdError::generic_err("Bank all balances query failed")))
+}
+
 pub fn bank_send<'a>(
     runner: &'a impl Runner<'a>,
     sender: &SigningAccount,
@@ -187,3 +204,4 @@ fn test_unwrap_panic() {
     let res: Result<u32, &str> = Err("random");
     Unwrap::Err("test").unwrap(res);
 }
+

@@ -693,9 +693,10 @@ mod tests {
         let admin = &robot.accs[0];
 
         let precision = robot
-            .add_denom_precision_to_coin_registry("uatom", 69, admin)
+            .add_denom_precision_to_coin_registry("uatom", 6, admin)
             .query_native_coin_registry("uatom")
             .unwrap();
-        assert_eq!(precision, 69);
+        assert_eq!(precision, 6);
     }
 }
+

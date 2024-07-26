@@ -11,3 +11,4 @@ pub mod api;
 
 pub use crate::create_contract_wrappers;
 pub use runner::MultiTestRunner;
+pub mod test_addresses;

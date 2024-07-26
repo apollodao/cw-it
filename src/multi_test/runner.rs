@@ -1,10 +1,11 @@
 use crate::multi_test::api::MockApiBech32;
+use crate::multi_test::test_addresses::MockAddressGenerator;
 use crate::{traits::CwItRunner, ContractType};
 use anyhow::bail;
 use apollo_cw_multi_test::BankKeeper;
+use apollo_cw_multi_test::WasmKeeper;
 use apollo_cw_multi_test::{BankSudo, BasicAppBuilder};
 use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
-
 use cosmwasm_std::{
     coin, Addr, BankMsg, Binary, Coin, CosmosMsg, Empty, QueryRequest, StakingMsg, WasmMsg,
 };
@@ -25,8 +26,6 @@ use test_tube::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, SigningAccount,
 };
 
-use super::api::MockApiBech;
-
 pub struct MultiTestRunner<'a> {
     pub app: apollo_cw_multi_test::App<BankKeeper, MockApiBech32<'a>>,
     pub address_prefix: &'a str,
@@ -37,8 +36,12 @@ impl<'a> MultiTestRunner<'a> {
     /// with the given address prefix.
     pub fn new(address_prefix: &'a str) -> Self {
         // Construct app
+        let wasm_keeper: WasmKeeper<Empty, Empty> =
+            WasmKeeper::new().with_address_generator(MockAddressGenerator);
+
         let app = BasicAppBuilder::<Empty, Empty>::new()
             .with_api(MockApiBech32::new(address_prefix))
+            .with_wasm(wasm_keeper)
             .build(|_, _, _| {});
 
         Self {
@@ -362,7 +365,10 @@ mod tests {
     use cosmrs::proto::cosmos::bank::v1beta1::MsgSendResponse;
     use cosmwasm_std::{coin, Event, Uint128};
 
+    use crate::test_helpers::*;
+    use crate::{artifact::Artifact, helpers::upload_wasm_file};
     use apollo_cw_multi_test::ContractWrapper;
+
     use cw20::MinterResponse;
     use osmosis_std::types::cosmos::bank::v1beta1::{
         QueryBalanceRequest, QuerySupplyOfRequest, QueryTotalSupplyRequest,
@@ -373,11 +379,6 @@ mod tests {
         cosmwasm::wasm::v1::MsgInstantiateContractResponse,
     };
     use test_tube::{Bank, Module, RunnerExecuteResult, Wasm};
-
-    use crate::multi_test::api::MockApiBech;
-    use crate::{artifact::Artifact, helpers::upload_wasm_file};
-
-    use crate::test_helpers::*;
 
     use super::*;
 
@@ -457,18 +458,17 @@ mod tests {
     fn wasm_execute_contract() {
         // start the keeper
         let app = MultiTestRunner::new("osmo");
-        let mock_api = MockApiBech32::new("osmo");
 
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
         let res = instantiate_astro_token(&app, &alice).unwrap();
 
-        let contract_addr = mock_api.addr_make(&res.data.address);
+        let contract_addr = res.data.address;
 
         let wasm = Wasm::new(&app);
         let res = wasm
             .execute(
-                &contract_addr.to_string(),
+                &contract_addr,
                 &cw20_base::msg::ExecuteMsg::Mint {
                     recipient: alice.address(),
                     amount: 100u128.into(),
@@ -483,7 +483,7 @@ mod tests {
         assert_eq!(
             wasm_event,
             &Event::new("wasm")
-                .add_attribute("_contract_addr", contract_addr)
+                .add_attribute("_contract_address", contract_addr)
                 .add_attribute("action", "mint")
                 .add_attribute("to", alice.address())
                 .add_attribute("amount", "100")
@@ -493,6 +493,7 @@ mod tests {
     #[test]
     fn wasm_smart_query_contract() {
         let app = MultiTestRunner::new("osmo");
+
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
         let res = instantiate_astro_token(&app, &alice).unwrap();
@@ -527,19 +528,20 @@ mod tests {
     #[test]
     fn wasm_contract_info_query() {
         let app = MultiTestRunner::new("osmo");
+
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
         let res = instantiate_astro_token(&app, &alice).unwrap();
-        println!("res: {:?}", res);
-        let mock_api = MockApiBech32::new("osmo");
-        let contract_addr = res.data.address; //mock_api.addr_make(&res.data.address).to_string();
-        println!("contract_addr: {:?}", contract_addr);
+        println!("MsgInstantiateContractRes: {:?}", res);
+        let contract_addr = res.data.address;
 
         let res = QueryContractInfoRequest {
             address: contract_addr.clone(),
         }
         .query(&app.app.wrap())
         .unwrap();
+
+        println!("QueryContractInfoRes: {:?}", res);
 
         assert_eq!(res.address, contract_addr);
         let info = res.contract_info.unwrap();
@@ -551,33 +553,9 @@ mod tests {
     #[test]
     fn bank_send() {
         let app = MultiTestRunner::new("osmo");
-        let bank: Bank<MultiTestRunner> = Bank::new(&app);
         let alice = app.init_account(&[coin(1000, "uatom")]).unwrap();
         let bob = app.init_account(&[]).unwrap();
 
-        let mock_api_bech = MockApiBech32::new("osmo");
-        let alice_address = mock_api_bech.addr_make(&alice.address()).to_string();
-        let bob_address = mock_api_bech.addr_make(&bob.address()).to_string();
-        let bank_query = bank
-            .query_all_balances(&QueryAllBalancesRequest {
-                address: alice_address.clone(),
-                pagination: None,
-            })
-            .unwrap();
-
-        println!("alice_address bank_query: {:?}", bank_query);
-
-        let bank_query = bank
-        .query_all_balances(&QueryAllBalancesRequest {
-            address: bob_address.clone(),
-            pagination: None,
-        })
-        .unwrap();
-
-    println!("bob_address bank_query: {:?}", bank_query);
-
-        println!("alice_address {}", alice_address);
-        println!("bob_address {}", bob_address);
         let msgs = vec![cosmwasm_std::CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
             to_address: bob.address(),
             amount: vec![cosmwasm_std::Coin {
@@ -585,8 +563,6 @@ mod tests {
                 amount: 100u128.into(),
             }],
         })];
-        println!("alice.address(): {:?}", alice.address());
-        
 
         let res = app
             .execute_cosmos_msgs::<MsgSendResponse>(&msgs, &alice)
@@ -596,9 +572,9 @@ mod tests {
         assert_eq!(
             res.events[0],
             Event::new("transfer")
-            .add_attribute("recipient", bob.address())
-            .add_attribute("sender", alice.address())
-            .add_attribute("amount", "100uatom")
+                .add_attribute("recipient", bob.address())
+                .add_attribute("sender", alice.address())
+                .add_attribute("amount", "100uatom")
         );
 
         let bank = Bank::new(&app);
@@ -616,9 +592,9 @@ mod tests {
         assert_eq!(
             res.events[0],
             Event::new("transfer")
-            .add_attribute("recipient", bob.address())
-            .add_attribute("sender", alice.address())
-            .add_attribute("amount", "100uatom")
+                .add_attribute("recipient", bob.address())
+                .add_attribute("sender", alice.address())
+                .add_attribute("amount", "100uatom")
         );
     }
 
@@ -627,9 +603,8 @@ mod tests {
         let app = MultiTestRunner::new("osmo");
         let alice = app.init_account(&[coin(1000, "uatom")]).unwrap();
 
-        let mock_api_bech = MockApiBech32::new("osmo");
-        let bank: Bank<MultiTestRunner> = Bank::new(&app);
-        let alice_address = mock_api_bech.addr_make(&alice.address());
+        let bank = Bank::new(&app);
+
         // Query all balances
         let res = bank
             .query_all_balances(&QueryAllBalancesRequest {
