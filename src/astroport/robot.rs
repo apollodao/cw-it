@@ -481,7 +481,7 @@ mod tests {
     pub const ARCH: Option<&str> = None;
 
     /// The path to the artifacts folder
-    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/99884be");
+    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/4d3be0e");
 
     /// Which TestRunner to use
     pub const TEST_RUNNER: &str = "osmosis-test-app";

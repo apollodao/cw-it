@@ -751,7 +751,7 @@ mod tests {
     pub const ARCH: Option<&str> = None;
 
     /// The path to the artifacts folder
-    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/99884be");
+    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/4d3be0e");
 
     #[cfg(feature = "chain-download")]
     /// The Neutron testnet RPC to use to download wasm files
