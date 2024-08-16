@@ -1,10 +1,9 @@
 use crate::multi_test::api::MockApiBech32;
-use crate::multi_test::test_addresses::MockAddressGenerator;
 use crate::{traits::CwItRunner, ContractType};
 use anyhow::bail;
-use apollo_cw_multi_test::BankKeeper;
-use apollo_cw_multi_test::WasmKeeper;
-use apollo_cw_multi_test::{BankSudo, BasicAppBuilder};
+use apollo_cw_multi_test::{
+    BankKeeper, BankSudo, BasicAppBuilder, MockAddressGenerator, WasmKeeper,
+};
 use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
 use cosmwasm_std::{
     coin, Addr, BankMsg, Binary, Coin, CosmosMsg, Empty, QueryRequest, StakingMsg, WasmMsg,
@@ -37,7 +36,7 @@ impl<'a> MultiTestRunner<'a> {
     pub fn new(address_prefix: &'a str) -> Self {
         // Construct app
         let wasm_keeper: WasmKeeper<Empty, Empty> =
-            WasmKeeper::new().with_address_generator(MockAddressGenerator);
+            WasmKeeper::new_with_custom_address_generator(MockAddressGenerator);
 
         let app = BasicAppBuilder::<Empty, Empty>::new()
             .with_api(MockApiBech32::new(address_prefix))
@@ -483,7 +482,7 @@ mod tests {
         assert_eq!(
             wasm_event,
             &Event::new("wasm")
-                .add_attribute("_contract_address", contract_addr)
+                .add_attribute("_contract_addr", contract_addr)
                 .add_attribute("action", "mint")
                 .add_attribute("to", alice.address())
                 .add_attribute("amount", "100")
@@ -673,4 +672,3 @@ mod tests {
         assert_eq!(app.app.block_info().time.seconds(), time.seconds() + 69);
     }
 }
-
