@@ -122,7 +122,7 @@ pub fn bank_all_balances_query<'a>(
             address,
             pagination,
         })
-        .or_else(|_| Err(StdError::generic_err("Bank all balances query failed")))
+        .map_err(|_| StdError::generic_err("Bank all balances query failed"))
 }
 
 pub fn bank_send<'a>(
@@ -204,4 +204,3 @@ fn test_unwrap_panic() {
     let res: Result<u32, &str> = Err("random");
     Unwrap::Err("test").unwrap(res);
 }
-

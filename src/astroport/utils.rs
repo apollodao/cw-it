@@ -3,6 +3,7 @@ use crate::helpers::upload_wasm_files;
 use crate::traits::CwItRunner;
 use crate::{ContractMap, ContractType, TestRunner};
 use astroport::asset::{Asset, AssetInfo};
+use astroport::liquidity_manager::InstantiateMsg as LiquidityManagerInstantiateMsg;
 use astroport::maker::InstantiateMsg as MakerInstantiateMsg;
 use astroport::native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
 use astroport::router::InstantiateMsg as RouterInstantiateMsg;
@@ -40,7 +41,7 @@ pub fn astroport_asset_info_to_astroport_v5_asset_info(
     }
 }
 
-pub const ASTROPORT_CONTRACT_NAMES: [&str; 11] = [
+pub const ASTROPORT_CONTRACT_NAMES: [&str; 12] = [
     "astroport_token",
     "astroport_native_coin_registry",
     "astroport_factory",
@@ -52,6 +53,7 @@ pub const ASTROPORT_CONTRACT_NAMES: [&str; 11] = [
     "astroport_pair_concentrated",
     "astroport_incentives",
     "astroport_tokenfactory_tracker",
+    "astroport_liquidity_manager",
 ];
 
 #[cw_serde]
@@ -77,6 +79,7 @@ pub struct AstroportContracts {
     pub router: Contract,
     pub vesting: Contract,
     pub incentives: Contract,
+    pub liquidity_manager: Contract,
 }
 
 impl AstroportContracts {
@@ -214,21 +217,21 @@ where
         .address;
 
     // Instantiate Liquidity Manager
-    // println!("Instantiating liquidity manager ...");
-    // let liquidity_manager = wasm
-    //     .instantiate(
-    //         code_ids["astroport_liquidity_manager"],
-    //         &LiquidityManagerInstantiateMsg {
-    //             astroport_factory: factory.clone(),
-    //         },
-    //         Some(&admin.address()),
-    //         Some("Liquidity Manager"),
-    //         &[],
-    //         admin,
-    //     )
-    //     .unwrap()
-    //     .data
-    //     .address;
+    println!("Instantiating liquidity manager ...");
+    let liquidity_manager = wasm
+        .instantiate(
+            code_ids["astroport_liquidity_manager"],
+            &LiquidityManagerInstantiateMsg {
+                astroport_factory: factory.clone(),
+            },
+            Some(&admin.address()),
+            Some("Liquidity Manager"),
+            &[],
+            admin,
+        )
+        .unwrap()
+        .data
+        .address;
 
     // Instantiate vesting
     println!("Instantiating vesting ...");
@@ -389,6 +392,10 @@ where
         pair_stable: Contract::new(String::from(""), code_ids["astroport_pair_stable"]),
         pair: Contract::new(String::from(""), code_ids["astroport_pair"]),
         incentives: Contract::new(incentives, code_ids["astroport_incentives"]),
+        liquidity_manager: Contract::new(
+            liquidity_manager,
+            code_ids["astroport_liquidity_manager"],
+        ),
     }
 }
 
@@ -674,6 +681,17 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
 
     // Liquidity manager, incentives, and concentrated pair don't have query entrypoint in contract module
     contract_wrappers.extend(vec![
+        (
+            "astroport_liquidity_manager".to_string(),
+            Box::new(
+                ContractWrapper::new_with_empty(
+                    astroport_liquidity_manager::contract::execute,
+                    astroport_liquidity_manager::contract::instantiate,
+                    astroport_liquidity_manager::query::query,
+                )
+                .with_reply(astroport_liquidity_manager::contract::reply),
+            ) as Box<dyn apollo_cw_multi_test::Contract<Empty>>,
+        ),
         (
             "astroport_pair_concentrated".to_string(),
             Box::new(

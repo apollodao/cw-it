@@ -48,6 +48,7 @@ exceptions = [
     { allow = ["GPL-3.0"], name = "astroport-router" },
     { allow = ["GPL-3.0"], name = "astroport-vesting" },
     { allow = ["GPL-3.0"], name = "astroport-staking" },
+    { allow = ["GPL-3.0"], name = "astroport-liquidity-manager" },
     { allow = ["CC0-1.0"], name = "tiny-keccak" }
 ]
 

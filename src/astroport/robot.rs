@@ -699,4 +699,3 @@ mod tests {
         assert_eq!(precision, 6);
     }
 }
-
