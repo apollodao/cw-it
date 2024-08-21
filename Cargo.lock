@@ -988,7 +988,7 @@ dependencies = [
 
 [[package]]
 name = "cw-it"
-version = "0.4.0-rc.5"
+version = "0.4.0-rc.6"
 dependencies = [
  "anyhow",
  "apollo-cw-multi-test",

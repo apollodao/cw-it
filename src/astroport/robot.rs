@@ -229,7 +229,7 @@ where
         signer: &SigningAccount,
         initial_liquidity: Option<&[u128; 2]>,
         decimals: Option<&[u8; 2]>,
-    ) -> (String, String, String) {
+    ) -> (String, String) {
         let factory_addr = &self.astroport_contracts().factory.address;
 
         // If decimals are provided, add native coins to registry
@@ -259,8 +259,7 @@ where
             .unwrap();
 
         // Get pair and lp_token addresses from event
-        let (pair_addr, lp_token_addr, token_denom) =
-            parse_astroport_create_pair_events(&res.events);
+        let (pair_addr, lp_token) = parse_astroport_create_pair_events(&res.events);
 
         if let Some(initial_liquidity) = initial_liquidity {
             let assets = asset_infos
@@ -274,7 +273,7 @@ where
             self.provide_liquidity(&pair_addr, assets, signer);
         }
 
-        (pair_addr, lp_token_addr, token_denom)
+        (pair_addr, lp_token)
     }
 
     fn query_simulate_swap(
@@ -582,7 +581,7 @@ mod tests {
 
         let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
 
-        let (pair_addr, _lp_token_addr, lp_token_denom) = robot.create_astroport_pair(
+        let (pair_addr, lp_token_denom) = robot.create_astroport_pair(
             pair_type.clone(),
             &asset_infos,
             init_params,
@@ -634,7 +633,7 @@ mod tests {
 
         let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
         let initial_liquidity = Some(&[420420u128, 696969u128]);
-        let (pair_addr, _lp_token_addr, _lp_token_denom) = robot.create_astroport_pair(
+        let (pair_addr, _lp_token_denom) = robot.create_astroport_pair(
             pair_type,
             &asset_infos,
             init_params,

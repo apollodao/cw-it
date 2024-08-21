@@ -408,7 +408,7 @@ pub fn create_astroport_pair<'a, R>(
     signer: &SigningAccount,
     initial_liquidity: Option<[Uint128; 2]>,
     denom_creation_fee: &[Coin],
-) -> (String, String, String)
+) -> (String, String)
 where
     R: Runner<'a>,
 {
@@ -428,7 +428,7 @@ where
         .unwrap();
 
     // Get pair and lp_token addresses from event
-    let (pair_addr, lp_token_addr, token_denom) = parse_astroport_create_pair_events(&res.events);
+    let (pair_addr, lp_token) = parse_astroport_create_pair_events(&res.events);
 
     if let Some(initial_liquidity) = initial_liquidity {
         let assets = asset_infos
@@ -439,13 +439,13 @@ where
         provide_liquidity(app, &pair_addr, assets, signer);
     }
 
-    (pair_addr, lp_token_addr, token_denom)
+    (pair_addr, lp_token)
 }
 
-pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String, String) {
+pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String) {
     let mut pair_addr = String::from("");
-    let mut lp_token = String::from("");
-    let mut token_denom = String::from("");
+    let mut lp_token_addr = String::from("");
+    let mut lp_token_denom = String::from("");
 
     for event in events {
         if event.ty == "wasm" {
@@ -455,15 +455,22 @@ pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String, 
                     pair_addr.clone_from(&attr.value);
                 }
                 if attr.key == "liquidity_token_addr" {
-                    lp_token.clone_from(&attr.value);
+                    lp_token_addr.clone_from(&attr.value);
                 }
                 if attr.key == "lp_denom" {
-                    token_denom.clone_from(&attr.value);
+                    lp_token_denom.clone_from(&attr.value);
                 }
             }
         }
     }
-    (pair_addr, lp_token, token_denom)
+
+    let lp_token = if lp_token_denom.is_empty() {
+        lp_token_addr
+    } else {
+        lp_token_denom
+    };
+
+    (pair_addr, lp_token)
 }
 
 pub fn get_lp_token_balance<'a, R>(
@@ -946,20 +953,16 @@ mod tests {
                 contract_addr: Addr::unchecked(&contracts.astro_token.address),
             },
         ];
-        let (uluna_astro_pair_addr, uluna_astro_lp_token, uluna_astro_denom) =
-            create_astroport_pair(
-                &app,
-                &contracts.factory.address,
-                astroport_v5::factory::PairType::Xyk {},
-                asset_infos,
-                None,
-                admin,
-                None,
-                &[],
-            );
-
-        println!("uluna_astro_pair_addr: {:?}", uluna_astro_pair_addr);
-        println!("uluna_astro_lp_token: {:?}", uluna_astro_lp_token);
+        let (uluna_astro_pair_addr, uluna_astro_lp_token) = create_astroport_pair(
+            &app,
+            &contracts.factory.address,
+            astroport_v5::factory::PairType::Xyk {},
+            asset_infos,
+            None,
+            admin,
+            None,
+            &[],
+        );
 
         // Increase allowance of astro token
         let increase_allowance_msg = Cw20ExecuteMsg::IncreaseAllowance {
@@ -1018,12 +1021,10 @@ mod tests {
             admin,
         );
 
-        println!("uluna_astro_denom {:?}", uluna_astro_denom);
-
         let lp_token_balance = bank
             .query_balance(&QueryBalanceRequest {
                 address: admin.address(),
-                denom: uluna_astro_denom,
+                denom: uluna_astro_lp_token,
             })
             .unwrap();
 
