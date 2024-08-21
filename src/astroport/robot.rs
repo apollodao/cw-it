@@ -1,5 +1,5 @@
-use astroport_v5::asset::{Asset, AssetInfo};
-use astroport_v5::factory::{ConfigResponse, ExecuteMsg as AstroportFactoryExecuteMsg, PairType};
+use astroport::asset::{Asset, AssetInfo};
+use astroport::factory::{ConfigResponse, ExecuteMsg as AstroportFactoryExecuteMsg, PairType};
 use cosmwasm_std::{Binary, Coin, Decimal, Uint128};
 use cw20::{BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
 use std::collections::HashMap;
@@ -113,10 +113,10 @@ where
     /// Queries the LP token balance given the pair's address and the address of the account.
     fn query_lp_token_balance(&self, pair_addr: &str, address: &str) -> Uint128 {
         // Get lp token address
-        let msg = astroport_v5::pair::QueryMsg::Pair {};
+        let msg = astroport::pair::QueryMsg::Pair {};
         let lp_token_addr = self
             .wasm()
-            .query::<_, astroport_v5::asset::PairInfo>(pair_addr, &msg)
+            .query::<_, astroport::asset::PairInfo>(pair_addr, &msg)
             .unwrap()
             .liquidity_token;
 
@@ -125,24 +125,24 @@ where
     }
 
     /// Queries the PairInfo of the given pair.
-    fn query_pair_info(&self, pair_addr: &str) -> astroport_v5::asset::PairInfo {
-        let msg = astroport_v5::pair::QueryMsg::Pair {};
+    fn query_pair_info(&self, pair_addr: &str) -> astroport::asset::PairInfo {
+        let msg = astroport::pair::QueryMsg::Pair {};
         self.wasm()
-            .query::<_, astroport_v5::asset::PairInfo>(pair_addr, &msg)
+            .query::<_, astroport::asset::PairInfo>(pair_addr, &msg)
             .unwrap()
     }
 
     /// Queries the PoolInfo of the given pair (contains the reserves and the total supply of LP tokens).
-    fn query_pool(&self, pair_addr: &str) -> astroport_v5::pair::PoolResponse {
-        let msg = astroport_v5::pair::QueryMsg::Pool {};
+    fn query_pool(&self, pair_addr: &str) -> astroport::pair::PoolResponse {
+        let msg = astroport::pair::QueryMsg::Pool {};
         self.wasm()
-            .query::<_, astroport_v5::pair::PoolResponse>(pair_addr, &msg)
+            .query::<_, astroport::pair::PoolResponse>(pair_addr, &msg)
             .unwrap()
     }
 
     /// Queries the Config of the Astroport Factory contract.
     fn query_factory_config(&self, factory_addr: &str) -> ConfigResponse {
-        let msg = astroport_v5::factory::QueryMsg::Config {};
+        let msg = astroport::factory::QueryMsg::Config {};
         self.wasm()
             .query::<_, ConfigResponse>(factory_addr, &msg)
             .unwrap()
@@ -152,7 +152,7 @@ where
     fn query_native_coin_registry(&self, denom: &str) -> RunnerResult<u8> {
         let contracts = self.astroport_contracts();
         let registry_addr = contracts.coin_registry.address.as_str();
-        let msg = astroport_v5::native_coin_registry::QueryMsg::NativeToken {
+        let msg = astroport::native_coin_registry::QueryMsg::NativeToken {
             denom: denom.to_string(),
         };
         self.wasm().query::<_, u8>(registry_addr, &msg)
@@ -165,7 +165,7 @@ where
         native_coins: Vec<(String, u8)>,
         signer: &SigningAccount,
     ) -> &Self {
-        let msg = astroport_v5::native_coin_registry::ExecuteMsg::Add { native_coins };
+        let msg = astroport::native_coin_registry::ExecuteMsg::Add { native_coins };
         self.wasm()
             .execute(registry_addr, &msg, &[], signer)
             .unwrap();
@@ -205,7 +205,7 @@ where
         funds.sort_by(|a, b| a.denom.cmp(&b.denom));
 
         // Provide liquidity
-        let msg = astroport_v5::pair::ExecuteMsg::ProvideLiquidity {
+        let msg = astroport::pair::ExecuteMsg::ProvideLiquidity {
             assets,
             slippage_tolerance: None,
             receiver: None,
@@ -281,13 +281,13 @@ where
         pair_addr: &str,
         offer_asset: Asset,
         ask_asset_info: Option<AssetInfo>,
-    ) -> astroport_v5::pair::SimulationResponse {
-        let msg = astroport_v5::pair::QueryMsg::Simulation {
+    ) -> astroport::pair::SimulationResponse {
+        let msg = astroport::pair::QueryMsg::Simulation {
             offer_asset,
             ask_asset_info,
         };
         self.wasm()
-            .query::<_, astroport_v5::pair::SimulationResponse>(pair_addr, &msg)
+            .query::<_, astroport::pair::SimulationResponse>(pair_addr, &msg)
             .unwrap()
     }
 
@@ -322,7 +322,7 @@ where
             }
         };
 
-        let msg = astroport_v5::pair::ExecuteMsg::Swap {
+        let msg = astroport::pair::ExecuteMsg::Swap {
             offer_asset,
             ask_asset_info,
             belief_price,
@@ -341,7 +341,7 @@ where
         precision: u8,
         signer: &SigningAccount,
     ) -> &Self {
-        let msg = astroport_v5::native_coin_registry::ExecuteMsg::Add {
+        let msg = astroport::native_coin_registry::ExecuteMsg::Add {
             native_coins: vec![(denom.into(), precision)],
         };
         self.wasm()
@@ -425,7 +425,7 @@ where
 mod tests {
     use std::str::FromStr;
 
-    use astroport_v5::{
+    use astroport::{
         asset::{Asset, AssetInfo},
         factory::PairType,
         pair::StablePoolParams,

@@ -1,6 +1,6 @@
 [package]
 name        = "cw-it"
-version     = "0.4.0-rc.6"
+version     = "0.4.0-rc.7"
 authors     = ["Pacman <pacman@apollo.farm>", "Sturdy <sturdy@apollo.farm>"]
 edition     = "2021"
 license     = "MPL-2.0"
@@ -33,7 +33,7 @@ overflow-checks  = true
 
 [features]
 default = []
-astroport = ["cw20", "dep:astroport", "dep:astroport_v5"]
+astroport = ["cw20", "dep:astroport", "dep:astroport_v2"]
 osmosis = ["proptest", "apollo-utils", "osmosis-test-tube"]
 rpc-runner = ["bip32"]
 chain-download = ["tokio"]
@@ -89,8 +89,8 @@ test-tube = { version = "0.7.0", features = ["module-wrappers"] }
 osmosis-test-tube = { version = "25.0.0", optional = true }
 
 # Astroport deps
-astroport = { version = "2.9.0", optional = true }
-astroport_v5 = { package = "astroport", version = "5.2.0", optional = true }
+astroport_v2 = { package = "astroport", version = "2.9.0", optional = true }
+astroport = { version = "5.2.0", optional = true }
 cw20 = { version = "0.15", optional = true }
 
 # Astroport contracts for multi-test
