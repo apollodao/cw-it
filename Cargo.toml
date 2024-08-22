@@ -1,6 +1,6 @@
 [package]
 name        = "cw-it"
-version     = "0.4.0-rc.7"
+version     = "0.4.0-rc.8"
 authors     = ["Pacman <pacman@apollo.farm>", "Sturdy <sturdy@apollo.farm>"]
 edition     = "2021"
 license     = "MPL-2.0"
@@ -104,7 +104,7 @@ astroport-router = { version = "=1.2.1", optional = true }
 astroport-staking = { version = "=2.1.0", optional = true }
 astroport-vesting = { version = "=1.4.0", optional = true, features = ["library"] }
 astroport-whitelist = { version = "=2.0.0", optional = true, features = ["library"] }
-astroport-pair-concentrated = { version = "=4.0.1", optional = true, features = ["library"] }
+astroport-pair-concentrated = { version = "=4.0.2", optional = true, features = ["library"] }
 astroport-incentives = { version = "=1.1.0", optional = true, features = ["library"] }
 astroport-liquidity-manager = { version = "=1.0.4", optional = true, features = ["library"] }
 
