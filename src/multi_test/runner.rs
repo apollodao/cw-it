@@ -56,9 +56,13 @@ impl<'a> MultiTestRunner<'a> {
         address_prefix: &'a str,
         stargate_keeper: apollo_cw_multi_test::StargateKeeper<Empty, Empty>,
     ) -> Self {
+        let wasm_keeper: WasmKeeper<Empty, Empty> =
+            WasmKeeper::new_with_custom_address_generator(MockAddressGenerator);
+
         // Construct app
         let app = BasicAppBuilder::<Empty, Empty>::new()
             .with_api(MockApiBech32::new(address_prefix))
+            .with_wasm(wasm_keeper)
             .with_stargate(stargate_keeper)
             .build(|_, _, _| {});
 
