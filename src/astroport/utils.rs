@@ -388,6 +388,7 @@ where
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_astroport_pair<'a, R>(
     app: &'a R,
     factory_addr: &str,
@@ -879,7 +880,7 @@ mod tests {
     pub fn test_with_rpc_runner() {
         let runner = get_rpc_runner();
         let contracts = get_local_contracts(&runner.as_ref());
-        test_instantiate_astroport(runner.as_ref(), contracts);
+        test_instantiate_astroport(runner.as_ref(), contracts, &[]);
     }
 
     #[cfg(feature = "chain-download")]
@@ -889,7 +890,7 @@ mod tests {
     pub fn test_with_neutron_testnet_artifacts() {
         let runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
         let contracts = get_neutron_testnet_artifacts();
-        test_instantiate_astroport(runner.as_ref(), contracts);
+        test_instantiate_astroport(runner.as_ref(), contracts, &[]);
     }
 
     fn get_fee_denom<'a>(runner: &'a TestRunner) -> &'a str {
@@ -906,10 +907,48 @@ mod tests {
     fn test_with_local_artifacts() {
         let runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
         let contracts = get_local_contracts(&runner.as_ref());
-        test_instantiate_astroport(runner.as_ref(), contracts);
+        test_instantiate_astroport(runner.as_ref(), contracts, &[]);
     }
 
-    pub fn test_instantiate_astroport(app: TestRunner, contracts: ContractMap) {
+    /// Feature-gated because we use MultiTestRunner, change the TEST_RUNNER const to use a different runner
+    #[cfg(feature = "astroport-multi-test")]
+    mod multi_test {
+        use super::get_local_contracts;
+        use apollo_cw_multi_test::{StargateKeeper, StargateMessageHandler};
+        use cosmwasm_std::coin;
+
+        use crate::{
+            multi_test::{modules::TokenFactory, MultiTestRunner},
+            OwnedTestRunner,
+        };
+
+        use super::test_instantiate_astroport;
+
+        const TOKEN_FACTORY: &TokenFactory =
+            &TokenFactory::new("factory", 32, 16, 59 + 16, "10000000uosmo");
+
+        #[test]
+        fn test_with_multi_test_runner() {
+            let mut stargate_keeper = StargateKeeper::new();
+            TOKEN_FACTORY.register_msgs(&mut stargate_keeper);
+            let runner = OwnedTestRunner::MultiTest(MultiTestRunner::new_with_stargate(
+                "osmo",
+                stargate_keeper,
+            ));
+            let contracts = get_local_contracts(&runner.as_ref());
+            test_instantiate_astroport(
+                runner.as_ref(),
+                contracts,
+                &[coin(10_000_000u128, "uosmo")],
+            );
+        }
+    }
+
+    pub fn test_instantiate_astroport(
+        app: TestRunner,
+        contracts: ContractMap,
+        denom_creation_fee: &[Coin],
+    ) {
         let accs = app.init_default_accounts().unwrap();
         let native_denom = get_fee_denom(&app);
         let wasm = Wasm::new(&app);
@@ -947,7 +986,7 @@ mod tests {
             None,
             admin,
             None,
-            &[],
+            denom_creation_fee,
         );
 
         // Increase allowance of astro token
