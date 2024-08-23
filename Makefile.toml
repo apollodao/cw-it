@@ -44,12 +44,12 @@ docker run --rm -v "$(pwd)":/code \
 """
 
 [tasks.format]
-toolchain = "${NIGHTLY_VERSION}"
+toolchain = "${RUST_VERSION}"
 install_crate = { crate_name = "rustfmt-nightly", rustup_component_name = "rustfmt-preview", binary = "rustfmt", test_arg = "--help" }
 command = "cargo"
 args = ["fmt", "--all", "--", "--emit=files","--verbose"]
 [tasks.format-check]
-toolchain = "${NIGHTLY_VERSION}"
+toolchain = "${RUST_VERSION}"
 install_crate = { crate_name = "rustfmt-nightly", rustup_component_name = "rustfmt-preview", binary = "rustfmt", test_arg = "--help" }
 command = "cargo"
 args = ["fmt", "--all", "--","--verbose", "--check"]
@@ -64,11 +64,11 @@ command = "cargo"
 args = ["check",  "--all-features"]
 
 [tasks.clippy-check]
-toolchain = "${NIGHTLY_VERSION}"
+toolchain = "${RUST_VERSION}"
 command = "cargo"
 args = ["clippy","--all-features","--","-D","warnings"]
 [tasks.clippy-fix]
-toolchain = "${NIGHTLY_VERSION}"
+toolchain = "${RUST_VERSION}"
 command = "cargo"
 args = ["clippy","--all-features", "--fix","--allow-staged", "--allow-dirty", "--","-D","warnings"]
 
