@@ -579,7 +579,7 @@ mod tests {
         let contracts = &robot.astroport_contracts;
         let admin = &robot.accs[0];
 
-        let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
+        let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_cw20_token.address);
 
         let (pair_addr, lp_token_denom) = robot.create_astroport_pair(
             pair_type.clone(),
@@ -631,7 +631,7 @@ mod tests {
         let admin = &robot.accs[0];
         let admin_addr = &admin.address();
 
-        let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
+        let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_cw20_token.address);
         let initial_liquidity = Some(&[420420u128, 696969u128]);
         let (pair_addr, _lp_token_denom) = robot.create_astroport_pair(
             pair_type,

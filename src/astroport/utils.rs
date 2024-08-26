@@ -15,11 +15,11 @@ use astroport_v2::native_coin_registry::InstantiateMsg as CoinRegistryInstantiat
 use astroport_v2::router::InstantiateMsg as RouterInstantiateMsg;
 use astroport_v2::token::InstantiateMsg as AstroTokenInstantiateMsg;
 use astroport_v2::vesting::{
-    Cw20HookMsg as VestingHookMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
+    ExecuteMsg as VestingExecuteMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
     VestingSchedule, VestingSchedulePoint,
 };
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{to_json_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
+use cosmwasm_std::{coin, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
 use osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
 use osmosis_std::types::cosmos::base::v1beta1::Coin as OsmosisCoin;
@@ -61,7 +61,7 @@ impl Contract {
 pub struct AstroportContracts {
     pub factory: Contract,
     pub coin_registry: Contract,
-    pub astro_token: Contract,
+    pub astro_cw20_token: Contract,
     pub maker: Contract,
     pub pair_stable: Contract,
     pub pair: Contract,
@@ -69,6 +69,7 @@ pub struct AstroportContracts {
     pub vesting: Contract,
     pub incentives: Contract,
     pub liquidity_manager: Contract,
+    pub astro_native_denom: String,
 }
 
 impl AstroportContracts {
@@ -107,7 +108,7 @@ where
 {
     let wasm = Wasm::new(app);
 
-    // Instantiate astro token
+    // Instantiate old cw20 astro token for backwards compatibility
     println!("Instantiating astro token ...");
     let astro_token = wasm
         .instantiate(
@@ -221,6 +222,25 @@ where
         .data
         .address;
 
+    // Create astro native denom
+    let msg = MsgCreateDenom {
+        sender: admin.address(),
+        subdenom: "astro".to_string(),
+    };
+    let res: ExecuteResponse<MsgCreateDenomResponse> =
+        app.execute(msg, MsgCreateDenom::TYPE_URL, admin).unwrap();
+    let astro_native_denom = res.data.new_token_denom;
+    let msg = MsgMint {
+        sender: admin.address(),
+        amount: Some(OsmosisCoin {
+            denom: astro_native_denom.clone(),
+            amount: 1e18.to_string(),
+        }),
+        mint_to_address: admin.address(),
+    };
+    let _res: ExecuteResponse<MsgMintResponse> =
+        app.execute(msg, MsgMint::TYPE_URL, admin).unwrap();
+
     // Instantiate vesting
     println!("Instantiating vesting ...");
     let vesting = wasm
@@ -228,8 +248,8 @@ where
             code_ids["astroport_vesting"],
             &VestingInstantiateMsg {
                 owner: admin.address(),
-                vesting_token: AssetInfoV2::Token {
-                    contract_addr: Addr::unchecked(&astro_token),
+                vesting_token: AssetInfoV2::NativeToken {
+                    denom: astro_native_denom.clone(),
                 },
             },
             Some(&admin.address()),
@@ -249,8 +269,8 @@ where
                 owner: admin.address(),
                 factory: factory.clone(),
                 guardian: None,
-                astro_token: AssetInfo::Token {
-                    contract_addr: Addr::unchecked(&astro_token),
+                astro_token: AssetInfo::NativeToken {
+                    denom: astro_native_denom.clone(),
                 },
                 vesting_contract: vesting.clone(),
                 incentivization_fee_info: None,
@@ -281,26 +301,6 @@ where
         )
         .unwrap();
 
-    let msg = MsgCreateDenom {
-        sender: admin.address(),
-        subdenom: "astro".to_string(),
-    };
-
-    let res: ExecuteResponse<MsgCreateDenomResponse> =
-        app.execute(msg, MsgCreateDenom::TYPE_URL, admin).unwrap();
-
-    let staking_denom = res.data.new_token_denom;
-    let msg = MsgMint {
-        sender: admin.address(),
-        amount: Some(OsmosisCoin {
-            denom: staking_denom.clone(),
-            amount: 1e18.to_string(),
-        }),
-        mint_to_address: admin.address(),
-    };
-    let _res: ExecuteResponse<MsgMintResponse> =
-        app.execute(msg, MsgMint::TYPE_URL, admin).unwrap();
-
     // Instantiate Router
     println!("Instantiating router ...");
     let router = wasm
@@ -330,8 +330,8 @@ where
                 max_spread: None,
                 owner: admin.address(),
                 staking_contract: None,
-                astro_token: AssetInfoV2::Token {
-                    contract_addr: Addr::unchecked(&astro_token),
+                astro_token: AssetInfoV2::NativeToken {
+                    denom: astro_native_denom.clone(),
                 },
                 // TODO: Uncertain about this
                 default_bridge: Some(AssetInfoV2::NativeToken {
@@ -351,31 +351,33 @@ where
     // Register vesting for astro generator
     println!("Registering vesting for astro generator ...");
     let vesting_amount = Uint128::from(63072000000000u128);
-    let msg = Cw20ExecuteMsg::Send {
-        contract: vesting.clone(),
-        amount: vesting_amount,
-        msg: to_json_binary(&VestingHookMsg::RegisterVestingAccounts {
-            vesting_accounts: vec![VestingAccount {
-                address: incentives.clone(),
-                schedules: vec![VestingSchedule {
-                    start_point: VestingSchedulePoint {
-                        amount: vesting_amount,
-                        time: 1664582400u64, //2022-10-01T00:00:00Z
-                    },
-                    end_point: None,
-                }],
+    let msg = VestingExecuteMsg::RegisterVestingAccounts {
+        vesting_accounts: vec![VestingAccount {
+            address: incentives.clone(),
+            schedules: vec![VestingSchedule {
+                start_point: VestingSchedulePoint {
+                    amount: vesting_amount,
+                    time: 1664582400u64, //2022-10-01T00:00:00Z
+                },
+                end_point: None,
             }],
-        })
-        .unwrap(),
+        }],
     };
-    let _res = wasm.execute(&astro_token, &msg, &[], admin).unwrap();
+    let _res = wasm
+        .execute(
+            &vesting,
+            &msg,
+            &[coin(vesting_amount.u128(), &astro_native_denom)],
+            admin,
+        )
+        .unwrap();
 
     AstroportContracts {
         factory: Contract::new(factory, code_ids["astroport_factory"]),
         router: Contract::new(router, code_ids["astroport_router"]),
         maker: Contract::new(maker, code_ids["astroport_maker"]),
         vesting: Contract::new(vesting, code_ids["astroport_vesting"]),
-        astro_token: Contract::new(astro_token, code_ids["astroport_token"]),
+        astro_cw20_token: Contract::new(astro_token, code_ids["astroport_token"]),
         coin_registry: Contract::new(coin_registry, code_ids["astroport_native_coin_registry"]),
         pair_stable: Contract::new(String::from(""), code_ids["astroport_pair_stable"]),
         pair: Contract::new(String::from(""), code_ids["astroport_pair"]),
@@ -384,6 +386,7 @@ where
             liquidity_manager,
             code_ids["astroport_liquidity_manager"],
         ),
+        astro_native_denom: astro_native_denom.clone(),
     }
 }
 
@@ -719,8 +722,7 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
 #[cfg(test)]
 mod tests {
     use astroport::asset::{Asset, AssetInfo};
-    use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
-    use cw20::{AllowanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
+    use cosmwasm_std::{Coin, Decimal, Uint128};
     use osmosis_std::types::cosmos::bank::v1beta1::QueryAllBalancesRequest;
     use osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
     use test_tube::{Account, Bank, Module, Wasm};
@@ -963,8 +965,8 @@ mod tests {
             AssetInfo::NativeToken {
                 denom: native_denom.into(),
             },
-            AssetInfo::Token {
-                contract_addr: Addr::unchecked(&contracts.astro_token.address),
+            AssetInfo::NativeToken {
+                denom: contracts.astro_native_denom.clone(),
             },
         ];
         let (uluna_astro_pair_addr, uluna_astro_lp_token) = create_astroport_pair(
@@ -978,33 +980,6 @@ mod tests {
             denom_creation_fee,
         );
 
-        // Increase allowance of astro token
-        let increase_allowance_msg = Cw20ExecuteMsg::IncreaseAllowance {
-            spender: uluna_astro_pair_addr.clone(),
-            amount: Uint128::from(1000000000u128),
-            expires: None,
-        };
-        let _res = wasm
-            .execute(
-                &contracts.astro_token.address,
-                &increase_allowance_msg,
-                &[],
-                admin,
-            )
-            .unwrap();
-
-        // Query allowance
-        let allowance_res: AllowanceResponse = wasm
-            .query(
-                &contracts.astro_token.address,
-                &Cw20QueryMsg::Allowance {
-                    owner: admin.address(),
-                    spender: uluna_astro_pair_addr.clone(),
-                },
-            )
-            .unwrap();
-        assert_eq!(allowance_res.allowance, Uint128::from(1000000000u128));
-
         // Provide liquidity to XYK pool
         let provide_liq_msg = PairExecuteMsg::ProvideLiquidity {
             assets: vec![
@@ -1016,8 +991,8 @@ mod tests {
                 },
                 Asset {
                     amount: Uint128::from(690000000u128),
-                    info: AssetInfo::Token {
-                        contract_addr: Addr::unchecked(&contracts.astro_token.address),
+                    info: AssetInfo::NativeToken {
+                        denom: contracts.astro_native_denom.clone(),
                     },
                 },
             ],
@@ -1026,15 +1001,23 @@ mod tests {
             receiver: None,
             min_lp_to_receive: None,
         };
-        let _res = wasm.execute(
-            &uluna_astro_pair_addr,
-            &provide_liq_msg,
-            &[Coin {
-                amount: Uint128::from(420000000u128),
-                denom: native_denom.into(),
-            }],
-            admin,
-        );
+        let _res = wasm
+            .execute(
+                &uluna_astro_pair_addr,
+                &provide_liq_msg,
+                &[
+                    Coin {
+                        amount: Uint128::from(690000000u128),
+                        denom: contracts.astro_native_denom.clone(),
+                    },
+                    Coin {
+                        amount: Uint128::from(420000000u128),
+                        denom: native_denom.into(),
+                    },
+                ],
+                admin,
+            )
+            .unwrap();
 
         let lp_token_balance = bank
             .query_balance(&QueryBalanceRequest {
