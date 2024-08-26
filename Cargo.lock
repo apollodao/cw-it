@@ -58,9 +58,9 @@ dependencies = [
 
 [[package]]
 name = "apollo-cw-multi-test"
-version = "0.19.0-rc.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7c7f08fd29e20927635f8b976e9689f5b681bc8536f6b563bd8b728a606cc2c"
+checksum = "c4d9d50055381538d90ed418227d5cf4906db896f5db26fd0a77e45aaa3f7fc7"
 dependencies = [
  "anyhow",
  "cosmwasm-std",
@@ -988,7 +988,7 @@ dependencies = [
 
 [[package]]
 name = "cw-it"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.10"
 dependencies = [
  "anyhow",
  "apollo-cw-multi-test",

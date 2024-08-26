@@ -1,6 +1,6 @@
 [package]
 name        = "cw-it"
-version     = "0.4.0-rc.9"
+version     = "0.4.0-rc.10"
 authors     = ["Pacman <pacman@apollo.farm>", "Sturdy <sturdy@apollo.farm>"]
 edition     = "2021"
 license     = "MPL-2.0"
@@ -114,7 +114,7 @@ apollo-utils = { version = "0.1.1", optional = true }
 regex        = { version = "1.7.3", optional = true }
 
 # Cw-multi-test deps
-apollo-cw-multi-test = { version = "0.19.0-rc.1", features = ["stargate"], optional = true }
+apollo-cw-multi-test = { version = "0.19.0", features = ["stargate"], optional = true }
 bech32 = { version = "0.11.0", optional = true }
 sha2 = { version = "0.10.8", optional = true }
 paste         = { version = "1.0.12", optional = true }

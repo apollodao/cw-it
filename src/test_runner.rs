@@ -22,6 +22,7 @@ use osmosis_test_tube::OsmosisTestApp;
 #[derive(strum::EnumVariantNames)]
 #[strum(serialize_all = "kebab_case")]
 pub enum OwnedTestRunner<'a> {
+    /// Needed to keep lifetime when rpc-runner and multitest features are off
     PhantomData(&'a ()),
     #[cfg(feature = "osmosis-test-tube")]
     OsmosisTestApp(OsmosisTestApp),
@@ -35,6 +36,7 @@ pub enum OwnedTestRunner<'a> {
 /// passing a TestRunner to a function which needs to own it, but we don't want to give up ownership
 /// of the runner.
 pub enum TestRunner<'a> {
+    /// Needed to keep lifetime when rpc-runner and multitest features are off
     PhantomData(&'a ()),
     #[cfg(feature = "osmosis-test-tube")]
     OsmosisTestApp(&'a OsmosisTestApp),

@@ -535,7 +535,6 @@ mod tests {
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
         let res = instantiate_astro_token(&app, &alice).unwrap();
-        println!("MsgInstantiateContractRes: {:?}", res);
         let contract_addr = res.data.address;
 
         let res = QueryContractInfoRequest {
@@ -543,8 +542,6 @@ mod tests {
         }
         .query(&app.app.wrap())
         .unwrap();
-
-        println!("QueryContractInfoRes: {:?}", res);
 
         assert_eq!(res.address, contract_addr);
         let info = res.contract_info.unwrap();

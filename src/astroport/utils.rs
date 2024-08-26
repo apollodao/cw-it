@@ -191,7 +191,6 @@ where
                 fee_address: None,
                 generator_address: None, // TODO: Set this
                 owner: admin.address(),
-                // whitelist_code_id: code_ids["astroport_whitelist"],
                 whitelist_code_id: 0,
                 coin_registry_address: coin_registry.clone(),
                 tracker_config: None,
@@ -837,16 +836,6 @@ mod tests {
                 )
             })
             .collect::<HashMap<String, ContractType>>();
-        // Staking contract not deployed on Neutron testnet
-        // artifacts.insert(
-        //     "astroport_staking".to_string(),
-        //     ContractType::Artifact(Artifact::Local(get_wasm_path(
-        //         "astroport_staking",
-        //         &ARTIFACTS_PATH,
-        //         APPEND_ARCH,
-        //         &ARCH,
-        //     ))),
-        // );
         artifacts
     }
 
