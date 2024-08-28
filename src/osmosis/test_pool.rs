@@ -202,7 +202,7 @@ pub fn pool_denoms_with_one_specific(
         if denoms.iter().any(|x| x == &specific_denom) {
             Just(denoms)
         } else {
-            denoms[0] = specific_denom.clone();
+            denoms[0].clone_from(&specific_denom);
             denoms.sort(); // Osmosis requires denoms to be sorted...
             Just(denoms)
         }
@@ -279,7 +279,7 @@ prop_compose! {
 }
 
 /// Generates a random OsmosisPoolType
-pub fn pool_type(pool_liquidity: &Vec<Coin>) -> impl Strategy<Value = OsmosisPoolType> {
+pub fn pool_type(pool_liquidity: &[Coin]) -> impl Strategy<Value = OsmosisPoolType> {
     prop_oneof![
         Just(OsmosisPoolType::Basic),
         vec(1..MAX_POOL_WEIGHT, pool_liquidity.len()).prop_map(|pool_weights| {

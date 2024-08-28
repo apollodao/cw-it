@@ -22,7 +22,7 @@ use osmosis_test_tube::OsmosisTestApp;
 #[derive(strum::EnumVariantNames)]
 #[strum(serialize_all = "kebab_case")]
 pub enum OwnedTestRunner<'a> {
-    // Needed to keep lifetime when rpc-runner and multitest features are off
+    /// Needed to keep lifetime when rpc-runner and multitest features are off
     PhantomData(&'a ()),
     #[cfg(feature = "osmosis-test-tube")]
     OsmosisTestApp(OsmosisTestApp),
@@ -36,7 +36,7 @@ pub enum OwnedTestRunner<'a> {
 /// passing a TestRunner to a function which needs to own it, but we don't want to give up ownership
 /// of the runner.
 pub enum TestRunner<'a> {
-    // Needed to keep lifetime when rpc-runner and multitest features are off
+    /// Needed to keep lifetime when rpc-runner and multitest features are off
     PhantomData(&'a ()),
     #[cfg(feature = "osmosis-test-tube")]
     OsmosisTestApp(&'a OsmosisTestApp),
@@ -216,6 +216,13 @@ impl<'a> Runner<'a> for TestRunner<'a> {
             Self::MultiTest(runner) => runner.query(path, query),
         }
     }
+
+    fn execute_tx(
+        &self,
+        tx_bytes: &[u8],
+    ) -> test_tube::RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
+        todo!()
+    }
 }
 impl Runner<'_> for OwnedTestRunner<'_> {
     fn execute_multiple<M, R>(
@@ -247,6 +254,13 @@ impl Runner<'_> for OwnedTestRunner<'_> {
         R: prost::Message + DeserializeOwned + Default,
     {
         self.as_ref().query(path, query)
+    }
+
+    fn execute_tx(
+        &self,
+        tx_bytes: &[u8],
+    ) -> test_tube::RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
+        todo!()
     }
 }
 

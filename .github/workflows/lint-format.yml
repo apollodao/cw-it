@@ -25,6 +25,9 @@ jobs:
       - name: Install nightly toolchain
         run: cargo make install-nightly
 
+      - name: Install stable toolchain
+        run: cargo make install-stable
+
       - name: Run cargo clippy
         run: cargo make clippy-check
 

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2024-08-28
+
+### Changed
+
+- Update Astroport package to 5.2.0 which includes native lp token implementation.
+- Replace Astroport artifacts.
+- Update Astroport helpers to use native lp tokens instead of CW20.
+
 ## [0.3.1] - 2024-03-07
 
 ### Changed

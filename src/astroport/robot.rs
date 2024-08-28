@@ -210,6 +210,7 @@ where
             slippage_tolerance: None,
             receiver: None,
             auto_stake: Some(false),
+            min_lp_to_receive: None,
         };
         self.wasm()
             .execute(pair_addr, &msg, &funds, signer)
@@ -258,7 +259,7 @@ where
             .unwrap();
 
         // Get pair and lp_token addresses from event
-        let (pair_addr, lp_token_addr) = parse_astroport_create_pair_events(&res.events);
+        let (pair_addr, lp_token) = parse_astroport_create_pair_events(&res.events);
 
         if let Some(initial_liquidity) = initial_liquidity {
             let assets = asset_infos
@@ -272,7 +273,7 @@ where
             self.provide_liquidity(&pair_addr, assets, signer);
         }
 
-        (pair_addr, lp_token_addr)
+        (pair_addr, lp_token)
     }
 
     fn query_simulate_swap(
@@ -434,13 +435,12 @@ mod tests {
     use test_tube::{Account, SigningAccount};
 
     use super::AstroportTestRobot;
-    use crate::{
-        astroport::utils::{cw20_info, native_info, AstroportContracts},
-        robot::TestRobot,
-        ContractMap, OwnedTestRunner, TestRunner,
-    };
-
     use crate::traits::CwItRunner;
+    use crate::{
+        astroport::utils::AstroportContracts, robot::TestRobot, ContractMap, OwnedTestRunner,
+        TestRunner,
+    };
+    use cosmwasm_std::Addr;
 
     struct TestingRobot<'a> {
         runner: &'a TestRunner<'a>,
@@ -480,7 +480,7 @@ mod tests {
     pub const ARCH: Option<&str> = None;
 
     /// The path to the artifacts folder
-    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/c73a2db");
+    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/4d3be0e");
 
     /// Which TestRunner to use
     pub const TEST_RUNNER: &str = "osmosis-test-app";
@@ -503,7 +503,14 @@ mod tests {
 
     /// Helper to get a pair of native token asset infos.
     fn native_native_pair() -> [AssetInfo; 2] {
-        [native_info("uatom"), native_info("uion")]
+        [
+            AssetInfo::NativeToken {
+                denom: "uatom".to_string(),
+            },
+            AssetInfo::NativeToken {
+                denom: "uion".to_string(),
+            },
+        ]
     }
 
     /// Helper enum for choice of asset infos.
@@ -516,7 +523,14 @@ mod tests {
     fn get_asset_infos(choice: AssetChoice, astro_token: &str) -> [AssetInfo; 2] {
         match choice {
             AssetChoice::NativeNative => native_native_pair(),
-            AssetChoice::NativeCw20 => [native_info("uatom"), cw20_info(astro_token)],
+            AssetChoice::NativeCw20 => [
+                AssetInfo::NativeToken {
+                    denom: "uatom".to_string(),
+                },
+                AssetInfo::Token {
+                    contract_addr: Addr::unchecked(astro_token),
+                },
+            ],
         }
     }
 
@@ -565,9 +579,9 @@ mod tests {
         let contracts = &robot.astroport_contracts;
         let admin = &robot.accs[0];
 
-        let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
+        let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_cw20_token.address);
 
-        let (pair_addr, lp_token_addr) = robot.create_astroport_pair(
+        let (pair_addr, lp_token_denom) = robot.create_astroport_pair(
             pair_type.clone(),
             &asset_infos,
             init_params,
@@ -580,11 +594,12 @@ mod tests {
         let pair_info = robot.query_pair_info(&pair_addr);
         assert_eq!(pair_info.pair_type, pair_type);
         assert_eq!(pair_info.asset_infos, asset_infos.to_vec());
-        assert_eq!(pair_info.liquidity_token.to_string(), lp_token_addr);
+        assert_eq!(pair_info.liquidity_token.to_string(), lp_token_denom);
 
         if let Some(initial_liq) = initial_liquidity {
             // Check lp token balance
-            let lp_token_balance = robot.query_cw20_balance(&lp_token_addr, &admin.address());
+            let lp_token_balance =
+                robot.query_native_token_balance(admin.address(), lp_token_denom);
             assert_ne!(lp_token_balance, Uint128::zero());
 
             // Check pair reserves
@@ -616,9 +631,9 @@ mod tests {
         let admin = &robot.accs[0];
         let admin_addr = &admin.address();
 
-        let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_token.address);
+        let asset_infos = get_asset_infos(asset_info_choice, &contracts.astro_cw20_token.address);
         let initial_liquidity = Some(&[420420u128, 696969u128]);
-        let (pair_addr, _lp_token_addr) = robot.create_astroport_pair(
+        let (pair_addr, _lp_token_denom) = robot.create_astroport_pair(
             pair_type,
             &asset_infos,
             init_params,
@@ -677,9 +692,9 @@ mod tests {
         let admin = &robot.accs[0];
 
         let precision = robot
-            .add_denom_precision_to_coin_registry("uatom", 69, admin)
+            .add_denom_precision_to_coin_registry("uatom", 6, admin)
             .query_native_coin_registry("uatom")
             .unwrap();
-        assert_eq!(precision, 69);
+        assert_eq!(precision, 6);
     }
 }

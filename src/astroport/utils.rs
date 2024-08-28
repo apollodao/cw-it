@@ -7,40 +7,42 @@ use astroport::factory::{
     ExecuteMsg as AstroportFactoryExecuteMsg, InstantiateMsg as AstroportFactoryInstantiateMsg,
     PairConfig, PairType,
 };
-use astroport::generator::InstantiateMsg as GeneratorInstantiateMsg;
-use astroport::maker::InstantiateMsg as MakerInstantiateMsg;
-use astroport::native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
-use std::collections::HashMap;
-
-use astroport::liquidity_manager::InstantiateMsg as LiquidityManagerInstantiateMsg;
-use astroport::router::InstantiateMsg as RouterInstantiateMsg;
-use astroport::staking::InstantiateMsg as StakingInstantiateMsg;
-use astroport::token::InstantiateMsg as AstroTokenInstantiateMsg;
-use astroport::vesting::{
-    Cw20HookMsg as VestingHookMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
+use astroport::incentives::InstantiateMsg as IncentivesInstantiateMsg;
+use astroport_v2::asset::AssetInfo as AssetInfoV2;
+use astroport_v2::liquidity_manager::InstantiateMsg as LiquidityManagerInstantiateMsg;
+use astroport_v2::maker::InstantiateMsg as MakerInstantiateMsg;
+use astroport_v2::native_coin_registry::InstantiateMsg as CoinRegistryInstantiateMsg;
+use astroport_v2::router::InstantiateMsg as RouterInstantiateMsg;
+use astroport_v2::token::InstantiateMsg as AstroTokenInstantiateMsg;
+use astroport_v2::vesting::{
+    ExecuteMsg as VestingExecuteMsg, InstantiateMsg as VestingInstantiateMsg, VestingAccount,
     VestingSchedule, VestingSchedulePoint,
 };
-use astroport_v3::incentives::InstantiateMsg as IncentivesInstantiateMsg;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{to_json_binary, Addr, Binary, Coin, Event, Uint128, Uint64};
+use cosmwasm_std::{coin, Addr, Binary, Coin, Event, Uint128, Uint64};
 use cw20::{BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, MinterResponse};
-use test_tube::{Account, Module, Runner, SigningAccount, Wasm};
+use osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
+use osmosis_std::types::cosmos::base::v1beta1::Coin as OsmosisCoin;
+use osmosis_std::types::osmosis::tokenfactory::v1beta1::{
+    MsgCreateDenom, MsgCreateDenomResponse, MsgMint, MsgMintResponse,
+};
+use std::collections::HashMap;
+use test_tube::ExecuteResponse;
+use test_tube::{Account, Bank, Module, Runner, SigningAccount, Wasm};
 
-pub const ASTROPORT_CONTRACT_NAMES: [&str; 14] = [
+pub const ASTROPORT_CONTRACT_NAMES: [&str; 12] = [
     "astroport_token",
     "astroport_native_coin_registry",
     "astroport_factory",
-    "astroport_generator",
     "astroport_maker",
     "astroport_pair_stable",
     "astroport_pair",
     "astroport_router",
-    "astroport_staking",
     "astroport_vesting",
-    "astroport_whitelist",
-    "astroport_liquidity_manager",
     "astroport_pair_concentrated",
     "astroport_incentives",
+    "astroport_tokenfactory_tracker",
+    "astroport_liquidity_manager",
 ];
 
 #[cw_serde]
@@ -59,17 +61,15 @@ impl Contract {
 pub struct AstroportContracts {
     pub factory: Contract,
     pub coin_registry: Contract,
-    pub generator: Contract,
-    pub astro_token: Contract,
+    pub astro_cw20_token: Contract,
     pub maker: Contract,
     pub pair_stable: Contract,
     pub pair: Contract,
     pub router: Contract,
-    pub staking: Contract,
     pub vesting: Contract,
-    pub whitelist: Contract,
-    pub liquidity_manager: Contract,
     pub incentives: Contract,
+    pub liquidity_manager: Contract,
+    pub astro_native_denom: String,
 }
 
 impl AstroportContracts {
@@ -108,7 +108,7 @@ where
 {
     let wasm = Wasm::new(app);
 
-    // Instantiate astro token
+    // Instantiate old cw20 astro token for backwards compatibility
     println!("Instantiating astro token ...");
     let astro_token = wasm
         .instantiate(
@@ -167,6 +167,7 @@ where
                         maker_fee_bps: 3333,
                         total_fee_bps: 30,
                         pair_type: PairType::Xyk {},
+                        permissioned: false,
                     },
                     PairConfig {
                         code_id: code_ids["astroport_pair_stable"],
@@ -175,6 +176,7 @@ where
                         maker_fee_bps: 5000,
                         total_fee_bps: 5,
                         pair_type: PairType::Stable {},
+                        permissioned: false,
                     },
                     PairConfig {
                         code_id: code_ids["astroport_pair_concentrated"],
@@ -183,14 +185,16 @@ where
                         maker_fee_bps: 5000,
                         total_fee_bps: 0,
                         pair_type: PairType::Custom("concentrated".to_string()),
+                        permissioned: false,
                     },
                 ],
                 token_code_id: code_ids["astroport_token"], // TODO: is this correct or do we need another contract?
                 fee_address: None,
                 generator_address: None, // TODO: Set this
                 owner: admin.address(),
-                whitelist_code_id: code_ids["astroport_whitelist"],
+                whitelist_code_id: 0,
                 coin_registry_address: coin_registry.clone(),
+                tracker_config: None,
             },
             Some(&admin.address()),    // contract admin used for migration
             Some("Astroport Factory"), // contract label
@@ -218,6 +222,25 @@ where
         .data
         .address;
 
+    // Create astro native denom
+    let msg = MsgCreateDenom {
+        sender: admin.address(),
+        subdenom: "astro".to_string(),
+    };
+    let res: ExecuteResponse<MsgCreateDenomResponse> =
+        app.execute(msg, MsgCreateDenom::TYPE_URL, admin).unwrap();
+    let astro_native_denom = res.data.new_token_denom;
+    let msg = MsgMint {
+        sender: admin.address(),
+        amount: Some(OsmosisCoin {
+            denom: astro_native_denom.clone(),
+            amount: 1e18.to_string(),
+        }),
+        mint_to_address: admin.address(),
+    };
+    let _res: ExecuteResponse<MsgMintResponse> =
+        app.execute(msg, MsgMint::TYPE_URL, admin).unwrap();
+
     // Instantiate vesting
     println!("Instantiating vesting ...");
     let vesting = wasm
@@ -225,8 +248,8 @@ where
             code_ids["astroport_vesting"],
             &VestingInstantiateMsg {
                 owner: admin.address(),
-                vesting_token: AssetInfo::Token {
-                    contract_addr: Addr::unchecked(&astro_token),
+                vesting_token: AssetInfoV2::NativeToken {
+                    denom: astro_native_denom.clone(),
                 },
             },
             Some(&admin.address()),
@@ -238,49 +261,19 @@ where
         .data
         .address;
 
-    // Instantiate generator
-    println!("Instantiating generator ...");
-    let generator = wasm
-        .instantiate(
-            code_ids["astroport_generator"],
-            &GeneratorInstantiateMsg {
-                owner: admin.address(),
-                whitelist_code_id: code_ids["astroport_whitelist"],
-                factory: factory.clone(),
-                generator_controller: Some(admin.address()),
-                voting_escrow: None,
-                guardian: None,
-                astro_token: AssetInfo::Token {
-                    contract_addr: Addr::unchecked(&astro_token),
-                },
-                tokens_per_block: Uint128::from(10000000u128),
-                start_block: Uint64::one(),
-                vesting_contract: vesting.clone(),
-                voting_escrow_delegation: None,
-            },
-            Some(&admin.address()),    // contract admin used for migration
-            Some("Astroport Factory"), // contract label
-            &[],                       // funds
-            admin,                     // signer
-        )
-        .unwrap()
-        .data
-        .address;
-
-    // Instantiate incentives contract
-    println!("Instantiating incentives contract ...");
+    println!("Instantiating incentives ...");
     let incentives = wasm
         .instantiate(
             code_ids["astroport_incentives"],
             &IncentivesInstantiateMsg {
-                astro_token: astroport_v3::asset::AssetInfo::Token {
-                    contract_addr: Addr::unchecked(&astro_token),
-                },
+                owner: admin.address(),
                 factory: factory.clone(),
                 guardian: None,
-                incentivization_fee_info: None,
-                owner: admin.address(),
+                astro_token: AssetInfo::NativeToken {
+                    denom: astro_native_denom.clone(),
+                },
                 vesting_contract: vesting.clone(),
+                incentivization_fee_info: None,
             },
             Some(&admin.address()),       // contract admin used for migration
             Some("Astroport Incentives"), // contract label
@@ -297,7 +290,7 @@ where
         .execute(
             &factory,
             &AstroportFactoryExecuteMsg::UpdateConfig {
-                generator_address: Some(generator.clone()),
+                generator_address: Some(incentives.clone()),
                 fee_address: None,
                 token_code_id: None,
                 whitelist_code_id: None,
@@ -307,28 +300,6 @@ where
             admin,
         )
         .unwrap();
-
-    // Instantiate staking
-    println!("Instantiating staking ...");
-    let staking_code_id = code_ids.get("astroport_staking");
-    let staking = staking_code_id.map(|code_id| {
-        wasm.instantiate(
-            *code_id,
-            &StakingInstantiateMsg {
-                owner: admin.address(),
-                deposit_token_addr: astro_token.clone(),
-                token_code_id: code_ids["astroport_token"],
-                marketing: None,
-            },
-            Some(&admin.address()),    // contract admin used for migration
-            Some("Astroport Staking"), // contract label
-            &[],                       // funds
-            admin,                     // signer
-        )
-        .unwrap()
-        .data
-        .address
-    });
 
     // Instantiate Router
     println!("Instantiating router ...");
@@ -354,16 +325,16 @@ where
             code_ids["astroport_maker"],
             &MakerInstantiateMsg {
                 factory_contract: factory.clone(),
-                governance_contract: None,
-                governance_percent: None,
+                governance_contract: Some(admin.address()),
+                governance_percent: Some(Uint64::new(100u64)),
                 max_spread: None,
                 owner: admin.address(),
-                staking_contract: staking.clone(),
-                astro_token: AssetInfo::Token {
-                    contract_addr: Addr::unchecked(&astro_token),
+                staking_contract: None,
+                astro_token: AssetInfoV2::NativeToken {
+                    denom: astro_native_denom.clone(),
                 },
                 // TODO: Uncertain about this
-                default_bridge: Some(AssetInfo::NativeToken {
+                default_bridge: Some(AssetInfoV2::NativeToken {
                     denom: "uosmo".to_string(),
                 }),
                 second_receiver_params: None,
@@ -380,45 +351,46 @@ where
     // Register vesting for astro generator
     println!("Registering vesting for astro generator ...");
     let vesting_amount = Uint128::from(63072000000000u128);
-    let msg = Cw20ExecuteMsg::Send {
-        contract: vesting.clone(),
-        amount: vesting_amount,
-        msg: to_json_binary(&VestingHookMsg::RegisterVestingAccounts {
-            vesting_accounts: vec![VestingAccount {
-                address: generator.clone(),
-                schedules: vec![VestingSchedule {
-                    start_point: VestingSchedulePoint {
-                        amount: vesting_amount,
-                        time: 1664582400u64, //2022-10-01T00:00:00Z
-                    },
-                    end_point: None,
-                }],
+    let msg = VestingExecuteMsg::RegisterVestingAccounts {
+        vesting_accounts: vec![VestingAccount {
+            address: incentives.clone(),
+            schedules: vec![VestingSchedule {
+                start_point: VestingSchedulePoint {
+                    amount: vesting_amount,
+                    time: 1664582400u64, //2022-10-01T00:00:00Z
+                },
+                end_point: None,
             }],
-        })
-        .unwrap(),
+        }],
     };
-    let _res = wasm.execute(&astro_token, &msg, &[], admin).unwrap();
+    let _res = wasm
+        .execute(
+            &vesting,
+            &msg,
+            &[coin(vesting_amount.u128(), &astro_native_denom)],
+            admin,
+        )
+        .unwrap();
 
     AstroportContracts {
         factory: Contract::new(factory, code_ids["astroport_factory"]),
-        generator: Contract::new(generator, code_ids["astroport_generator"]),
-        staking: Contract::new(staking.unwrap_or_default(), code_ids["astroport_staking"]),
         router: Contract::new(router, code_ids["astroport_router"]),
         maker: Contract::new(maker, code_ids["astroport_maker"]),
         vesting: Contract::new(vesting, code_ids["astroport_vesting"]),
-        astro_token: Contract::new(astro_token, code_ids["astroport_token"]),
+        astro_cw20_token: Contract::new(astro_token, code_ids["astroport_token"]),
         coin_registry: Contract::new(coin_registry, code_ids["astroport_native_coin_registry"]),
         pair_stable: Contract::new(String::from(""), code_ids["astroport_pair_stable"]),
         pair: Contract::new(String::from(""), code_ids["astroport_pair"]),
-        whitelist: Contract::new(String::from(""), code_ids["astroport_whitelist"]),
+        incentives: Contract::new(incentives, code_ids["astroport_incentives"]),
         liquidity_manager: Contract::new(
             liquidity_manager,
             code_ids["astroport_liquidity_manager"],
         ),
-        incentives: Contract::new(incentives, code_ids["astroport_incentives"]),
+        astro_native_denom: astro_native_denom.clone(),
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_astroport_pair<'a, R>(
     app: &'a R,
     factory_addr: &str,
@@ -427,6 +399,7 @@ pub fn create_astroport_pair<'a, R>(
     init_params: Option<Binary>,
     signer: &SigningAccount,
     initial_liquidity: Option<[Uint128; 2]>,
+    denom_creation_fee: &[Coin],
 ) -> (String, String)
 where
     R: Runner<'a>,
@@ -438,10 +411,12 @@ where
         asset_infos: asset_infos.to_vec(),
         init_params,
     };
-    let res = wasm.execute(factory_addr, &msg, &[], signer).unwrap();
+    let res = wasm
+        .execute(factory_addr, &msg, denom_creation_fee, signer)
+        .unwrap();
 
     // Get pair and lp_token addresses from event
-    let (pair_addr, lp_token_addr) = parse_astroport_create_pair_events(&res.events);
+    let (pair_addr, lp_token) = parse_astroport_create_pair_events(&res.events);
 
     if let Some(initial_liquidity) = initial_liquidity {
         let assets = asset_infos
@@ -452,44 +427,77 @@ where
         provide_liquidity(app, &pair_addr, assets, signer);
     }
 
-    (pair_addr, lp_token_addr)
+    (pair_addr, lp_token)
 }
 
 pub fn parse_astroport_create_pair_events(events: &[Event]) -> (String, String) {
     let mut pair_addr = String::from("");
-    let mut lp_token = String::from("");
+    let mut lp_token_addr = String::from("");
+    let mut lp_token_denom = String::from("");
+
     for event in events {
         if event.ty == "wasm" {
             let attributes = &event.attributes;
             for attr in attributes {
                 if attr.key == "pair_contract_addr" {
-                    pair_addr = attr.value.clone();
+                    pair_addr.clone_from(&attr.value);
                 }
                 if attr.key == "liquidity_token_addr" {
-                    lp_token = attr.value.clone();
+                    lp_token_addr.clone_from(&attr.value);
+                }
+                if attr.key == "lp_denom" {
+                    lp_token_denom.clone_from(&attr.value);
                 }
             }
         }
     }
+
+    let lp_token = if lp_token_denom.is_empty() {
+        lp_token_addr
+    } else {
+        lp_token_denom
+    };
+
     (pair_addr, lp_token)
 }
 
-pub fn get_lp_token_balance<'a, R>(wasm: &Wasm<'a, R>, pair_addr: &str, address: &str) -> Uint128
+pub fn get_lp_token_balance<'a, R>(
+    runner: &'a R,
+    pair_addr: &str,
+    address: &SigningAccount,
+) -> Uint128
 where
     R: Runner<'a>,
 {
+    let wasm = Wasm::new(runner);
+    let bank = Bank::new(runner);
     // Get lp token address
     let msg = astroport::pair::QueryMsg::Pair {};
-    let lp_token_addr = wasm
+    let lp_token = wasm
         .query::<_, astroport::asset::PairInfo>(pair_addr, &msg)
         .unwrap()
         .liquidity_token;
 
-    let msg = Cw20QueryMsg::Balance {
-        address: address.to_string(),
+    let balance = if lp_token.starts_with(address.prefix()) {
+        let msg = Cw20QueryMsg::Balance {
+            address: address.address(),
+        };
+        let res: BalanceResponse = wasm.query(lp_token.as_ref(), &msg).unwrap();
+        res.balance
+    } else {
+        bank.query_balance(&QueryBalanceRequest {
+            address: address.address().clone(),
+            denom: lp_token,
+        })
+        .unwrap()
+        .balance
+        .unwrap_or_default()
+        .amount
+        .parse()
+        .unwrap()
     };
-    let res: BalanceResponse = wasm.query(lp_token_addr.as_ref(), &msg).unwrap();
-    res.balance
+
+    balance
 }
 
 /// Converts a Coin to an Astroport Asset
@@ -544,7 +552,7 @@ where
     let wasm = Wasm::new(app);
 
     // Get lp token balance before providing liquidity
-    let lp_token_balance_before = get_lp_token_balance(&wasm, pair_addr, &signer.address());
+    let lp_token_balance_before = get_lp_token_balance(app, pair_addr, signer);
 
     // Increase allowance for cw20 tokens and add coins to funds
     let mut funds = vec![];
@@ -577,11 +585,12 @@ where
         slippage_tolerance: None,
         receiver: None,
         auto_stake: Some(false),
+        min_lp_to_receive: None,
     };
     wasm.execute(pair_addr, &msg, &funds, signer).unwrap();
 
     // Get lp token balance after providing liquidity
-    let lp_token_balance_after = get_lp_token_balance(&wasm, pair_addr, &signer.address());
+    let lp_token_balance_after = get_lp_token_balance(app, pair_addr, signer);
 
     // Return lp token balance difference
     lp_token_balance_after - lp_token_balance_before
@@ -657,13 +666,10 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
         "astroport_maker",
         "astroport_token",
         "astroport_router",
-        "astroport_vesting",
-        "astroport_whitelist"
+        "astroport_vesting" // "astroport_whitelist"
     );
 
     contract_wrappers.extend(create_contract_wrappers_with_reply!(
-        "astroport_generator",
-        "astroport_staking",
         "astroport_factory",
         "astroport_pair_stable",
         "astroport_pair"
@@ -715,14 +721,10 @@ pub fn get_astroport_multitest_contracts() -> HashMap<String, ContractType> {
 #[allow(dead_code)]
 #[cfg(test)]
 mod tests {
-    use astroport::{
-        asset::{Asset, AssetInfo},
-        factory::PairType,
-    };
-    use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
-    use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
+    use astroport::asset::{Asset, AssetInfo};
+    use cosmwasm_std::{Coin, Decimal, Uint128};
     use osmosis_std::types::cosmos::bank::v1beta1::QueryAllBalancesRequest;
-
+    use osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
     use test_tube::{Account, Bank, Module, Wasm};
 
     use crate::{
@@ -747,8 +749,8 @@ mod tests {
 
     #[cfg(feature = "chain-download")]
     use {
-        super::get_wasm_path, crate::artifact::Artifact, crate::artifact::ChainArtifact,
-        crate::ContractType, std::collections::HashMap,
+        super::get_wasm_path, crate::artifact::ChainArtifact, crate::ContractType,
+        std::collections::HashMap,
     };
 
     #[cfg(feature = "rpc-runner")]
@@ -762,7 +764,7 @@ mod tests {
     pub const ARCH: Option<&str> = None;
 
     /// The path to the artifacts folder
-    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/c73a2db");
+    pub const ARTIFACTS_PATH: Option<&str> = Some("artifacts/4d3be0e");
 
     #[cfg(feature = "chain-download")]
     /// The Neutron testnet RPC to use to download wasm files
@@ -827,7 +829,7 @@ mod tests {
     #[cfg(feature = "chain-download")]
     /// Get artifacts from Neutron testnet
     fn get_neutron_testnet_artifacts() -> HashMap<String, ContractType> {
-        let mut artifacts = NEUTRON_CONTRACT_ADDRESSES
+        let artifacts = NEUTRON_CONTRACT_ADDRESSES
             .iter()
             .map(|(name, chain_artifact)| {
                 (
@@ -836,16 +838,6 @@ mod tests {
                 )
             })
             .collect::<HashMap<String, ContractType>>();
-        // Staking contract not deployed on Neutron testnet
-        artifacts.insert(
-            "astroport_staking".to_string(),
-            ContractType::Artifact(Artifact::Local(get_wasm_path(
-                "astroport_staking",
-                &ARTIFACTS_PATH,
-                APPEND_ARCH,
-                &ARCH,
-            ))),
-        );
         artifacts
     }
 
@@ -879,7 +871,7 @@ mod tests {
     pub fn test_with_rpc_runner() {
         let runner = get_rpc_runner();
         let contracts = get_local_contracts(&runner.as_ref());
-        test_instantiate_astroport(runner.as_ref(), contracts);
+        test_instantiate_astroport(runner.as_ref(), contracts, &[]);
     }
 
     #[cfg(feature = "chain-download")]
@@ -889,7 +881,7 @@ mod tests {
     pub fn test_with_neutron_testnet_artifacts() {
         let runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
         let contracts = get_neutron_testnet_artifacts();
-        test_instantiate_astroport(runner.as_ref(), contracts);
+        test_instantiate_astroport(runner.as_ref(), contracts, &[]);
     }
 
     fn get_fee_denom<'a>(runner: &'a TestRunner) -> &'a str {
@@ -906,10 +898,48 @@ mod tests {
     fn test_with_local_artifacts() {
         let runner = OwnedTestRunner::from_str(TEST_RUNNER).unwrap();
         let contracts = get_local_contracts(&runner.as_ref());
-        test_instantiate_astroport(runner.as_ref(), contracts);
+        test_instantiate_astroport(runner.as_ref(), contracts, &[]);
     }
 
-    pub fn test_instantiate_astroport(app: TestRunner, contracts: ContractMap) {
+    /// Feature-gated because we use MultiTestRunner, change the TEST_RUNNER const to use a different runner
+    #[cfg(feature = "astroport-multi-test")]
+    mod multi_test {
+        use super::get_local_contracts;
+        use apollo_cw_multi_test::{StargateKeeper, StargateMessageHandler};
+        use cosmwasm_std::coin;
+
+        use crate::{
+            multi_test::{modules::TokenFactory, MultiTestRunner},
+            OwnedTestRunner,
+        };
+
+        use super::test_instantiate_astroport;
+
+        const TOKEN_FACTORY: &TokenFactory =
+            &TokenFactory::new("factory", 32, 16, 59 + 16, "10000000uosmo");
+
+        #[test]
+        fn test_with_multi_test_runner() {
+            let mut stargate_keeper = StargateKeeper::new();
+            TOKEN_FACTORY.register_msgs(&mut stargate_keeper);
+            let runner = OwnedTestRunner::MultiTest(MultiTestRunner::new_with_stargate(
+                "osmo",
+                stargate_keeper,
+            ));
+            let contracts = get_local_contracts(&runner.as_ref());
+            test_instantiate_astroport(
+                runner.as_ref(),
+                contracts,
+                &[coin(10_000_000u128, "uosmo")],
+            );
+        }
+    }
+
+    pub fn test_instantiate_astroport(
+        app: TestRunner,
+        contracts: ContractMap,
+        denom_creation_fee: &[Coin],
+    ) {
         let accs = app.init_default_accounts().unwrap();
         let native_denom = get_fee_denom(&app);
         let wasm = Wasm::new(&app);
@@ -935,46 +965,20 @@ mod tests {
             AssetInfo::NativeToken {
                 denom: native_denom.into(),
             },
-            AssetInfo::Token {
-                contract_addr: Addr::unchecked(&contracts.astro_token.address),
+            AssetInfo::NativeToken {
+                denom: contracts.astro_native_denom.clone(),
             },
         ];
         let (uluna_astro_pair_addr, uluna_astro_lp_token) = create_astroport_pair(
             &app,
             &contracts.factory.address,
-            PairType::Xyk {},
+            astroport::factory::PairType::Xyk {},
             asset_infos,
             None,
             admin,
             None,
+            denom_creation_fee,
         );
-
-        // Increase allowance of astro token
-        let increase_allowance_msg = Cw20ExecuteMsg::IncreaseAllowance {
-            spender: uluna_astro_pair_addr.clone(),
-            amount: Uint128::from(1000000000u128),
-            expires: None,
-        };
-        let _res = wasm
-            .execute(
-                &contracts.astro_token.address,
-                &increase_allowance_msg,
-                &[],
-                admin,
-            )
-            .unwrap();
-
-        // Query allowance
-        let allowance_res: AllowanceResponse = wasm
-            .query(
-                &contracts.astro_token.address,
-                &Cw20QueryMsg::Allowance {
-                    owner: admin.address(),
-                    spender: uluna_astro_pair_addr.clone(),
-                },
-            )
-            .unwrap();
-        assert_eq!(allowance_res.allowance, Uint128::from(1000000000u128));
 
         // Provide liquidity to XYK pool
         let provide_liq_msg = PairExecuteMsg::ProvideLiquidity {
@@ -987,35 +991,43 @@ mod tests {
                 },
                 Asset {
                     amount: Uint128::from(690000000u128),
-                    info: AssetInfo::Token {
-                        contract_addr: Addr::unchecked(&contracts.astro_token.address),
+                    info: AssetInfo::NativeToken {
+                        denom: contracts.astro_native_denom.clone(),
                     },
                 },
             ],
             slippage_tolerance: Some(Decimal::from_str("0.02").unwrap()),
             auto_stake: Some(false),
             receiver: None,
+            min_lp_to_receive: None,
         };
-        let _res = wasm.execute(
-            &uluna_astro_pair_addr,
-            &provide_liq_msg,
-            &[Coin {
-                amount: Uint128::from(420000000u128),
-                denom: native_denom.into(),
-            }],
-            admin,
-        );
-
-        // Query LP token balance
-        let lp_token_balance: BalanceResponse = wasm
-            .query(
-                &uluna_astro_lp_token,
-                &Cw20QueryMsg::Balance {
-                    address: admin.address(),
-                },
+        let _res = wasm
+            .execute(
+                &uluna_astro_pair_addr,
+                &provide_liq_msg,
+                &[
+                    Coin {
+                        amount: Uint128::from(690000000u128),
+                        denom: contracts.astro_native_denom.clone(),
+                    },
+                    Coin {
+                        amount: Uint128::from(420000000u128),
+                        denom: native_denom.into(),
+                    },
+                ],
+                admin,
             )
             .unwrap();
-        println!("LP token balance: {:?}", lp_token_balance);
-        assert!(lp_token_balance.balance > Uint128::zero());
+
+        let lp_token_balance = bank
+            .query_balance(&QueryBalanceRequest {
+                address: admin.address(),
+                denom: uluna_astro_lp_token,
+            })
+            .unwrap();
+
+        assert!(
+            Uint128::from_str(&lp_token_balance.balance.unwrap().amount).unwrap() > Uint128::zero()
+        );
     }
 }

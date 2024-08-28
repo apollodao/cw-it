@@ -160,9 +160,16 @@ impl TokenFactory<'_> {
             bail!("Invalid zero amount");
         }
 
+        // Determine recipient
+        let recipient = if msg.mint_to_address.is_empty() {
+            msg.sender.clone()
+        } else {
+            msg.mint_to_address.clone()
+        };
+
         // Mint through BankKeeper sudo method
         let mint_msg = BankSudo::Mint {
-            to_address: sender.to_string(),
+            to_address: recipient.clone(),
             amount: vec![Coin {
                 denom: denom.clone(),
                 amount,
@@ -175,7 +182,10 @@ impl TokenFactory<'_> {
         res.data = Some(data.into());
         res.events.push(
             Event::new("tf_mint")
-                .add_attribute("mint_to_address", "sender")
+                .add_attribute("sender", msg.sender)
+                .add_attribute("mint_to_address", msg.mint_to_address)
+                .add_attribute("recipient", recipient)
+                .add_attribute("denom", denom)
                 .add_attribute("amount", amount.to_string()),
         );
         Ok(res)

@@ -1,5 +1,9 @@
+use crate::multi_test::api::MockApiBech32;
+use crate::{traits::CwItRunner, ContractType};
 use anyhow::bail;
-use apollo_cw_multi_test::{BankSudo, BasicAppBuilder};
+use apollo_cw_multi_test::{
+    BankKeeper, BankSudo, BasicAppBuilder, MockAddressGenerator, WasmKeeper,
+};
 use cosmrs::{crypto::secp256k1::SigningKey, proto::cosmos::base::abci::v1beta1::GasInfo};
 use cosmwasm_std::{
     coin, Addr, BankMsg, Binary, Coin, CosmosMsg, Empty, QueryRequest, StakingMsg, WasmMsg,
@@ -21,10 +25,8 @@ use test_tube::{
     Account, DecodeError, EncodeError, FeeSetting, Runner, RunnerError, SigningAccount,
 };
 
-use crate::{traits::CwItRunner, ContractType};
-
 pub struct MultiTestRunner<'a> {
-    pub app: apollo_cw_multi_test::App,
+    pub app: apollo_cw_multi_test::App<BankKeeper, MockApiBech32<'a>>,
     pub address_prefix: &'a str,
 }
 
@@ -33,7 +35,13 @@ impl<'a> MultiTestRunner<'a> {
     /// with the given address prefix.
     pub fn new(address_prefix: &'a str) -> Self {
         // Construct app
-        let app = BasicAppBuilder::<Empty, Empty>::new().build(|_, _, _| {});
+        let wasm_keeper: WasmKeeper<Empty, Empty> =
+            WasmKeeper::new_with_custom_address_generator(MockAddressGenerator);
+
+        let app = BasicAppBuilder::<Empty, Empty>::new()
+            .with_api(MockApiBech32::new(address_prefix))
+            .with_wasm(wasm_keeper)
+            .build(|_, _, _| {});
 
         Self {
             app,
@@ -48,8 +56,13 @@ impl<'a> MultiTestRunner<'a> {
         address_prefix: &'a str,
         stargate_keeper: apollo_cw_multi_test::StargateKeeper<Empty, Empty>,
     ) -> Self {
+        let wasm_keeper: WasmKeeper<Empty, Empty> =
+            WasmKeeper::new_with_custom_address_generator(MockAddressGenerator);
+
         // Construct app
         let app = BasicAppBuilder::<Empty, Empty>::new()
+            .with_api(MockApiBech32::new(address_prefix))
+            .with_wasm(wasm_keeper)
             .with_stargate(stargate_keeper)
             .build(|_, _, _| {});
 
@@ -275,6 +288,13 @@ impl Runner<'_> for MultiTestRunner<'_> {
             })
             .map_err(|e| RunnerError::GenericError(e.to_string()))
     }
+
+    fn execute_tx(
+        &self,
+        _tx_bytes: &[u8],
+    ) -> test_tube::RunnerResult<cosmrs::proto::tendermint::v0_37::abci::ResponseDeliverTx> {
+        todo!()
+    }
 }
 
 impl<'a> CwItRunner<'a> for MultiTestRunner<'a> {
@@ -348,7 +368,10 @@ mod tests {
     use cosmrs::proto::cosmos::bank::v1beta1::MsgSendResponse;
     use cosmwasm_std::{coin, Event, Uint128};
 
+    use crate::test_helpers::*;
+    use crate::{artifact::Artifact, helpers::upload_wasm_file};
     use apollo_cw_multi_test::ContractWrapper;
+
     use cw20::MinterResponse;
     use osmosis_std::types::cosmos::bank::v1beta1::{
         QueryBalanceRequest, QuerySupplyOfRequest, QueryTotalSupplyRequest,
@@ -359,10 +382,6 @@ mod tests {
         cosmwasm::wasm::v1::MsgInstantiateContractResponse,
     };
     use test_tube::{Bank, Module, RunnerExecuteResult, Wasm};
-
-    use crate::{artifact::Artifact, helpers::upload_wasm_file};
-
-    use crate::test_helpers::*;
 
     use super::*;
 
@@ -477,6 +496,7 @@ mod tests {
     #[test]
     fn wasm_smart_query_contract() {
         let app = MultiTestRunner::new("osmo");
+
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
         let res = instantiate_astro_token(&app, &alice).unwrap();
@@ -511,10 +531,10 @@ mod tests {
     #[test]
     fn wasm_contract_info_query() {
         let app = MultiTestRunner::new("osmo");
+
         let alice = app.init_account(&[coin(1000, "uosmo")]).unwrap();
 
         let res = instantiate_astro_token(&app, &alice).unwrap();
-
         let contract_addr = res.data.address;
 
         let res = QueryContractInfoRequest {

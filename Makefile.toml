@@ -9,8 +9,8 @@ skip_core_tasks = true
 RUST_OPTIMIZER_VERSION = "0.15.0"
 # Use rust version from rust-optimizer Dockerfile (see https://github.com/CosmWasm/rust-optimizer/blob/main/Dockerfile#L1)
 # to be sure that we compile / test against the same version
-RUST_VERSION = "1.75.0"
-NIGHTLY_VERSION = "nightly-2023-08-29"
+RUST_VERSION = "1.79.0"
+NIGHTLY_VERSION = "nightly-2024-06-25"
 
 [tasks.install-stable]
 script = '''
@@ -44,12 +44,12 @@ docker run --rm -v "$(pwd)":/code \
 """
 
 [tasks.format]
-toolchain = "${NIGHTLY_VERSION}"
+toolchain = "${RUST_VERSION}"
 install_crate = { crate_name = "rustfmt-nightly", rustup_component_name = "rustfmt-preview", binary = "rustfmt", test_arg = "--help" }
 command = "cargo"
 args = ["fmt", "--all", "--", "--emit=files","--verbose"]
 [tasks.format-check]
-toolchain = "${NIGHTLY_VERSION}"
+toolchain = "${RUST_VERSION}"
 install_crate = { crate_name = "rustfmt-nightly", rustup_component_name = "rustfmt-preview", binary = "rustfmt", test_arg = "--help" }
 command = "cargo"
 args = ["fmt", "--all", "--","--verbose", "--check"]
@@ -64,11 +64,11 @@ command = "cargo"
 args = ["check",  "--all-features"]
 
 [tasks.clippy-check]
-toolchain = "${NIGHTLY_VERSION}"
+toolchain = "${RUST_VERSION}"
 command = "cargo"
 args = ["clippy","--all-features","--","-D","warnings"]
 [tasks.clippy-fix]
-toolchain = "${NIGHTLY_VERSION}"
+toolchain = "${RUST_VERSION}"
 command = "cargo"
 args = ["clippy","--all-features", "--fix","--allow-staged", "--allow-dirty", "--","-D","warnings"]
 
@@ -108,7 +108,7 @@ args = [
 
 # This task requires the `cargo-machete` package: https://crates.io/crates/cargo-machete
 [tasks.machete-check]
-toolchain = "${NIGHTLY_VERSION}"
+toolchain = "${RUST_VERSION}"
 command = "cargo"
 args = ["machete"]
 [tasks.machete-fix]

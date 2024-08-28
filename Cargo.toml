@@ -1,6 +1,6 @@
 [package]
 name        = "cw-it"
-version     = "0.3.1"
+version     = "0.4.0"
 authors     = ["Pacman <pacman@apollo.farm>", "Sturdy <sturdy@apollo.farm>"]
 edition     = "2021"
 license     = "MPL-2.0"
@@ -33,18 +33,17 @@ overflow-checks  = true
 
 [features]
 default = []
-astroport = ["cw20", "dep:astroport", "dep:astroport_v3"]
+astroport = ["cw20", "dep:astroport", "dep:astroport_v2"]
 osmosis = ["proptest", "apollo-utils", "osmosis-test-tube"]
 rpc-runner = ["bip32"]
 chain-download = ["tokio"]
-multi-test = ["apollo-cw-multi-test", "paste", "regex"]
+multi-test = ["bech32", "sha2", "apollo-cw-multi-test", "paste", "regex"]
 astroport-multi-test = [
   "multi-test",
   "astroport",
   "astroport-token",
   "astroport-native-coin-registry",
   "astroport-factory",
-  "astroport-generator",
   "astroport-maker",
   "astroport-pair-stable",
   "astroport-pair",
@@ -52,9 +51,9 @@ astroport-multi-test = [
   "astroport-staking",
   "astroport-vesting",
   "astroport-whitelist",
-  "astroport-liquidity-manager",
   "astroport-pair-concentrated",
-  "astroport-incentives"
+  "astroport-incentives",
+  "astroport-liquidity-manager",
 ]
 osmosis-test-tube = ["dep:osmosis-test-tube"]
 
@@ -70,11 +69,11 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.cargo-machete]
-ignored = ["astroport-token", "astroport-native-coin-registry", "astroport-factory", "astroport-generator", "astroport-maker", "astroport-pair-stable", "astroport-pair", "astroport-router", "astroport-staking", "astroport-vesting", "astroport-whitelist"]
+ignored = ["astroport-token", "astroport-native-coin-registry", "astroport-factory", "astroport-maker", "astroport-pair-stable", "astroport-pair", "astroport-router", "astroport-staking", "astroport-vesting", "astroport-whitelist", "astroport-liquidity-manager"]
 
 [dependencies]
 bip32 = { version = "0.5", features = ["bip39"], optional = true }
-cosmwasm-std = { version = "1.5.0", features = ["stargate"] }
+cosmwasm-std = { version = "1.5.5", features = ["stargate"] }
 serde = { version = "1.0.152", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
 cosmwasm-schema = "1.2.1"
@@ -82,33 +81,32 @@ cosmrs = { version = "0.15", features = ["rpc", "cosmwasm"] }
 prost = { version = "0.12", default-features = false, features = [
   "prost-derive",
 ] }
-config = { version = "0.13.2", features = ["yaml"] }
+config = { version = "0.14.0", features = ["yaml"] }
 anyhow = "1.0.66"
 strum = { version = "0.24.1", features = ["derive"] }
-osmosis-std = "0.22.0"
-test-tube = { version = "0.5.0", features = ["module-wrappers"] }
-osmosis-test-tube = { version = "22.1.0", optional = true }
+osmosis-std = "0.25.0"
+test-tube = { version = "0.7.0", features = ["module-wrappers"] }
+osmosis-test-tube = { version = "25.0.0", optional = true }
 
 # Astroport deps
-astroport = { version = "2.9.0", optional = true }
-astroport_v3 = { package = "astroport", version = "3.11.1", optional = true}
+astroport_v2 = { package = "astroport", version = "2.9.0", optional = true }
+astroport = { version = "5.2.0", optional = true }
 cw20 = { version = "0.15", optional = true }
 
 # Astroport contracts for multi-test
 astroport-token = { version = "=1.1.1", optional = true, features = ["library"] }
 astroport-native-coin-registry = { version = "=1.0.1", optional = true, features = ["library"] }
-astroport-factory = { version = "=1.5.1", optional = true, features = ["library"] }
-astroport-generator = { version = "=2.3.0", optional = true }
-astroport-maker = { version = "=1.3.1", optional = true }
-astroport-pair-stable = { version = "=2.1.3", optional = true, features = ["library"] }
-astroport-pair = { version = "=1.3.2", optional = true }
-astroport-router = { version = "=1.2.0", optional = true }
-astroport-staking = { version = "=1.1.0", optional = true }
-astroport-vesting = { version = "=1.3.1", optional = true, features = ["library"] }
-astroport-whitelist = { version = "=1.0.1", optional = true, features = ["library"] }
-astroport-liquidity-manager = { version = "=1.0.3-astroport-v2", optional = true, features = ["library"] }
-astroport-pair-concentrated = { version = "=1.2.7", optional = true, features = ["library"] }
-astroport-incentives = { version = "=1.0.0", optional = true, features = ["library"] }
+astroport-factory = { version = "=1.8.0", optional = true, features = ["library"] }
+astroport-maker = { version = "=1.5.0", optional = true }
+astroport-pair-stable = { version = "=4.0.0", optional = true, features = ["library"] }
+astroport-pair = { version = "=2.0.1", optional = true }
+astroport-router = { version = "=1.2.1", optional = true }
+astroport-staking = { version = "=2.1.0", optional = true }
+astroport-vesting = { version = "=1.4.0", optional = true, features = ["library"] }
+astroport-whitelist = { version = "=2.0.0", optional = true, features = ["library"] }
+astroport-pair-concentrated = { version = "=4.0.2", optional = true, features = ["library"] }
+astroport-incentives = { version = "=1.1.0", optional = true, features = ["library"] }
+astroport-liquidity-manager = { version = "=1.0.4", optional = true, features = ["library"] }
 
 # Osmosis deps
 proptest     = { version = "1.0.0", optional = true }
@@ -116,7 +114,9 @@ apollo-utils = { version = "0.1.1", optional = true }
 regex        = { version = "1.7.3", optional = true }
 
 # Cw-multi-test deps
-apollo-cw-multi-test = { version = "0.18.0", features = ["stargate"], optional = true }
+apollo-cw-multi-test = { version = "0.19.0", features = ["stargate"], optional = true }
+bech32 = { version = "0.11.0", optional = true }
+sha2 = { version = "0.10.8", optional = true }
 paste         = { version = "1.0.12", optional = true }
 
 # RPC Runner and chain-download deps

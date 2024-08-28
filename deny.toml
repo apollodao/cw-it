@@ -12,7 +12,10 @@ vulnerability = "deny"
 unmaintained = "deny"
 notice = "deny"
 unsound = "deny"
-ignore = []
+ignore = [
+    "RUSTSEC-2024-0320",  # "yaml-rust is unmaintained"
+    "RUSTSEC-2024-0344" # Confirmed as not applicable to CosmWasm: https://github.com/CosmWasm/cosmwasm/issues/2175#issuecomment-2180960022
+]
 
 [bans]
 multiple-versions = "allow"
@@ -35,7 +38,18 @@ allow = ["Apache-2.0", "MIT", "BSD-3-Clause", "MPL-2.0", "ISC"]
 exceptions = [
     { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
     { allow = ["OpenSSL"], name = "ring" },
-    { allow = ["GPL-3.0"], name = "astroport-incentives" }
+    { allow = ["GPL-3.0"], name = "astroport-incentives" },
+    { allow = ["GPL-3.0"], name = "astroport-factory" },
+    { allow = ["GPL-3.0"], name = "astroport-maker" },
+    { allow = ["GPL-3.0"], name = "astroport-pair" },
+    { allow = ["GPL-3.0"], name = "astroport-pair-concentrated" },
+    { allow = ["GPL-3.0"], name = "astroport-pair-stable" },
+    { allow = ["GPL-3.0"], name = "astroport-pcl-common" },
+    { allow = ["GPL-3.0"], name = "astroport-router" },
+    { allow = ["GPL-3.0"], name = "astroport-vesting" },
+    { allow = ["GPL-3.0"], name = "astroport-staking" },
+    { allow = ["GPL-3.0"], name = "astroport-liquidity-manager" },
+    { allow = ["CC0-1.0"], name = "tiny-keccak" }
 ]
 
 [[licenses.clarify]]
